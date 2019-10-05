@@ -1,0 +1,5 @@
+div > * {
+  display:block;
+  float:none;
+  clear: both;
+}
