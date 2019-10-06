@@ -525,7 +525,7 @@ export abstract class AbstractRepository {
     });
   }
 
-  public get(query?: IQuery, watch?: boolean, subscribeUntil?: ISubscribeUntil): BehaviorSubject<any[]> {
+  public get(query?: IQuery, watch?: boolean, subscribeUntil?: ISubscribeUntil): any | BehaviorSubject<AbstractModel> {
     const subject = new BehaviorSubject<any[]>([]);
 
     if (!watch) {
