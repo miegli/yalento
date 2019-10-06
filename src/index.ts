@@ -1,2 +1,2 @@
-export * from './abstractModel'
-export * from './abstractRepository'
+export * from './abstractModel';
+export * from './abstractRepository';
