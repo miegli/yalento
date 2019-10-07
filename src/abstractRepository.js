@@ -8,7 +8,10 @@ class AbstractRepository {
     constructor(firestore) {
         this.status$ = new rxjs_1.BehaviorSubject({});
         this.path = '/undefined';
+        this.isSelectedAll$ = new rxjs_1.BehaviorSubject(false);
+        this.hasSelected$ = new rxjs_1.BehaviorSubject(false);
         this._findAllTemporaryArray = {};
+        this._isSelected = {};
         this._uuid = guid_typescript_1.Guid.create().toString();
         this._lastAddedIndex = 0;
         this._modelHashes = {};
@@ -27,6 +30,42 @@ class AbstractRepository {
         if (this.constructor.name !== 'AbstractRepository' && this.constructor.name.substr(-10) === 'Repository') {
             this.path = this.constructor.name.substr(0, this.constructor.name.length - 10).toLowerCase();
         }
+    }
+    toggleSelection(model) {
+        if (!this._isSelected[this._uuid]) {
+            this._isSelected[this._uuid] = {};
+        }
+        if (model) {
+            this._isSelected[this._uuid][model.getIdentifier()] = !this._isSelected[this._uuid][model.getIdentifier()];
+            model._isSelected = !model._isSelected;
+        }
+        if (!model) {
+            if (this.isSelectedAll$.getValue()) {
+                this._isSelected[this._uuid] = {};
+                Object.keys(this._findAllTemporaryArray[this._uuid]['reference']).forEach((key) => {
+                    this._findAllTemporaryArray[this._uuid]['reference'][key]['_isSelected'] = false;
+                });
+            }
+            else {
+                Object.keys(this._findAllTemporaryArray[this._uuid]['reference']).forEach((key) => {
+                    this._isSelected[this._uuid][key] = true;
+                    this._findAllTemporaryArray[this._uuid]['reference'][key]['_isSelected'] = true;
+                });
+            }
+        }
+        this.updateIsSelectedAll();
+    }
+    getSelected() {
+        const selected = [];
+        if (!this._isSelected[this._uuid]) {
+            return selected;
+        }
+        Object.keys(this._isSelected[this._uuid]).forEach((key) => {
+            if (this._isSelected[this._uuid][key] === true && this._findAllTemporaryArray[this._uuid]['reference'][key]) {
+                selected.push(this._findAllTemporaryArray[this._uuid]['reference'][key]);
+            }
+        });
+        return selected;
     }
     setModel(model) {
         this.model = model;
@@ -177,6 +216,7 @@ class AbstractRepository {
                         .doc(path + '/' + item.getIdentifier())
                         .update(data)
                         .then(() => {
+                        item.setChanges(false);
                         resolve(item);
                     })
                         .catch((e) => {
@@ -256,6 +296,21 @@ class AbstractRepository {
                 .catch();
         });
     }
+    removeSelected() {
+        const selected = this.getSelected();
+        return new Promise((resolve, reject) => {
+            if (selected.length === 0) {
+                resolve();
+            }
+            else {
+                this.remove(selected).then(() => {
+                    resolve();
+                }).catch((e) => {
+                    reject(e);
+                });
+            }
+        });
+    }
     remove(item) {
         if (typeof item !== 'string' && item instanceof abstractModel_1.AbstractModel === false && typeof item.length !== 'undefined') {
             return new Promise((resolve, reject) => {
@@ -310,6 +365,7 @@ class AbstractRepository {
                     identifier: identifier,
                     action: 'remove',
                 });
+                this.updateIsSelectedAll();
                 resolve(true);
             })
                 .catch((e) => {
@@ -320,6 +376,7 @@ class AbstractRepository {
                     identifier: identifier,
                     action: 'remove',
                 });
+                this.updateIsSelectedAll();
                 reject(e);
             });
         });
@@ -335,7 +392,7 @@ class AbstractRepository {
             }
             if (this.firestore.constructor.name === 'AngularFirestore') {
                 watch = watchForChanges === undefined ? true : watchForChanges;
-                if (watch) {
+                if (!watch) {
                     const subscriber = this.firestore
                         .doc(this.getPath() + '/' + identifier)
                         .get()
@@ -433,13 +490,6 @@ class AbstractRepository {
                 }
             }
         });
-    }
-    get(query, watch, subscribeUntil) {
-        const subject = new rxjs_1.BehaviorSubject([]);
-        this.find(query, watch, subscribeUntil).subscribe((data) => {
-            subject.next(data);
-        });
-        return subject;
     }
     find(query, watch, subscribeUntil) {
         const limit = query && query.limit ? query.limit : 0;
@@ -589,6 +639,7 @@ class AbstractRepository {
                                         break;
                                 }
                             });
+                            this.updateIsSelectedAll();
                             observer.next(this._findAllTemporaryArray[uuid]['result']);
                             if (!isWatch) {
                                 observer.complete();
@@ -635,6 +686,7 @@ class AbstractRepository {
                                     this._findAllTemporaryArray[uuid]['result'].push(model);
                                     this.updateHash(model);
                                 });
+                                this.updateIsSelectedAll();
                                 observer.next(this._findAllTemporaryArray[uuid]['result']);
                                 if (!isWatch) {
                                     observer.complete();
@@ -655,6 +707,7 @@ class AbstractRepository {
                                 }
                             })
                                 .catch((e) => {
+                                this.updateIsSelectedAll();
                                 observer.next([]);
                                 observer.error(e);
                                 if (!isWatch) {
@@ -878,6 +931,19 @@ class AbstractRepository {
                 }
             }
         });
+    }
+    updateIsSelectedAll() {
+        const selectedCount = this.getSelected().length;
+        const isSelectedAll = selectedCount > 0 && Object.keys(this._findAllTemporaryArray[this._uuid]['reference']).length === selectedCount;
+        if (this._isSelected[this._uuid]) {
+            Object.keys(this._isSelected[this._uuid]).forEach((id) => {
+                if (this._isSelected[this._uuid][id] && this._findAllTemporaryArray[this._uuid]['reference'][id]) {
+                    this._findAllTemporaryArray[this._uuid]['reference'][id]['_isSelected'] = true;
+                }
+            });
+        }
+        this.isSelectedAll$.next(isSelectedAll);
+        this.hasSelected$.next(selectedCount > 0);
     }
     getModelReferences() {
         const references = [];

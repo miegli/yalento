@@ -1,5 +1,10 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { CoreModule } from '../../../../core/core.module';
+import { MaterialModule } from '../../../../material/material.module';
+import { ContactComponent } from '../../components/contact/contact.component';
+import { ContactRepository } from '../../repositories/contact-repository';
 import { ContactDetailComponent } from './contact-detail.component';
 
 describe('ContactDetailComponent', () => {
@@ -8,7 +13,9 @@ describe('ContactDetailComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ ContactDetailComponent ]
+      declarations: [ ContactDetailComponent, ContactComponent ],
+      imports: [ CoreModule, FormsModule, RouterModule.forRoot([]), MaterialModule ],
+      providers: [ ContactRepository ]
     })
     .compileComponents();
   }));

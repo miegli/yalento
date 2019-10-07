@@ -57,6 +57,18 @@ class AbstractModel {
         });
         return this;
     }
+    toggleSelection() {
+        this.getRepository().toggleSelection(this);
+    }
+    setChanges(hasChanges) {
+        this._hasChanges = hasChanges ? hasChanges : true;
+    }
+    hasChanges() {
+        return this._hasChanges;
+    }
+    isSelected() {
+        return this._isSelected;
+    }
     getProperty(property) {
         return new Promise((resolve, reject) => {
             this.getProperties(property)

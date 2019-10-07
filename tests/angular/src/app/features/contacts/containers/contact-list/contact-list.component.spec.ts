@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { CoreModule } from '../../../../core/core.module';
 import { MaterialModule } from '../../../../material/material.module';
 import { ContactRepository } from '../../repositories/contact-repository';
@@ -12,7 +14,7 @@ describe('ContactListComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ CoreModule, MaterialModule ],
+      imports: [ CoreModule, MaterialModule, FormsModule, CommonModule, RouterModule.forRoot([]) ],
       declarations: [ ContactListComponent ],
       providers: [ ContactRepository ]
     })
