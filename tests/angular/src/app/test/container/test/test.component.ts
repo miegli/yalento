@@ -12,16 +12,13 @@ import { TestRepository } from '../../repository/test-repository';
 export class TestComponent {
 
   tests$: Observable<Test[]>;
-  tests1$: BehaviorSubject<Test[]>;
   testRepository: TestRepository;
-  lastName: string;
   findByLastName$: BehaviorSubject<string> = new BehaviorSubject<string>('test1');
 
   constructor(testRepository: TestRepository) {
 
     this.testRepository = testRepository;
     this.tests$ = testRepository.find({ orderBy: 'name', where: [ {value: this.findByLastName$, operation: '==', property: 'lastName' } ]});
-    this.tests1$ = testRepository.get();
 
   }
 
