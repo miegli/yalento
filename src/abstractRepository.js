@@ -492,12 +492,6 @@ class AbstractRepository {
         });
     }
     find(query, watch, subscribeUntil) {
-        const limit = query && query.limit ? query.limit : 0;
-        const whereUnresolved = query && query.where ? query.where : [];
-        let orderBy = query && query.orderBy ? query.orderBy : null;
-        if (!orderBy && this.getPath().lastIndexOf('/') <= 0) {
-            orderBy = '_index';
-        }
         const self = this;
         const uuid = this._uuid;
         let path = this.getPath() + (query && query.path !== undefined ? '/' + query.path : '');
@@ -526,48 +520,178 @@ class AbstractRepository {
                 observer.next([]);
             }
             this._findAllTemporaryArray[uuid] = { reference: {}, result: [], hashes: {} };
-            let resolveWhereHash = null;
-            let hash;
-            const resolveWhere = new rxjs_1.Observable(observerWhere => {
-                if (whereUnresolved.length === 0) {
-                    observerWhere.next(whereUnresolved);
+            let subLimit;
+            let subOrderBy;
+            const subWhere = {};
+            const resolveQuery = new rxjs_1.Observable((observerQuery) => {
+                if (!query) {
+                    observerQuery.next({});
                 }
-                const getWhereValues = () => {
-                    const where = [];
-                    whereUnresolved.forEach(w => {
-                        if (w.value && typeof w.value.subscribe !== 'undefined') {
-                            where.push({
-                                operation: w.operation ? w.operation : '==',
-                                property: w.property,
-                                value: w.value.getValue(),
+                if (query) {
+                    let hash = '';
+                    const getValues = () => new Promise((resolveValues => {
+                        const promises = [];
+                        if (query.identifier) {
+                            promises.push(new Promise((resolve) => {
+                                resolve({ identifier: query.identifier });
+                            }));
+                        }
+                        if (query.where) {
+                            query.where.forEach((w, i) => {
+                                promises.push(new Promise((resolve) => {
+                                    if (typeof w.value.asObservable === 'function') {
+                                        resolve({
+                                            where: {
+                                                operation: w.operation ? w.operation : '==',
+                                                property: w.property,
+                                                value: w.value.getValue(),
+                                            },
+                                        });
+                                    }
+                                    else if (typeof w.value.subscribe === 'function') {
+                                        subWhere[i] = null;
+                                        subWhere[i].w.value.subscribe((v) => {
+                                            resolve({
+                                                where: {
+                                                    operation: w.operation ? w.operation : '==',
+                                                    property: w.property,
+                                                    value: v,
+                                                },
+                                            });
+                                            if (subWhere[i]) {
+                                                subWhere[i].unsubsribe();
+                                            }
+                                        });
+                                    }
+                                    else {
+                                        resolve({
+                                            where: {
+                                                operation: w.operation ? w.operation : '==',
+                                                property: w.property,
+                                                value: w.value,
+                                            },
+                                        });
+                                    }
+                                }));
                             });
                         }
-                        else {
-                            where.push(w);
+                        if (query.limit) {
+                            promises.push(new Promise((resolve) => {
+                                if (typeof query.limit === 'number') {
+                                    resolve({ limit: query.limit });
+                                }
+                                if (typeof query.limit.asObservable === 'function') {
+                                    resolve({ limit: query.limit.getValue() });
+                                }
+                                if (typeof query.limit.subscribe === 'function') {
+                                    subLimit = query.limit.subscribe((limit) => {
+                                        resolve({ limit: limit });
+                                        if (subLimit) {
+                                            subLimit.unsubscribe();
+                                        }
+                                    });
+                                }
+                            }));
+                        }
+                        if (query.orderBy) {
+                            promises.push(new Promise((resolve) => {
+                                if (typeof query.orderBy === 'string') {
+                                    resolve({ orderBy: query.orderBy });
+                                }
+                                if (typeof query.orderBy.asObservable === 'function') {
+                                    resolve({ orderBy: query.orderBy.getValue() });
+                                }
+                                if (typeof query.orderBy.subscribe === 'function') {
+                                    subOrderBy = query.orderBy.subscribe((orderBy) => {
+                                        resolve({ orderBy: orderBy });
+                                        if (subOrderBy) {
+                                            subOrderBy.unsubscribe();
+                                        }
+                                    });
+                                }
+                            }));
+                        }
+                        Promise.all(promises).then((data) => {
+                            const q = { limit: 0, where: [] };
+                            data.forEach((d) => {
+                                if (d.limit) {
+                                    q.limit = d.limit;
+                                }
+                                if (d.where && q.where) {
+                                    q.where.push(d.where);
+                                }
+                                if (d.orderBy) {
+                                    q.orderBy = d.orderBy;
+                                }
+                                if (d.identifier) {
+                                    q.identifier = d.identifier;
+                                }
+                            });
+                            resolveValues(q);
+                        });
+                    }));
+                    const changeDetection = new rxjs_1.Observable((changeObserver) => {
+                        changeObserver.next();
+                        if (query.limit) {
+                            if (typeof query.limit.asObservable === 'function') {
+                                query.limit.asObservable().subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                            if (typeof query.limit.subscribe === 'function') {
+                                query.limit.subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                        }
+                        if (query.orderBy) {
+                            if (typeof query.orderBy.asObservable === 'function') {
+                                query.orderBy.asObservable().subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                            if (typeof query.orderBy.subscribe === 'function') {
+                                query.orderBy.subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                        }
+                        if (query.where) {
+                            query.where.forEach((w) => {
+                                if (typeof w.value.asObservable === 'function') {
+                                    w.value.asObservable().subscribe(() => {
+                                        changeObserver.next();
+                                    });
+                                }
+                                if (typeof w.value.subscribe === 'function') {
+                                    w.value.subscribe(() => {
+                                        changeObserver.next();
+                                    });
+                                }
+                            });
                         }
                     });
-                    hash = JSON.stringify(where);
-                    if (hash !== resolveWhereHash) {
-                        observerWhere.next(where);
-                    }
-                    resolveWhereHash = hash;
-                };
-                whereUnresolved.forEach(w => {
-                    if (w.value && typeof w.value.subscribe !== 'undefined') {
-                        w.value.subscribe(() => {
-                            getWhereValues();
+                    changeDetection.subscribe(() => {
+                        getValues().then((value) => {
+                            const newHash = JSON.stringify(value);
+                            if (newHash !== hash) {
+                                observerQuery.next(value);
+                            }
+                            hash = newHash;
                         });
-                    }
-                });
-                getWhereValues();
+                    });
+                }
             });
-            resolveWhere.subscribe((where) => {
+            resolveQuery.subscribe((q) => {
                 this._findAllTemporaryArray[uuid] = { reference: {}, result: [], hashes: {} };
                 if (subs) {
                     subs();
                 }
-                if (query && query.identifier !== undefined) {
-                    subscriber = this._findOneByIdentifier(query.identifier, isWatch).subscribe((model) => {
+                if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
+                    q.orderBy = '_index';
+                }
+                if (q && q.identifier !== undefined) {
+                    subscriber = this._findOneByIdentifier(q.identifier, isWatch).subscribe((model) => {
                         if (model) {
                             observer.next([model]);
                         }
@@ -590,15 +714,15 @@ class AbstractRepository {
                         subscriber = this.firestore
                             .collection(path, (reference) => {
                             let ref = reference;
-                            if (orderBy) {
-                                ref = ref.orderBy(orderBy);
+                            if (q.orderBy) {
+                                ref = ref.orderBy(q.orderBy);
                             }
-                            if (limit) {
-                                ref = ref.limit(limit);
+                            if (q.limit) {
+                                ref = ref.limit(q.limit);
                             }
                             const refs = [ref];
-                            if (where) {
-                                where.forEach((w) => {
+                            if (q.where) {
+                                q.where.forEach((w) => {
                                     refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
                                 });
                             }
@@ -662,14 +786,14 @@ class AbstractRepository {
                     }
                     if (this.firestore.constructor.name !== 'AngularFirestore') {
                         let ref = this.firestore.collection(path);
-                        if (orderBy) {
-                            ref = ref.orderBy(orderBy);
+                        if (q.orderBy) {
+                            ref = ref.orderBy(q.orderBy);
                         }
-                        if (limit) {
-                            ref = ref.limit(limit);
+                        if (q.limit) {
+                            ref = ref.limit(q.limit);
                         }
-                        if (where) {
-                            where.forEach((w) => {
+                        if (q.where) {
+                            q.where.forEach((w) => {
                                 ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
                             });
                         }

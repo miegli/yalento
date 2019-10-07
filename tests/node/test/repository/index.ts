@@ -128,14 +128,12 @@ export function repository(): Promise<void> {
 
             });
 
+
+            /*
             it('repository with query for missing indexed property should return a relevant error message', async function () {
 
                 const error: string = await repo.toJson({
-                    where: [{
-                        property: 'property' + new Date().getTime(),
-                        operation: '==',
-                        value: 'test',
-                    }],
+                    orderBy: 'property1' + new Date().getTime(),
                 }).then(() => {
                     return '';
                 }).catch((e) => {
@@ -145,6 +143,7 @@ export function repository(): Promise<void> {
                 expect(error).to.contains('The query requires an index. You can create it here');
 
             });
+            */
 
             it('repository with query in watching mode and subscribeUntil parameter should get timed out', async function () {
 

@@ -643,7 +643,7 @@ export abstract class AbstractRepository {
 
             const resolveQuery: Observable<IQuery> = new Observable<IQuery>((observerQuery) => {
                 if (!query) {
-                    observerQuery.next({ orderBy: null });
+                    observerQuery.next({ });
                 }
 
                 if (query) {
@@ -751,7 +751,7 @@ export abstract class AbstractRepository {
 
                         Promise.all(promises).then((data: any) => {
 
-                            const q: IQuery = { limit: 0, orderBy: null, where: [] };
+                            const q: IQuery = { limit: 0, where: [] };
 
                             data.forEach((d: any) => {
                                 if (d.limit) {
@@ -848,6 +848,11 @@ export abstract class AbstractRepository {
 
                 if (subs) {
                     subs();
+                }
+
+
+                if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
+                    q.orderBy = '_index';
                 }
 
                 if (q && q.identifier !== undefined) {

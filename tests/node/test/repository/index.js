@@ -115,22 +115,6 @@ function repository() {
                         })).to.length(0);
                     });
                 });
-                mocha_1.it('repository with query for missing indexed property should return a relevant error message', function () {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        const error = yield repo.toJson({
-                            where: [{
-                                    property: 'property' + new Date().getTime(),
-                                    operation: '==',
-                                    value: 'test',
-                                }],
-                        }).then(() => {
-                            return '';
-                        }).catch((e) => {
-                            return e.message;
-                        });
-                        chai_1.expect(error).to.contains('The query requires an index. You can create it here');
-                    });
-                });
                 mocha_1.it('repository with query in watching mode and subscribeUntil parameter should get timed out', function () {
                     return __awaiter(this, void 0, void 0, function* () {
                         const timeout = 1000;
