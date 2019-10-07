@@ -18,9 +18,9 @@ export interface IWhere {
 export interface IQuery {
     path?: string;
     identifier?: string;
-    orderBy?: string;
+    orderBy?: string | Observable<string> | BehaviorSubject<string> | any;
     where?: IWhere[];
-    limit?: number;
+    limit?: number | Observable<number> | BehaviorSubject<number> | any;
 }
 
 export interface ISubscribeUntil {
@@ -108,7 +108,7 @@ export abstract class AbstractRepository {
 
     public getSelected(): AbstractModel[] | any {
 
-        const selected = [];
+        const selected: any[] = [];
 
         if (!this._isSelected[this._uuid]) {
             return selected;
@@ -600,13 +600,7 @@ export abstract class AbstractRepository {
     }
 
     public find(query?: IQuery, watch?: boolean, subscribeUntil?: ISubscribeUntil): any | Observable<any[]> {
-        const limit = query && query.limit ? query.limit : 0;
-        const whereUnresolved = query && query.where ? query.where : [];
 
-        let orderBy = query && query.orderBy ? query.orderBy : null;
-        if (!orderBy && this.getPath().lastIndexOf('/') <= 0) {
-            orderBy = '_index';
-        }
 
         const self = this;
         const uuid = this._uuid;
@@ -643,56 +637,221 @@ export abstract class AbstractRepository {
             }
 
             this._findAllTemporaryArray[uuid] = { reference: {}, result: [], hashes: {} };
+            let subLimit: any;
+            let subOrderBy: any;
+            const subWhere: any = {};
 
-            let resolveWhereHash: any = null;
-            let hash: string;
-            const resolveWhere = new Observable(observerWhere => {
-                if (whereUnresolved.length === 0) {
-                    observerWhere.next(whereUnresolved);
+            const resolveQuery: Observable<IQuery> = new Observable<IQuery>((observerQuery) => {
+                if (!query) {
+                    observerQuery.next({ orderBy: null });
                 }
 
-                const getWhereValues = () => {
-                    const where: IWhere[] = [];
+                if (query) {
 
-                    whereUnresolved.forEach(w => {
-                        if (w.value && typeof w.value.subscribe !== 'undefined') {
-                            where.push({
-                                operation: w.operation ? w.operation : '==',
-                                property: w.property,
-                                value: w.value.getValue(),
-                            });
-                        } else {
-                            where.push(w);
+                    let hash = '';
+                    const getValues = () => new Promise<IQuery>((resolveValues => {
+
+                        const promises = [];
+
+                        if (query.identifier) {
+                            promises.push(new Promise((resolve) => {
+                                resolve({ identifier: query.identifier });
+                            }));
                         }
+
+                        if (query.where) {
+
+                            query.where.forEach((w: IWhere, i: number) => {
+
+                                promises.push(new Promise((resolve) => {
+
+                                    if (typeof w.value.asObservable === 'function') {
+                                        resolve({
+                                            where: {
+                                                operation: w.operation ? w.operation : '==',
+                                                property: w.property,
+                                                value: w.value.getValue(),
+                                            },
+                                        });
+                                    } else if (typeof w.value.subscribe === 'function') {
+                                        subWhere[i] = null;
+                                        subWhere[i].w.value.subscribe((v: any) => {
+                                            resolve({
+                                                where: {
+                                                    operation: w.operation ? w.operation : '==',
+                                                    property: w.property,
+                                                    value: v,
+                                                },
+                                            });
+                                            if (subWhere[i]) {
+                                                subWhere[i].unsubsribe();
+                                            }
+                                        })
+                                    } else {
+                                        resolve({
+                                            where: {
+                                                operation: w.operation ? w.operation : '==',
+                                                property: w.property,
+                                                value: w.value,
+                                            },
+                                        });
+                                    }
+
+                                }));
+
+                            })
+
+                        }
+
+                        if (query.limit) {
+                            promises.push(new Promise((resolve) => {
+
+                                if (typeof query.limit === 'number') {
+                                    resolve({ limit: query.limit });
+                                }
+
+                                if (typeof query.limit.asObservable === 'function') {
+                                    resolve({ limit: query.limit.getValue() });
+                                }
+
+                                if (typeof query.limit.subscribe === 'function') {
+                                    subLimit = query.limit.subscribe((limit: any) => {
+                                        resolve({ limit: limit });
+                                        if (subLimit) {
+                                            subLimit.unsubscribe();
+                                        }
+                                    })
+                                }
+
+                            }));
+                        }
+
+                        if (query.orderBy) {
+                            promises.push(new Promise((resolve) => {
+
+                                if (typeof query.orderBy === 'string') {
+                                    resolve({ orderBy: query.orderBy });
+                                }
+
+                                if (typeof query.orderBy.asObservable === 'function') {
+                                    resolve({ orderBy: query.orderBy.getValue() });
+                                }
+
+                                if (typeof query.orderBy.subscribe === 'function') {
+                                    subOrderBy = query.orderBy.subscribe((orderBy: any) => {
+                                        resolve({ orderBy: orderBy });
+                                        if (subOrderBy) {
+                                            subOrderBy.unsubscribe();
+                                        }
+                                    })
+                                }
+
+                            }));
+                        }
+
+                        Promise.all(promises).then((data: any) => {
+
+                            const q: IQuery = { limit: 0, orderBy: null, where: [] };
+
+                            data.forEach((d: any) => {
+                                if (d.limit) {
+                                    q.limit = d.limit;
+                                }
+                                if (d.where && q.where) {
+                                    q.where.push(d.where);
+                                }
+                                if (d.orderBy) {
+                                    q.orderBy = d.orderBy;
+                                }
+                                if (d.identifier) {
+                                    q.identifier = d.identifier;
+                                }
+                            });
+
+                            resolveValues(q);
+
+
+                        })
+
+                    }));
+
+                    const changeDetection = new Observable((changeObserver) => {
+                        changeObserver.next();
+
+                        if (query.limit) {
+                            if (typeof query.limit.asObservable === 'function') {
+                                query.limit.asObservable().subscribe(() => {
+                                    changeObserver.next();
+                                })
+                            }
+
+                            if (typeof query.limit.subscribe === 'function') {
+                                query.limit.subscribe(() => {
+                                    changeObserver.next();
+                                })
+                            }
+                        }
+
+                        if (query.orderBy) {
+                            if (typeof query.orderBy.asObservable === 'function') {
+                                query.orderBy.asObservable().subscribe(() => {
+                                    changeObserver.next();
+                                })
+                            }
+
+                            if (typeof query.orderBy.subscribe === 'function') {
+                                query.orderBy.subscribe(() => {
+                                    changeObserver.next();
+                                })
+                            }
+                        }
+
+                        if (query.where) {
+
+                            query.where.forEach((w: IWhere) => {
+                                if (typeof w.value.asObservable === 'function') {
+                                    w.value.asObservable().subscribe(() => {
+                                        changeObserver.next();
+                                    })
+                                }
+
+                                if (typeof w.value.subscribe === 'function') {
+                                    w.value.subscribe(() => {
+                                        changeObserver.next();
+                                    })
+                                }
+                            })
+
+                        }
+
+
                     });
 
-                    hash = JSON.stringify(where);
-                    if (hash !== resolveWhereHash) {
-                        observerWhere.next(where);
-                    }
-                    resolveWhereHash = hash;
-                };
+                    changeDetection.subscribe(() => {
+                        getValues().then((value: IQuery) => {
+                            const newHash = JSON.stringify(value);
+                            if (newHash !== hash) {
+                                observerQuery.next(value);
+                            }
+                            hash = newHash;
+                        })
+                    });
 
-                whereUnresolved.forEach(w => {
-                    if (w.value && typeof w.value.subscribe !== 'undefined') {
-                        w.value.subscribe(() => {
-                            getWhereValues();
-                        });
-                    }
-                });
 
-                getWhereValues();
+                }
+
             });
 
-            resolveWhere.subscribe((where: any) => {
+            resolveQuery.subscribe((q: IQuery) => {
+
                 this._findAllTemporaryArray[uuid] = { reference: {}, result: [], hashes: {} };
 
                 if (subs) {
                     subs();
                 }
 
-                if (query && query.identifier !== undefined) {
-                    subscriber = this._findOneByIdentifier(query.identifier, isWatch).subscribe((model: any) => {
+                if (q && q.identifier !== undefined) {
+                    subscriber = this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: any) => {
                         if (model) {
                             observer.next([model]);
                         } else {
@@ -716,17 +875,17 @@ export abstract class AbstractRepository {
                             .collection(path, (reference: any) => {
                                 let ref = reference;
 
-                                if (orderBy) {
-                                    ref = ref.orderBy(orderBy);
+                                if (q.orderBy) {
+                                    ref = ref.orderBy(q.orderBy);
                                 }
 
-                                if (limit) {
-                                    ref = ref.limit(limit);
+                                if (q.limit) {
+                                    ref = ref.limit(q.limit);
                                 }
 
                                 const refs = [ref];
-                                if (where) {
-                                    where.forEach((w: IWhere) => {
+                                if (q.where) {
+                                    q.where.forEach((w: IWhere) => {
                                         refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
                                     });
                                 }
@@ -808,16 +967,16 @@ export abstract class AbstractRepository {
                     if (this.firestore.constructor.name !== 'AngularFirestore') {
                         let ref = this.firestore.collection(path);
 
-                        if (orderBy) {
-                            ref = ref.orderBy(orderBy);
+                        if (q.orderBy) {
+                            ref = ref.orderBy(q.orderBy);
                         }
 
-                        if (limit) {
-                            ref = ref.limit(limit);
+                        if (q.limit) {
+                            ref = ref.limit(q.limit);
                         }
 
-                        if (where) {
-                            where.forEach((w: IWhere) => {
+                        if (q.where) {
+                            q.where.forEach((w: IWhere) => {
                                 ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
                             });
                         }
@@ -950,7 +1109,6 @@ export abstract class AbstractRepository {
                 .doc(identifier)
                 .set(initialData)
                 .then(() => {
-
                     this._findOneByIdentifier(identifier, false)
                         .toPromise()
                         .then((e: any) => {

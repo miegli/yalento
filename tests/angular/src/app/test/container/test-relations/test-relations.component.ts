@@ -33,7 +33,7 @@ export class TestRelationsComponent {
       }
       resolve(true);
 
-    })
+    });
 
 
   }

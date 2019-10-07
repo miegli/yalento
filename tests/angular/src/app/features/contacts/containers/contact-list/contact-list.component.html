@@ -1,6 +1,8 @@
 <div>
-  <button mat-raised-button (click)="contactRepository.removeSelected()" [disabled]="!(contactRepository.hasSelected$ | async)">Remove selected</button>
-  <button mat-raised-button (click)="contactRepository.add()">Add</button>
+  <button mat-raised-button (click)="contactRepository.removeSelected()"
+          [disabled]="!(contactRepository.hasSelected$ | async)">Remove selected
+  </button>
+  <button mat-raised-button (click)="add();">Add</button>
 </div>
 <table mat-table [dataSource]="contacts$">
 
@@ -25,7 +27,6 @@
       {{ contact.name }}
   </ng-container>
 
-
   <!-- LastName Column -->
   <ng-container matColumnDef="lastName">
     <th mat-header-cell *matHeaderCellDef> Name</th>
@@ -40,12 +41,14 @@
       <button mat-raised-button [routerLink]="['/contact', contact.getIdentifier()]">Details</button>
   </ng-container>
 
-
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr mat-row *matRowDef="let Contact; columns: displayedColumns;">
+  <tr mat-row *matRowDef="let Contact; columns: displayedColumns;" (click)="edit(Contact)">>
   </tr>
 
 </table>
 
-
-<mat-paginator [length]="(contacts$ | async).length" [pageSize]="30"></mat-paginator>
+<mat-paginator [length]="(contacts$ | async).length"
+               [pageSize]="10"
+               [pageSizeOptions]="[5, 10, 25, 100]"
+               (page)="changePaginator($event)">
+</mat-paginator>

@@ -12,10 +12,10 @@ export class ContactRepository extends BaseRepository {
     this.model = Contact;
   }
 
-  getAll(): BehaviorSubject<Contact[]> {
+  getAll(maxResults: BehaviorSubject<number>): BehaviorSubject<Contact[]> {
     const subject = new BehaviorSubject<Contact[]>([]);
 
-    this.find().subscribe((data: any) => {
+    this.find({ limit: maxResults }).subscribe((data: any) => {
       subject.next(data);
     });
 
@@ -23,7 +23,7 @@ export class ContactRepository extends BaseRepository {
   }
 
   getOneByIdentifier(identifier: string): BehaviorSubject<Contact> {
-    const subject = new BehaviorSubject<Contact>(null);
+    const subject = new BehaviorSubject<Contact>(new Contact());
 
     this._findOneByIdentifier(identifier).subscribe((data: any) => {
         subject.next(data);

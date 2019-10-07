@@ -9,8 +9,13 @@ import { Contact } from '../../models/contact';
 export class ContactComponent implements OnInit {
 
   @Input() contact: Contact;
+  @Output() submitted: EventEmitter<Contact> = new EventEmitter<Contact>();
 
   constructor() { }
+
+  submit() {
+    this.submitted.emit(this.contact);
+  }
 
   ngOnInit() {
   }
