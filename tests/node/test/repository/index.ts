@@ -11,17 +11,17 @@ export function repository(): Promise<void> {
         const firestore = getFirestore();
         const repo = new TestRepository(firestore);
 
-        describe('Repository', async function () {
+        describe('Repository', async () => {
 
-            after(async function () {
+            after(async () => {
                 resolve();
             });
 
-            before(async function () {
+            before(async () => {
 
             });
 
-            it('deleting an not existing item from repository should return true', async function () {
+            it('deleting an not existing item from repository should return true', async () => {
 
                 const status = await repo.remove('notexistingkey').then((e) => {
                     return e;
@@ -33,7 +33,7 @@ export function repository(): Promise<void> {
 
             });
 
-            it('adding a new document should return a persisted model', async function () {
+            it('adding a new document should return a persisted model', async () => {
 
                 let model: any;
                 let model2: any;
@@ -73,10 +73,10 @@ export function repository(): Promise<void> {
 
             });
 
-            it('repository without query should be exported as json', async function () {
+            it('repository without query should be exported as json', async () => {
 
-                const json = await repo.toJson().then((json) => {
-                    return json;
+                const json = await repo.toJson().then((s) => {
+                    return s;
                 }).catch((e) => {
                     return {};
                 });
@@ -85,7 +85,7 @@ export function repository(): Promise<void> {
 
             });
 
-            it('repository with matching query should be exported as json', async function () {
+            it('repository with matching query should be exported as json', async () => {
 
                 const json = await repo.toJson({
                     where: [{
@@ -103,7 +103,7 @@ export function repository(): Promise<void> {
 
             });
 
-            it('repository should be queried with all available operators', async function () {
+            it('repository should be queried with all available operators', async () => {
 
                 expect(await repo.find({
                     where: [{
@@ -130,7 +130,7 @@ export function repository(): Promise<void> {
 
 
             /*
-            it('repository with query for missing indexed property should return a relevant error message', async function () {
+            it('repository with query for missing indexed property should return a relevant error message', async () => {
 
                 const error: string = await repo.toJson({
                     orderBy: 'property1' + new Date().getTime(),
@@ -145,7 +145,7 @@ export function repository(): Promise<void> {
             });
             */
 
-            it('repository with query in watching mode and subscribeUntil parameter should get timed out', async function () {
+            it('repository with query in watching mode and subscribeUntil parameter should get timed out', async () => {
 
                 const timeout = 1000;
                 let startTime = new Date().getMilliseconds();
@@ -161,7 +161,7 @@ export function repository(): Promise<void> {
 
 
 
-            it('model should not be accepted if it is from wrong instance type', async function () {
+            it('model should not be accepted if it is from wrong instance type', async () => {
 
                 const model = new TestModel2();
                 const error = await repo.update(model).catch((e) => {
@@ -174,7 +174,7 @@ export function repository(): Promise<void> {
             });
 
 
-            it('deleting an item from repository should return true', async function () {
+            it('deleting an item from repository should return true', async () => {
 
                 const status = await repo.remove('test').then((e) => {
                     return e;
@@ -186,7 +186,7 @@ export function repository(): Promise<void> {
 
             });
 
-            it('not existing document should return null', async function () {
+            it('not existing document should return null', async () => {
 
                 const model = await repo._findOneByIdentifier('test', false).toPromise().then((m) => {
                     return m;

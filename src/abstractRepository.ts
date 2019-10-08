@@ -110,7 +110,7 @@ export abstract class AbstractRepository {
 
                 Object.keys(this._findAllTemporaryArray[this._uuid]['tmp']).forEach((key) => {
                     if (this._findAllTemporaryArray[this._uuid]['reference'][key] === undefined) {
-                        const data = this._findAllTemporaryArray[this._uuid]['tmp'][key].doc.data();
+                        const data = this._findAllTemporaryArray[this._uuid]['tmp'][key];
                         const tmpModel = new this.model()._init(this, data, key);
                         this._findAllTemporaryArray[this._uuid]['reference'][key] = tmpModel;
                     }
@@ -493,13 +493,13 @@ export abstract class AbstractRepository {
                 const promises = [];
                 for (let i = 1; i <= Math.ceil(count / MAX_BATCH_SIZE); i++) {
                     const c = i * MAX_BATCH_SIZE <= count ? MAX_BATCH_SIZE : count % MAX_BATCH_SIZE;
-                    promises.push(this.remove(item.slice(MAX_BATCH_SIZE * (i-1), (MAX_BATCH_SIZE * (i-1)) + c)));
+                    promises.push(this.remove(item.slice(MAX_BATCH_SIZE * (i - 1), (MAX_BATCH_SIZE * (i - 1)) + c)));
                 }
-               Promise.all(promises).then(() => {
-                   resolve(true);
-               }).catch((e) => {
-                   reject(e);
-               })
+                Promise.all(promises).then(() => {
+                    resolve(true);
+                }).catch((e) => {
+                    reject(e);
+                })
 
             });
         }
@@ -769,10 +769,10 @@ export abstract class AbstractRepository {
             isWatch = typeof watch === 'undefined' ? false : watch;
         }
 
-        let countUsed: number = 0;
 
         let subscriber: any = null;
         let subs: any = null;
+
 
         return new Observable((observer: Observer<any>) => {
             if (isAngular) {
@@ -785,15 +785,19 @@ export abstract class AbstractRepository {
             let subOrderBy: any;
             const subWhere: any = {};
 
-            const updateResults = (q: IQuery, o: Observer<any>) => {
+            const updateResults = (q: IQuery, o: Observer<any>, isObservableWatching: boolean) => {
                 this.updateIsSelectedAll();
 
                 this._findAllTemporaryArray[uuid]['result'] = [];
-
-                const tmpResults = Object.keys(this._findAllTemporaryArray[uuid]['tmp']).slice(q.offset, q.limit + q.offset);
+                let tmpResults = [];
+                if (q.limit !== undefined && q.offset !== undefined) {
+                    tmpResults = Object.keys(this._findAllTemporaryArray[uuid]['tmp']).slice(q.offset, q.limit + q.offset);
+                } else {
+                    tmpResults = Object.keys(this._findAllTemporaryArray[uuid]['tmp']);
+                }
 
                 tmpResults.forEach((id) => {
-                    const data = this._findAllTemporaryArray[uuid]['tmp'][id].doc.data();
+                    const data = this._findAllTemporaryArray[uuid]['tmp'][id];
 
                     if (this._findAllTemporaryArray[uuid]['reference'][id] === undefined) {
                         const model = new self.model()._init(self, data, id);
@@ -814,6 +818,10 @@ export abstract class AbstractRepository {
                 });
 
                 o.next(this._findAllTemporaryArray[uuid]['result']);
+
+                if (!isObservableWatching) {
+                    o.complete();
+                }
             };
 
             const resolveQuery: Observable<IQuery> = new Observable<IQuery>((observerQuery) => {
@@ -1062,12 +1070,15 @@ export abstract class AbstractRepository {
 
             resolveQuery.subscribe((q: IQuery) => {
 
-
                 if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
                     q.orderBy = '_index';
                 }
 
                 let hasOnlyPaginationChange = true;
+
+                if (Object.keys(q).length === 0) {
+                    hasOnlyPaginationChange = false;
+                }
 
                 if (hasOnlyPaginationChange && JSON.stringify(lastQ.where) !== JSON.stringify(q.where)) {
                     hasOnlyPaginationChange = false;
@@ -1085,27 +1096,14 @@ export abstract class AbstractRepository {
                     hasOnlyPaginationChange = false;
                 }
 
-
-                if (subs) {
-                    subs();
-                }
-
-
                 if (q && q.identifier !== undefined) {
-                    if (subscriber) {
-                        subscriber.unsubscribe();
-                    }
-                    subscriber = this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: any) => {
+                    this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: AbstractModel) => {
+                        this.resetData();
                         if (model) {
-                            observer.next([model]);
-                        } else {
-                            observer.next([]);
+                            this._findAllTemporaryArray[uuid]['reference'][model.getIdentifier()] = model;
+                            this._findAllTemporaryArray[uuid]['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
                         }
-
-                        if (!isWatch) {
-                            subscriber.unsubscribe();
-                            observer.complete();
-                        }
+                        updateResults(q, observer, isWatch);
                     });
                 } else {
 
@@ -1118,12 +1116,14 @@ export abstract class AbstractRepository {
                     if (this.firestore.constructor.name === 'AngularFirestore') {
 
                         if (hasOnlyPaginationChange) {
-                            updateResults(q, observer);
+                            updateResults(q, observer, isWatch);
                         } else {
+                            this.resetData();
 
                             if (subscriber) {
-                                subscriber.unsubscribe();
+                                //    subscriber.unsubscribe();
                             }
+
                             subscriber = this.firestore
                                 .collection(path, (reference: any) => {
                                     let ref = reference;
@@ -1151,28 +1151,26 @@ export abstract class AbstractRepository {
                                 .subscribe((results: any) => {
 
                                     results.forEach((data: any) => {
+
                                         switch (data.type) {
                                             case 'added':
-                                                this._count[this._uuid]++;
-                                                this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id] = data.payload;
+                                                this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id] = data.payload.doc.data();
                                                 break;
                                             case 'modified':
+                                                this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id] = data.payload.doc.data();
                                                 if (this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id] === undefined) {
                                                     const model = new self.model()._init(self, data.payload.doc.data(), data.payload.doc.id);
                                                     this.updateHash(model);
                                                     this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id] = model;
-                                                    this._findAllTemporaryArray[uuid]['result'].push(
-                                                        this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id],
+                                                } else {
+                                                    this.updateHash(
+                                                        this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id].setData(
+                                                            data.payload.doc.data(),
+                                                        ),
                                                     );
                                                 }
-                                                this.updateHash(
-                                                    this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id].setData(
-                                                        data.payload.doc.data(),
-                                                    ),
-                                                );
                                                 break;
                                             case 'removed':
-                                                this._count[this._uuid]--;
                                                 if (this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id]) {
                                                     delete this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id];
                                                 }
@@ -1183,7 +1181,7 @@ export abstract class AbstractRepository {
                                         }
                                     });
 
-                                    updateResults(q, observer);
+                                    updateResults(q, observer, isWatch);
 
                                 });
                         }
@@ -1196,92 +1194,55 @@ export abstract class AbstractRepository {
                     }
 
                     if (this.firestore.constructor.name !== 'AngularFirestore') {
-                        let ref = this.firestore.collection(path);
 
-                        if (q.orderBy) {
-                            ref = ref.orderBy(q.orderBy);
-                        }
+                        if (hasOnlyPaginationChange) {
+                            updateResults(q, observer, isWatch);
+                        } else {
+                            let ref = this.firestore.collection(path);
 
-                        if (q.limit) {
-                            ref = ref.limit(q.limit);
-                        }
+                            if (q.orderBy) {
+                                ref = ref.orderBy(q.orderBy);
+                            }
 
-                        if (q.offset) {
-                            ref = ref.startAt(q.offset);
-                        }
+                            if (q.limit && q.offset === undefined) {
+                                ref = ref.limit(q.limit);
+                            }
 
-                        if (q.where) {
-                            q.where.forEach((w: IWhere) => {
-                                ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
-                            });
-                        }
-
-                        subs = ref.onSnapshot(
-                            () => {
-                                countUsed = countUsed + 1;
-                                ref
-                                    .get()
-                                    .then((querySnapshot: any) => {
-                                        this._findAllTemporaryArray[uuid]['result'] = [];
-
-                                        querySnapshot.forEach((documentSnapshot: any) => {
-                                            const id = documentSnapshot.id;
-                                            const docData = documentSnapshot.data();
-                                            const model = new self.model()._init(self, docData, id);
-                                            this._findAllTemporaryArray[uuid]['result'].push(model);
-                                            this.updateHash(model);
-                                        });
-
-                                        updateResults(q, observer);
-
-                                        if (!isWatch) {
-                                            observer.complete();
-                                            subs();
-                                        } else {
-                                            if (subscribeUntil !== undefined) {
-                                                if (subscribeUntil.until === 'count' && subscribeUntil.value <= countUsed) {
-                                                    observer.complete();
-                                                    subs();
-                                                    this.status$.next({
-                                                        isWorking: false,
-                                                        target: self,
-                                                        action: 'subscriptionClosedAfterTimeoutOrMaxCount',
-                                                    });
-                                                }
-                                            }
-                                        }
-                                    })
-                                    .catch((e: any) => {
-                                        this.updateIsSelectedAll();
-                                        observer.next([]);
-                                        observer.error(e);
-                                        if (!isWatch) {
-                                            observer.complete();
-                                            subs();
-                                        }
-                                    });
-                            },
-                            (e: any) => {
-                                observer.error(e);
-                                observer.complete();
-                                subs();
-                            },
-                        );
-
-                        if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
-                            setTimeout(() => {
-                                observer.complete();
-                                subs();
-                                this.status$.next({
-                                    isWorking: false,
-                                    target: self,
-                                    action: 'subscriptionClosedAfterTimeoutOrMaxCount',
+                            if (q.where) {
+                                q.where.forEach((w: IWhere) => {
+                                    ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
                                 });
-                            }, subscribeUntil.value);
+                            }
+
+                            if (subs) {
+                                subs();
+                            }
+                            subs = ref.onSnapshot((querySnapshot: any) => {
+                                    querySnapshot.forEach((doc) => {
+                                        this._findAllTemporaryArray[uuid]['tmp'][doc.id] = doc.data();
+                                    });
+                                    updateResults(q, observer, isWatch);
+                                },
+                                (e: any) => {
+                                    observer.error(e);
+                                    observer.complete();
+                                    subs();
+                                },
+                            );
+
+                            if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
+                                setTimeout(() => {
+                                    observer.complete();
+                                    subs();
+                                    this.status$.next({
+                                        isWorking: false,
+                                        target: self,
+                                        action: 'subscriptionClosedAfterTimeoutOrMaxCount',
+                                    });
+                                }, subscribeUntil.value);
+                            }
                         }
                     }
-
-
                 }
 
                 lastQ = q;
@@ -1290,7 +1251,7 @@ export abstract class AbstractRepository {
         });
     }
 
-    public addMultiple(count: number, data?: { [key: string]: any }): Promise<boolean> {
+    public addMultiple(count: number, data?: { [key: string]: any }): Promise<any> {
 
         const MAX_BATCH_SIZE = 500;
 

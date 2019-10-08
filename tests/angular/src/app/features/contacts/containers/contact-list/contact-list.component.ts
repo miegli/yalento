@@ -42,7 +42,9 @@ export class ContactListComponent {
   add(count?: number): void {
 
     if (count && count > 1) {
-      this.contactRepository.addMultiple(count).then();
+      this.contactRepository.addMultiple(5).then((contacts: Contact[]) => {
+        console.log(contacts);
+      });
     } else {
       this.contactRepository.add().then((contact: Contact) => {
         this.edit(contact);

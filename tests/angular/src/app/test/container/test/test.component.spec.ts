@@ -97,6 +97,8 @@ describe('TestComponent', () => {
     expect(fixture.nativeElement.querySelector('.test-container > div:nth-child(1) > app-item').textContent).toContain('testUpdated0');
     expect(fixture.nativeElement.querySelector('.test-container > div:nth-child(2) > app-item').textContent).toContain('testUpdated1');
 
+
+
   });
 
   it('should remove from repository and from view', async () => {

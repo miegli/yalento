@@ -139,7 +139,6 @@ export abstract class AbstractModel {
 
             this._firestore$.pipe(take(1)).subscribe((firestore: any) => {
                 const repo = this.initRelationRepository(firestore, name);
-
                 repo.find(query, true).subscribe((result: any) => {
                     self._relationsData[name] = result;
                     observer.next(self._relationsData[name]);
