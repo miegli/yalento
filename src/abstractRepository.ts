@@ -505,7 +505,7 @@ export abstract class AbstractRepository {
           this.status$.next({
             isWorking: true,
             target: item,
-            identifier: item.map(i => i.getIdentifier()).join(','),
+            identifier: item.map((i: any) => i.getIdentifier()).join(','),
             action: 'remove',
           });
         }, 500);
@@ -514,7 +514,7 @@ export abstract class AbstractRepository {
 
         const batch = repo.getFirestoreBatch();
 
-        item.forEach(i => {
+        item.forEach((i: any) => {
           const identifier = typeof i === 'string' ? i : i.getIdentifier();
           const refs = repo
             .getFirestore()
@@ -531,12 +531,12 @@ export abstract class AbstractRepository {
             this.status$.next({
               isWorking: false,
               target: item,
-              identifier: item.map(i => i.getIdentifier()).join(','),
+              identifier: item.map((i: any) => i.getIdentifier()).join(','),
               action: 'remove',
             });
             resolve(true);
           })
-          .catch(e => {
+          .catch((e: any) => {
             reject(e);
           });
       });
@@ -1182,7 +1182,7 @@ export abstract class AbstractRepository {
               }
               subs = ref.onSnapshot(
                 (querySnapshot: any) => {
-                  querySnapshot.forEach(doc => {
+                  querySnapshot.forEach((doc: any) => {
                     this._findAllTemporaryArray[uuid]['tmp'][doc.id] = doc.data();
                   });
                   updateResults(q, observer, isWatch);
@@ -1276,7 +1276,7 @@ export abstract class AbstractRepository {
           });
           resolve(true);
         })
-        .catch(e => {
+        .catch((e: any) => {
           reject(e);
         });
     });

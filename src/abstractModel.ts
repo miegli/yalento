@@ -10,8 +10,8 @@ export interface IModelProperty {
 }
 
 export abstract class AbstractModel {
-  public _isSelected: boolean;
-  private _hasChanges: boolean;
+  public _isSelected: boolean = false;
+  private _hasChanges: boolean = false;
   private _index: number = 0;
   private _identifier: string = '';
   private _repository: AbstractRepository = new (class extends AbstractRepository {})();
