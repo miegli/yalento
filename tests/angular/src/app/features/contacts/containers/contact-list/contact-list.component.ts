@@ -14,12 +14,13 @@ export class ContactListComponent {
 
   contactRepository: ContactRepository;
   contacts$: BehaviorSubject<Contact[]>;
-  limit$: BehaviorSubject<number> = new BehaviorSubject<number>(10);
+  limit$: BehaviorSubject<number> = new BehaviorSubject<number>(5);
+  offset$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
   constructor(contactRepository: ContactRepository, public dialog: MatDialog) {
     this.contactRepository = contactRepository;
-    this.contacts$ = this.contactRepository.getAll(this.limit$);
+    this.contacts$ = this.contactRepository.getAll(this.limit$, this.offset$);
   }
 
   edit(contact: Contact): void {
@@ -34,15 +35,21 @@ export class ContactListComponent {
 
   changePaginator(event: PageEvent) {
     this.limit$.next(event.pageSize);
+    this.offset$.next(event.pageIndex * event.pageSize);
     console.log(event);
   }
 
-  add(): void {
+  add(count?: number): void {
 
-    this.contactRepository.add().then((contact: Contact) => {
-      this.edit(contact);
-    });
+    if (count && count > 1) {
+      this.contactRepository.addMultiple(count).then();
+    } else {
+      this.contactRepository.add().then((contact: Contact) => {
+        this.edit(contact);
+      });
+    }
 
   }
+
 
 }

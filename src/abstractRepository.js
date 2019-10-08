@@ -12,6 +12,9 @@ class AbstractRepository {
         this.hasSelected$ = new rxjs_1.BehaviorSubject(false);
         this._findAllTemporaryArray = {};
         this._isSelected = {};
+        this._count = {};
+        this._orderBy = {};
+        this._lastOffset = {};
         this._uuid = guid_typescript_1.Guid.create().toString();
         this._lastAddedIndex = 0;
         this._modelHashes = {};
@@ -491,6 +494,12 @@ class AbstractRepository {
             }
         });
     }
+    count() {
+        if (this._count[this._uuid] === undefined) {
+            this._count[this._uuid] = 0;
+        }
+        return this._count[this._uuid];
+    }
     find(query, watch, subscribeUntil) {
         const self = this;
         const uuid = this._uuid;
@@ -514,6 +523,7 @@ class AbstractRepository {
         }
         let countUsed = 0;
         let subscriber = null;
+        let subscriberCount = null;
         let subs = null;
         return new rxjs_1.Observable((observer) => {
             if (isAngular) {
@@ -521,6 +531,7 @@ class AbstractRepository {
             }
             this._findAllTemporaryArray[uuid] = { reference: {}, result: [], hashes: {} };
             let subLimit;
+            let subOffset;
             let subOrderBy;
             const subWhere = {};
             const resolveQuery = new rxjs_1.Observable((observerQuery) => {
@@ -593,6 +604,24 @@ class AbstractRepository {
                                 }
                             }));
                         }
+                        if (query.offset) {
+                            promises.push(new Promise((resolve) => {
+                                if (typeof query.offset === 'number') {
+                                    resolve({ offset: query.offset });
+                                }
+                                if (typeof query.offset.asObservable === 'function') {
+                                    resolve({ offset: query.offset.getValue() });
+                                }
+                                if (typeof query.offset.subscribe === 'function') {
+                                    subOffset = query.offset.subscribe((offset) => {
+                                        resolve({ offset: offset });
+                                        if (subOffset) {
+                                            subOffset.unsubscribe();
+                                        }
+                                    });
+                                }
+                            }));
+                        }
                         if (query.orderBy) {
                             promises.push(new Promise((resolve) => {
                                 if (typeof query.orderBy === 'string') {
@@ -617,6 +646,9 @@ class AbstractRepository {
                                 if (d.limit) {
                                     q.limit = d.limit;
                                 }
+                                if (d.offset) {
+                                    q.offset = d.offset;
+                                }
                                 if (d.where && q.where) {
                                     q.where.push(d.where);
                                 }
@@ -640,6 +672,18 @@ class AbstractRepository {
                             }
                             if (typeof query.limit.subscribe === 'function') {
                                 query.limit.subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                        }
+                        if (query.offset) {
+                            if (typeof query.offset.asObservable === 'function') {
+                                query.offset.asObservable().subscribe(() => {
+                                    changeObserver.next();
+                                });
+                            }
+                            if (typeof query.offset.subscribe === 'function') {
+                                query.offset.subscribe(() => {
                                     changeObserver.next();
                                 });
                             }
@@ -687,8 +731,20 @@ class AbstractRepository {
                 if (subs) {
                     subs();
                 }
+                if (subscriber) {
+                    subscriber.unsubscribe();
+                    subscriber = null;
+                }
+                if (subscriberCount) {
+                    subscriberCount.unsubscribe();
+                    subscriberCount = null;
+                }
                 if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
                     q.orderBy = '_index';
+                }
+                this._orderBy[this._uuid] = q.orderBy ? q.orderBy : '_index';
+                if (this._lastOffset[this._uuid] === undefined) {
+                    this._lastOffset[this._uuid] = 0;
                 }
                 if (q && q.identifier !== undefined) {
                     subscriber = this._findOneByIdentifier(q.identifier, isWatch).subscribe((model) => {
@@ -711,14 +767,42 @@ class AbstractRepository {
                         return;
                     }
                     if (this.firestore.constructor.name === 'AngularFirestore') {
+                        subscriberCount = this.firestore
+                            .collection(path, (reference) => {
+                            let ref = reference;
+                            let limitCount = q.limit ? q.limit : 1000;
+                            if (q.orderBy) {
+                                ref = ref.orderBy(q.orderBy);
+                            }
+                            if (q.limit) {
+                                limitCount = limitCount + 1000;
+                                if (q.offset) {
+                                    limitCount = limitCount + q.offset;
+                                }
+                                ref = ref.limit(limitCount);
+                            }
+                            const refs = [ref];
+                            if (q.where) {
+                                q.where.forEach((w) => {
+                                    refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
+                                });
+                            }
+                            return refs[refs.length - 1];
+                        })
+                            .valueChanges(['added', 'removed']).subscribe((r) => {
+                            this._count[this._uuid] = r.length;
+                        });
                         subscriber = this.firestore
                             .collection(path, (reference) => {
                             let ref = reference;
                             if (q.orderBy) {
                                 ref = ref.orderBy(q.orderBy);
                             }
-                            if (q.limit) {
+                            if (q.limit && !q.offset) {
                                 ref = ref.limit(q.limit);
+                            }
+                            if (q.offset) {
+                                ref = ref.limit(q.offset + q.limit);
                             }
                             const refs = [ref];
                             if (q.where) {
@@ -764,10 +848,16 @@ class AbstractRepository {
                                 }
                             });
                             this.updateIsSelectedAll();
-                            observer.next(this._findAllTemporaryArray[uuid]['result']);
+                            if (q.offset && q.limit && this._findAllTemporaryArray[uuid]['result'].length > q.limit) {
+                                observer.next(this._findAllTemporaryArray[uuid]['result'].slice(q.offset));
+                            }
+                            else {
+                                observer.next(this._findAllTemporaryArray[uuid]['result']);
+                            }
                             if (!isWatch) {
                                 observer.complete();
                                 subscriber.unsubscribe();
+                                subscriberCount.unsubscribe();
                             }
                             else {
                                 if (subscribeUntil !== undefined) {
@@ -781,6 +871,7 @@ class AbstractRepository {
                             setTimeout(() => {
                                 observer.complete();
                                 subscriber.unsubscribe();
+                                subscriberCount.unsubscribe();
                             }, subscribeUntil.value);
                         }
                     }
@@ -791,6 +882,9 @@ class AbstractRepository {
                         }
                         if (q.limit) {
                             ref = ref.limit(q.limit);
+                        }
+                        if (q.offset) {
+                            ref = ref.startAt(q.offset);
                         }
                         if (q.where) {
                             q.where.forEach((w) => {
@@ -856,6 +950,7 @@ class AbstractRepository {
                             }, subscribeUntil.value);
                         }
                     }
+                    this._lastOffset[this._uuid] = q.offset ? q.offset : 0;
                 }
             });
         });

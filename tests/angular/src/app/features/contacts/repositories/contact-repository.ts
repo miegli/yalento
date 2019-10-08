@@ -12,10 +12,10 @@ export class ContactRepository extends BaseRepository {
     this.model = Contact;
   }
 
-  getAll(maxResults: BehaviorSubject<number>): BehaviorSubject<Contact[]> {
+  getAll(maxResults: BehaviorSubject<number>, startAt: BehaviorSubject<number>): BehaviorSubject<Contact[]> {
     const subject = new BehaviorSubject<Contact[]>([]);
 
-    this.find({ limit: maxResults }).subscribe((data: any) => {
+    this.find({ limit: maxResults, offset: startAt }).subscribe((data: any) => {
       subject.next(data);
     });
 

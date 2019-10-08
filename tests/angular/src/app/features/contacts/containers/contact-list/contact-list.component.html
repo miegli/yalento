@@ -3,6 +3,7 @@
           [disabled]="!(contactRepository.hasSelected$ | async)">Remove selected
   </button>
   <button mat-raised-button (click)="add();">Add</button>
+  <button mat-raised-button (click)="add(1000);">Add 1000 entries</button>
 </div>
 <table mat-table [dataSource]="contacts$">
 
@@ -47,8 +48,8 @@
 
 </table>
 
-<mat-paginator [length]="(contacts$ | async).length"
-               [pageSize]="10"
+<mat-paginator [length]="contactRepository.count()"
+               [pageSize]="limit$ | async"
                [pageSizeOptions]="[5, 10, 25, 100]"
                (page)="changePaginator($event)">
 </mat-paginator>
