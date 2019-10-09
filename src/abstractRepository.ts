@@ -54,13 +54,12 @@ export abstract class AbstractRepository {
     public model: any | AbstractModel;
     public isSelectedAll$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
     public hasSelected$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    private _findAllTemporaryArray: any = {};
+    private _findAllTemporaryArray: any = { reference: {}, result: [], hashes: {}, tmp: {} };
     private _isSelected: any = {};
     private _count: any = {};
     private _currentPage: any = {};
     private _currentQuery: any = {};
     private firestore: any;
-    private _uuid: string = Guid.create().toString();
     private _lastAddedIndex = 0;
     private _modelHashes: any = {};
     private _modelReferences: any = {};
@@ -93,30 +92,27 @@ export abstract class AbstractRepository {
      * @param model
      */
     public toggleSelection(model?: AbstractModel): void {
-        if (!this._isSelected[this._uuid]) {
-            this._isSelected[this._uuid] = {};
-        }
 
         if (model) {
-            this._isSelected[this._uuid][model.getIdentifier()] = !this._isSelected[this._uuid][model.getIdentifier()];
+            this._isSelected[model.getIdentifier()] = !this._isSelected[model.getIdentifier()];
             model._isSelected = !model._isSelected;
         }
 
         if (!model) {
             if (this.isSelectedAll$.getValue()) {
-                this._isSelected[this._uuid] = {};
+                this._isSelected = {};
             } else {
-                Object.keys(this._findAllTemporaryArray[this._uuid]['tmp']).forEach(key => {
-                    if (this._findAllTemporaryArray[this._uuid]['reference'][key] === undefined) {
-                        const data = this._findAllTemporaryArray[this._uuid]['tmp'][key];
-                        this.initModelFromData(this._uuid, data, key);
+                Object.keys(this._findAllTemporaryArray['tmp']).forEach(key => {
+                    if (this._findAllTemporaryArray['reference'][key] === undefined) {
+                        const data = this._findAllTemporaryArray['tmp'][key];
+                        this.initModelFromData(data, key);
                     }
-                    this._findAllTemporaryArray[this._uuid]['reference'][key]['_isSelected'] = false;
+                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = false;
                 });
 
-                Object.keys(this._findAllTemporaryArray[this._uuid]['reference']).forEach(key => {
-                    this._isSelected[this._uuid][key] = true;
-                    this._findAllTemporaryArray[this._uuid]['reference'][key]['_isSelected'] = true;
+                Object.keys(this._findAllTemporaryArray['reference']).forEach(key => {
+                    this._isSelected[key] = true;
+                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = true;
                 });
             }
         }
@@ -130,13 +126,13 @@ export abstract class AbstractRepository {
     public getSelected(): AbstractModel[] | any {
         const selected: any[] = [];
 
-        if (!this._isSelected[this._uuid]) {
+        if (!this._isSelected) {
             return selected;
         }
 
-        Object.keys(this._isSelected[this._uuid]).forEach(key => {
-            if (this._isSelected[this._uuid][key] === true && this._findAllTemporaryArray[this._uuid]['reference'][key]) {
-                selected.push(this._findAllTemporaryArray[this._uuid]['reference'][key]);
+        Object.keys(this._isSelected).forEach(key => {
+            if (this._isSelected[key] === true && this._findAllTemporaryArray['reference'][key]) {
+                selected.push(this._findAllTemporaryArray['reference'][key]);
             }
         });
 
@@ -375,8 +371,8 @@ export abstract class AbstractRepository {
     ): Observable<boolean> {
         const self = this;
         const identifier: string = typeof item === 'string' ? item : item.getIdentifier();
-        const model: AbstractModel = self._findAllTemporaryArray[this._uuid]
-            ? self._findAllTemporaryArray[this._uuid]['reference'][identifier]
+        const model: AbstractModel = self._findAllTemporaryArray
+            ? self._findAllTemporaryArray['reference'][identifier]
             : null;
 
         return new Observable((observer: Observer<any>) => {
@@ -628,7 +624,7 @@ export abstract class AbstractRepository {
                         .subscribe((data: any) => {
                             let model = null;
                             if (data.exists) {
-                                model = this.initModelFromData(this._uuid, data.data(), identifier);
+                                model = this.initModelFromData(data.data(), identifier);
                             }
                             observer.next(model);
                             observer.complete();
@@ -643,7 +639,7 @@ export abstract class AbstractRepository {
                         .subscribe((data: any) => {
                             let model = null;
                             if (data) {
-                                model = this.initModelFromData(this._uuid, data, identifier);
+                                model = this.initModelFromData(data, identifier);
                             }
                             observer.next(model);
                         });
@@ -659,7 +655,7 @@ export abstract class AbstractRepository {
                             if (!data.exists) {
                                 observer.next(null);
                             } else {
-                                observer.next(this.initModelFromData(this._uuid, data.data(), identifier));
+                                observer.next(this.initModelFromData(data.data(), identifier));
                             }
                         },
                         (e: any) => {
@@ -674,7 +670,7 @@ export abstract class AbstractRepository {
                             if (!data.exists) {
                                 observer.next(null);
                             } else {
-                                observer.next(this.initModelFromData(this._uuid, data.data(), identifier));
+                                observer.next(this.initModelFromData(data.data(), identifier));
                             }
                             if (!watch) {
                                 observer.complete();
@@ -692,20 +688,20 @@ export abstract class AbstractRepository {
      * get length of current query result
      */
     public count() {
-        if (this._count[this._uuid] === undefined) {
-            this._count[this._uuid] = 0;
+        if (this._count === undefined) {
+            this._count = 0;
         }
-        return this._count[this._uuid];
+        return this._count;
     }
 
     /**
      * get page index of current query result
      */
     public pageIndex() {
-        if (this._currentPage[this._uuid] === undefined) {
-            this._currentPage[this._uuid] = 0;
+        if (this._currentPage === undefined) {
+            this._currentPage = 0;
         }
-        return this._currentPage[this._uuid];
+        return this._currentPage;
     }
 
     /**
@@ -718,7 +714,6 @@ export abstract class AbstractRepository {
 
 
         const self = this;
-        const uuid = this._uuid;
 
         let path = this.getPath() + (query && query.path !== undefined ? '/' + query.path : '');
 
@@ -758,41 +753,41 @@ export abstract class AbstractRepository {
 
             const updateResults = (originalQuery: IQuery, o: Observer<any>, isObservableWatching: boolean) => {
                 this.updateIsSelectedAll();
-                const q = this._currentQuery[this._uuid] ? this._currentQuery[this._uuid] : originalQuery;
-                this._count[this._uuid] = Object.keys(this._findAllTemporaryArray[uuid]['tmp']).length;
+                const q = this._currentQuery ? this._currentQuery : originalQuery;
+                this._count = Object.keys(this._findAllTemporaryArray['tmp']).length;
 
                 if (q.limit) {
-                    if (this._count[this._uuid] - 1 < q.offset) {
-                        q.offset = this._count[this._uuid] - (this._count[this._uuid] % q.limit) - q.limit;
-                        this._currentQuery[this._uuid] = q;
+                    if (this._count - 1 < q.offset) {
+                        q.offset = this._count - (this._count % q.limit) - q.limit;
+                        this._currentQuery = q;
                     }
-                    this._currentPage[this._uuid] = Math.floor(q.offset / q.limit);
+                    this._currentPage = Math.floor(q.offset / q.limit);
                 } else {
-                    this._currentPage[this._uuid] = 0;
+                    this._currentPage = 0;
                 }
 
-                this._findAllTemporaryArray[uuid]['result'] = [];
+                this._findAllTemporaryArray['result'] = [];
                 let tmpResults = [];
                 if (q.limit !== undefined && q.offset !== undefined) {
-                    tmpResults = Object.keys(this._findAllTemporaryArray[uuid]['tmp']).slice(q.offset, q.limit + q.offset);
+                    tmpResults = Object.keys(this._findAllTemporaryArray['tmp']).slice(q.offset, q.limit + q.offset);
                 } else {
-                    tmpResults = Object.keys(this._findAllTemporaryArray[uuid]['tmp']);
+                    tmpResults = Object.keys(this._findAllTemporaryArray['tmp']);
                 }
 
                 tmpResults.forEach(id => {
-                    const data = this._findAllTemporaryArray[uuid]['tmp'][id];
+                    const data = this._findAllTemporaryArray['tmp'][id];
 
-                    if (this._findAllTemporaryArray[uuid]['reference'][id] === undefined) {
-                        this.initModelFromData(uuid, data, id);
+                    if (this._findAllTemporaryArray['reference'][id] === undefined) {
+                        this.initModelFromData(data, id);
                     } else {
-                        this.updateHash(this._findAllTemporaryArray[uuid]['reference'][id].setData(data));
+                        this.updateHash(this._findAllTemporaryArray['reference'][id].setData(data));
                     }
 
-                    this._findAllTemporaryArray[uuid]['result'].push(this._findAllTemporaryArray[uuid]['reference'][id]);
+                    this._findAllTemporaryArray['result'].push(this._findAllTemporaryArray['reference'][id]);
                 });
 
 
-                o.next(this._findAllTemporaryArray[uuid]['result']);
+                o.next(this._findAllTemporaryArray['result']);
 
                 if (!isObservableWatching) {
                     o.complete();
@@ -1033,7 +1028,7 @@ export abstract class AbstractRepository {
                     q.orderBy = '_index';
                 }
 
-                this._currentQuery[this._uuid] = q;
+                this._currentQuery = q;
 
                 let hasOnlyPaginationChange = true;
 
@@ -1061,8 +1056,8 @@ export abstract class AbstractRepository {
                     this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: AbstractModel) => {
                         this.resetData();
                         if (model) {
-                            this._findAllTemporaryArray[uuid]['reference'][model.getIdentifier()] = model;
-                            this._findAllTemporaryArray[uuid]['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
+                            this._findAllTemporaryArray['reference'][model.getIdentifier()] = model;
+                            this._findAllTemporaryArray['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
                         }
                         updateResults(q, observer, isWatch);
                     });
@@ -1104,26 +1099,26 @@ export abstract class AbstractRepository {
                                     results.forEach((data: any) => {
                                         switch (data.type) {
                                             case 'added':
-                                                this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
                                                 break;
                                             case 'modified':
-                                                this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id] = data.payload.doc.data();
-                                                if (this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id] === undefined) {
-                                                    this.initModelFromData(this._uuid, data.payload.doc.data(), data.payload.doc.id);
+                                                this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                if (this._findAllTemporaryArray['reference'][data.payload.doc.id] === undefined) {
+                                                    this.initModelFromData(data.payload.doc.data(), data.payload.doc.id);
                                                 } else {
                                                     this.updateHash(
-                                                        this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id].setData(
+                                                        this._findAllTemporaryArray['reference'][data.payload.doc.id].setData(
                                                             data.payload.doc.data(),
                                                         ),
                                                     );
                                                 }
                                                 break;
                                             case 'removed':
-                                                if (this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id]) {
-                                                    delete this._findAllTemporaryArray[uuid]['reference'][data.payload.doc.id];
+                                                if (this._findAllTemporaryArray['reference'][data.payload.doc.id]) {
+                                                    delete this._findAllTemporaryArray['reference'][data.payload.doc.id];
                                                 }
-                                                if (this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id]) {
-                                                    delete this._findAllTemporaryArray[uuid]['tmp'][data.payload.doc.id];
+                                                if (this._findAllTemporaryArray['tmp'][data.payload.doc.id]) {
+                                                    delete this._findAllTemporaryArray['tmp'][data.payload.doc.id];
                                                 }
                                                 break;
                                         }
@@ -1166,7 +1161,7 @@ export abstract class AbstractRepository {
                             subs = ref.onSnapshot(
                                 (querySnapshot: any) => {
                                     querySnapshot.forEach((doc: any) => {
-                                        this._findAllTemporaryArray[uuid]['tmp'][doc.id] = doc.data();
+                                        this._findAllTemporaryArray['tmp'][doc.id] = doc.data();
                                     });
                                     updateResults(q, observer, isWatch);
                                 },
@@ -1335,11 +1330,11 @@ export abstract class AbstractRepository {
                     const model = new self.model()._init(self, initialData, identifier);
                     this.updateHash(model);
 
-                    if (!this._findAllTemporaryArray[this._uuid]) {
+                    if (!this._findAllTemporaryArray) {
                         this.resetData();
                     }
-                    this._findAllTemporaryArray[this._uuid]['reference'][identifier] = model;
-                    resolve(this._findAllTemporaryArray[this._uuid]['reference'][identifier]);
+                    this._findAllTemporaryArray['reference'][identifier] = model;
+                    resolve(this._findAllTemporaryArray['reference'][identifier]);
                 })
                 .catch((e: any) => {
                     reject(e);
@@ -1506,12 +1501,12 @@ export abstract class AbstractRepository {
     private updateIsSelectedAll() {
         const selectedCount = this.getSelected().length;
         const isSelectedAll =
-            selectedCount > 0 && Object.keys(this._findAllTemporaryArray[this._uuid]['reference']).length === selectedCount;
+            selectedCount > 0 && Object.keys(this._findAllTemporaryArray['reference']).length === selectedCount;
 
-        if (this._isSelected[this._uuid]) {
-            Object.keys(this._isSelected[this._uuid]).forEach((id: string) => {
-                if (this._isSelected[this._uuid][id] && this._findAllTemporaryArray[this._uuid]['reference'][id]) {
-                    this._findAllTemporaryArray[this._uuid]['reference'][id]['_isSelected'] = true;
+        if (this._isSelected) {
+            Object.keys(this._isSelected).forEach((id: string) => {
+                if (this._isSelected[id] && this._findAllTemporaryArray['reference'][id]) {
+                    this._findAllTemporaryArray['reference'][id]['_isSelected'] = true;
                 }
             });
         }
@@ -1530,13 +1525,12 @@ export abstract class AbstractRepository {
             return references;
         }
 
-        Object.keys(this._findAllTemporaryArray).forEach((uuid: string) => {
-            if (this._findAllTemporaryArray[uuid].reference) {
-                Object.keys(this._findAllTemporaryArray[uuid].reference).forEach((identifier: string) => {
-                    references.push(this._findAllTemporaryArray[uuid].reference[identifier]);
-                });
-            }
-        });
+        if (this._findAllTemporaryArray.reference) {
+            Object.keys(this._findAllTemporaryArray.reference).forEach((identifier: string) => {
+                references.push(this._findAllTemporaryArray.reference[identifier]);
+            });
+        }
+
 
         return references;
     }
@@ -1658,26 +1652,24 @@ export abstract class AbstractRepository {
      * internal use only: get temporary data
      */
     private getData() {
-        return this._findAllTemporaryArray[this._uuid] && this._findAllTemporaryArray[this._uuid]['result']
-            ? this._findAllTemporaryArray[this._uuid]['result']
+        return this._findAllTemporaryArray && this._findAllTemporaryArray['result']
+            ? this._findAllTemporaryArray['result']
             : null;
     }
 
     /**
      * internal use only: reset tmp data
-     * @param uuid
      */
-    private resetData(uuid?: string) {
-        this._findAllTemporaryArray[uuid ? uuid : this._uuid] = { reference: {}, result: [], hashes: {}, tmp: {} };
+    private resetData() {
+        this._findAllTemporaryArray = { reference: {}, result: [], hashes: {}, tmp: {} };
     }
 
     /**
      * internal use only: init model from data
-     * @param uuid
      * @param data
      * @param identifier
      */
-    private initModelFromData(uuid: string, data: any, identifier: string): AbstractModel {
+    private initModelFromData(data: any, identifier: string): AbstractModel {
 
         let model = null;
 
@@ -1694,12 +1686,12 @@ export abstract class AbstractRepository {
             this.updateHash(model);
         }
 
-        if (uuid) {
-            if (!this._findAllTemporaryArray[uuid]) {
-                this.resetData(uuid);
-            }
-            this._findAllTemporaryArray[uuid]['reference'][identifier] = model;
+
+        if (!this._findAllTemporaryArray) {
+            this.resetData();
         }
+        this._findAllTemporaryArray['reference'][identifier] = model;
+
         return model;
     }
 
