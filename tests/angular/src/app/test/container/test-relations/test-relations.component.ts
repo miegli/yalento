@@ -13,11 +13,12 @@ export class TestRelationsComponent {
 
   testRelationsRepository: TestRelationsRepository;
   testRelations$: Observable<TestRelations[]>;
+  testIdentifier: string = 'test' + new Date().getTime();
 
   constructor(testRelationsRepository: TestRelationsRepository) {
 
     this.testRelationsRepository = testRelationsRepository;
-    this.testRelations$ = testRelationsRepository.find({ limit: 1, identifier: 'test' });
+    this.testRelations$ = testRelationsRepository.find({ limit: 1, identifier: this.testIdentifier});
 
   }
 
@@ -25,7 +26,7 @@ export class TestRelationsComponent {
 
     return new Promise<boolean>(async (resolve) => {
 
-      const model = await this.testRelationsRepository.add({}, 'test');
+      const model = await this.testRelationsRepository.add({}, this.testIdentifier);
 
       for (let i = 0; i < childrenCount; i++) {
         await model.add('tests');

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MatDialog, PageEvent } from '@angular/material';
 import { BehaviorSubject } from 'rxjs';
 import { Contact } from '../../models/contact';
@@ -36,15 +36,12 @@ export class ContactListComponent {
   changePaginator(event: PageEvent) {
     this.limit$.next(event.pageSize);
     this.offset$.next(event.pageIndex * event.pageSize);
-    console.log(event);
   }
 
   add(count?: number): void {
 
     if (count && count > 1) {
-      this.contactRepository.addMultiple(5).then((contacts: Contact[]) => {
-        console.log(contacts);
-      });
+      this.contactRepository.addMultiple(count).then();
     } else {
       this.contactRepository.add().then((contact: Contact) => {
         this.edit(contact);

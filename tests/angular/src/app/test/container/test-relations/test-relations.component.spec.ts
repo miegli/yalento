@@ -66,7 +66,7 @@ describe('TestRelationsComponent', () => {
 
   it('should move between relations', async () => {
 
-    const model = await component.testRelationsRepository.add({}, 'test');
+    const model = await component.testRelationsRepository.add({}, component.testIdentifier);
 
     const getChildren = async (subscribable: Observable<any>, minLength: number = 1): Promise<Test[]> => {
       return new Promise<Test[]>((resolve) => {
