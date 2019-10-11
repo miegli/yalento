@@ -4,5 +4,7 @@ export class Contact extends BaseModel {
 
   name: string;
   lastName: string;
+  street: string;
+
 
 }

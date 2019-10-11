@@ -14,7 +14,7 @@ export abstract class AbstractModel {
   private _hasChanges: boolean = false;
   private _index: number = 0;
   private _identifier: string = '';
-  private _repository: AbstractRepository = new (class extends AbstractRepository {})();
+  private _repository: AbstractRepository|null = null;
   private _firestore$: BehaviorSubject<any> = new BehaviorSubject(null);
   private _relationsDataObserver: { [key: string]: any } = {};
   private _relationsData: { [key: string]: any } = {};
@@ -166,6 +166,7 @@ export abstract class AbstractModel {
   }
 
   public createOneToOneRelation(firestore: any, model: AbstractModel, property: string): Observable<any> {
+
     // @ts-ignore
     const repo: any = new this._repository.constructor(firestore);
     // @ts-ignores
@@ -352,11 +353,19 @@ export abstract class AbstractModel {
   }
 
   public getRepository(): AbstractRepository {
+    if (!this._repository) {
+      this._repository = this.createRepository();
+    }
+
     return this._repository;
   }
 
   public setRepository(repository: AbstractRepository): any {
-    this._repository = repository;
+    if (!repository) {
+      this._repository = this.createRepository();
+    } else {
+      this._repository = repository;
+    }
     this._firestore$.next(repository.getFirestore());
   }
 
@@ -392,7 +401,7 @@ export abstract class AbstractModel {
     return this;
   }
 
-  public toJson(): Promise<any> {
+  public toJson(nonRecursive?: boolean): Promise<any> {
     const data: any = {};
     const promises: any = [];
 
@@ -405,7 +414,7 @@ export abstract class AbstractModel {
                 if (property.type === 'value') {
                   data[property.key] = property.value;
                   res();
-                } else if (property.type === 'relationOneToOne') {
+                } else if (property.type === 'relationOneToOne' && nonRecursive !== true) {
                   property.value._dataSubject.subscribe((e: any) => {
                     if (e !== null) {
                       property.value
@@ -431,7 +440,7 @@ export abstract class AbstractModel {
                         });
                     }
                   });
-                } else if (property.type === 'relation') {
+                } else if (property.type === 'relation' && nonRecursive !== true) {
                   data[property.key] = [];
                   if (property.value.length) {
                     property.value.forEach((item: AbstractModel) => {
@@ -585,12 +594,22 @@ export abstract class AbstractModel {
     return objSortedKeys;
   }
 
+
+  private createRepository() {
+    return new (class extends AbstractRepository {})();
+  }
+
   /**
    *
    * @param firestore
    * @param name
    */
   private initRelationRepository(firestore: any, name: string): AbstractRepository {
+
+    if (!this._repository) {
+      this._repository = this.createRepository();
+    }
+
     // @ts-ignore
     const repo: any = new this._repository.constructor(firestore);
     // @ts-ignore

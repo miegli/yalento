@@ -18,8 +18,7 @@ class AbstractModel {
         this._hasChanges = false;
         this._index = 0;
         this._identifier = '';
-        this._repository = new (class extends abstractRepository_1.AbstractRepository {
-        })();
+        this._repository = null;
         this._firestore$ = new rxjs_1.BehaviorSubject(null);
         this._relationsDataObserver = {};
         this._relationsData = {};
@@ -291,10 +290,18 @@ class AbstractModel {
         return this;
     }
     getRepository() {
+        if (!this._repository) {
+            this._repository = this.createRepository();
+        }
         return this._repository;
     }
     setRepository(repository) {
-        this._repository = repository;
+        if (!repository) {
+            this._repository = this.createRepository();
+        }
+        else {
+            this._repository = repository;
+        }
         this._firestore$.next(repository.getFirestore());
     }
     setData(data) {
@@ -321,7 +328,7 @@ class AbstractModel {
         }
         return this;
     }
-    toJson() {
+    toJson(nonRecursive) {
         const data = {};
         const promises = [];
         return new Promise(resolve => {
@@ -333,7 +340,7 @@ class AbstractModel {
                             data[property.key] = property.value;
                             res();
                         }
-                        else if (property.type === 'relationOneToOne') {
+                        else if (property.type === 'relationOneToOne' && nonRecursive !== true) {
                             property.value._dataSubject.subscribe((e) => {
                                 if (e !== null) {
                                     property.value
@@ -360,7 +367,7 @@ class AbstractModel {
                                 }
                             });
                         }
-                        else if (property.type === 'relation') {
+                        else if (property.type === 'relation' && nonRecursive !== true) {
                             data[property.key] = [];
                             if (property.value.length) {
                                 property.value.forEach((item) => {
@@ -495,7 +502,14 @@ class AbstractModel {
         });
         return objSortedKeys;
     }
+    createRepository() {
+        return new (class extends abstractRepository_1.AbstractRepository {
+        })();
+    }
     initRelationRepository(firestore, name) {
+        if (!this._repository) {
+            this._repository = this.createRepository();
+        }
         const repo = new this._repository.constructor(firestore);
         const m = new this._relationsModel[name]();
         repo.setPath(this.getRepository().getPath() + '/' + this.getIdentifier() + '/' + m.constructor.name.toLowerCase());

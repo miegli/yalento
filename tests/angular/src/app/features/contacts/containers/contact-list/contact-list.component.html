@@ -47,10 +47,9 @@
   </tr>
 
 </table>
-
 <mat-paginator [length]="contactRepository.count()"
                [pageSize]="limit$ | async"
                [pageSizeOptions]="[5, 10, 25, 100]"
                (page)="changePaginator($event)"
-               [pageIndex]="contactRepository.pageIndex()">
+               [pageIndex]="contactRepository.pageIndex() | async">
 </mat-paginator>

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/firestore';
 import { MatDialog, PageEvent } from '@angular/material';
 import { BehaviorSubject } from 'rxjs';
 import { Contact } from '../../models/contact';
@@ -14,12 +15,14 @@ export class ContactListComponent {
 
   contactRepository: ContactRepository;
   contacts$: BehaviorSubject<Contact[]>;
-  limit$: BehaviorSubject<number> = new BehaviorSubject<number>(5);
-  offset$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  limit$: BehaviorSubject<number>;
+  offset$: BehaviorSubject<number>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
   constructor(contactRepository: ContactRepository, public dialog: MatDialog) {
-    this.contactRepository = contactRepository;
+    this.contactRepository = contactRepository.createInstance(this);
+    this.limit$ = new BehaviorSubject<number>(this.contactRepository.getState('limit$', 25));
+    this.offset$ = new BehaviorSubject<number>(this.contactRepository.getState('offset$', 0));
     this.contacts$ = this.contactRepository.getAll(this.limit$, this.offset$);
   }
 
