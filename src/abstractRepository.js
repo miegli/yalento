@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("firebase/auth");
 const guid_typescript_1 = require("guid-typescript");
 const rxjs_1 = require("rxjs");
 const ts_md5_1 = require("ts-md5");
@@ -16,10 +17,12 @@ class AbstractRepository {
     constructor(firestore) {
         this.status$ = new rxjs_1.BehaviorSubject({});
         this.path = '/undefined';
+        this.parentInstance = null;
         this.isSelectedAll$ = new rxjs_1.BehaviorSubject(false);
         this.hasSelected$ = new rxjs_1.BehaviorSubject(false);
         this.isReady$ = new rxjs_1.BehaviorSubject(false);
-        this._findAllTemporaryArray = { reference: {}, result: [], hashes: {}, tmp: {} };
+        this._tempData = { reference: {}, result: [], hashes: {}, tmp: {}, count: 0, pageIndex: 0 };
+        this._temp = {};
         this._isSelected = {};
         this._count = 0;
         this._pageIndex = new rxjs_1.BehaviorSubject(0);
@@ -50,6 +53,7 @@ class AbstractRepository {
         const instance = new this.constructor(this.firestore);
         instance.synchronizeState(invoker);
         instance.setInvoker(invoker);
+        instance.setParentInstance(this);
         return instance;
     }
     toggleSelection(model) {
@@ -62,16 +66,16 @@ class AbstractRepository {
                 this._isSelected = {};
             }
             else {
-                Object.keys(this._findAllTemporaryArray['tmp']).forEach(key => {
-                    if (this._findAllTemporaryArray['reference'][key] === undefined) {
-                        const data = this._findAllTemporaryArray['tmp'][key];
+                Object.keys(this._tempData['tmp']).forEach(key => {
+                    if (this._tempData['reference'][key] === undefined) {
+                        const data = this._tempData['tmp'][key];
                         this.initModelFromData(data, key);
                     }
-                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = false;
+                    this._tempData['reference'][key]['_isSelected'] = false;
                 });
-                Object.keys(this._findAllTemporaryArray['reference']).forEach(key => {
+                Object.keys(this._tempData['reference']).forEach(key => {
                     this._isSelected[key] = true;
-                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = true;
+                    this._tempData['reference'][key]['_isSelected'] = true;
                 });
             }
         }
@@ -83,8 +87,8 @@ class AbstractRepository {
             return selected;
         }
         Object.keys(this._isSelected).forEach(key => {
-            if (this._isSelected[key] === true && this._findAllTemporaryArray['reference'][key]) {
-                selected.push(this._findAllTemporaryArray['reference'][key]);
+            if (this._isSelected[key] === true && this._tempData['reference'][key]) {
+                selected.push(this._tempData['reference'][key]);
             }
         });
         return selected;
@@ -257,8 +261,8 @@ class AbstractRepository {
     setIndex(item, indexOrNextItem) {
         const self = this;
         const identifier = typeof item === 'string' ? item : item.getIdentifier();
-        const model = self._findAllTemporaryArray
-            ? self._findAllTemporaryArray['reference'][identifier]
+        const model = self._tempData
+            ? self._tempData['reference'][identifier]
             : null;
         return new rxjs_1.Observable((observer) => {
             const repo = typeof item !== 'string' && item.getRepository() ? item.getRepository() : this;
@@ -377,6 +381,7 @@ class AbstractRepository {
                 const batch = repo.getFirestoreBatch();
                 item.forEach((i) => {
                     const identifier = typeof i === 'string' ? i : i.getIdentifier();
+                    repo.removeTempData(identifier);
                     const refs = repo
                         .getFirestore()
                         .collection(repo.getPath())
@@ -415,6 +420,7 @@ class AbstractRepository {
             if (typeof repo.getFirestore() === 'undefined') {
                 if (typeof repo.getParentModel().removeItemFromRelationsData !== 'undefined') {
                     repo.getParentModel().removeItemFromRelationsData(identifier);
+                    repo.removeTempData(identifier);
                 }
                 clearTimeout(statusTimeout);
                 this.status$.next({
@@ -426,6 +432,7 @@ class AbstractRepository {
                 resolve(true);
                 return;
             }
+            repo.removeTempData(identifier);
             repo
                 .getFirestore()
                 .doc(repo.getPath() + '/' + identifier)
@@ -455,13 +462,23 @@ class AbstractRepository {
         });
     }
     _findOneByIdentifier(identifier, watchForChanges) {
-        const self = this;
         let watch;
         return new rxjs_1.Observable((observer) => {
             if (!this.firestore) {
                 observer.next(null);
                 observer.complete();
                 return;
+            }
+            if (this._temp) {
+                Object.keys(this._temp).forEach((instanceId) => {
+                    if (this._temp[instanceId]._tempData && this._temp[instanceId]._tempData.reference && this._temp[instanceId]._tempData.reference[identifier]) {
+                        observer.next(this._temp[instanceId]._tempData.reference[identifier]);
+                        if (watchForChanges === false) {
+                            observer.complete();
+                        }
+                        return;
+                    }
+                });
             }
             if (this.firestore.constructor.name === 'AngularFirestore') {
                 watch = watchForChanges === undefined ? true : watchForChanges;
@@ -536,7 +553,14 @@ class AbstractRepository {
     }
     find(query, watch, subscribeUntil) {
         const self = this;
+        this.resetTempData();
+        const isAngular = this.firestore && this.firestore.constructor.name === 'AngularFirestore';
         return new rxjs_1.Observable((observer) => {
+            if (isAngular) {
+                observer.next(this._tempData.result);
+                this._count = this._tempData.count;
+                this._pageIndex.next(this._tempData.pageIndex);
+            }
             this.isReady$.subscribe((ready) => {
                 if (ready || !this.invoker) {
                     let path = this.getPath() + (query && query.path !== undefined ? '/' + query.path : '');
@@ -550,7 +574,6 @@ class AbstractRepository {
                         query.identifier = pathS[pathS.length - 1];
                     }
                     let isWatch;
-                    const isAngular = this.firestore && this.firestore.constructor.name === 'AngularFirestore';
                     if (isAngular) {
                         isWatch = typeof watch === 'undefined' ? true : watch;
                     }
@@ -559,25 +582,23 @@ class AbstractRepository {
                     }
                     let subscriber = null;
                     let subs = null;
-                    if (isAngular) {
-                        observer.next([]);
-                    }
-                    this.resetData();
                     let subLimit;
                     let subOffset;
                     let subOrderBy;
                     let lastQueryString = '';
+                    let lastCollectionHash = '';
                     const subWhere = {};
                     const updateResults = (q, o, isObservableWatching) => {
                         this.updateIsSelectedAll();
-                        this._count = Object.keys(this._findAllTemporaryArray['tmp']).length;
-                        this._findAllTemporaryArray['result'] = [];
+                        this._count = Object.keys(this._tempData['tmp']).length;
+                        this._tempData['count'] = this._count;
+                        this._tempData['result'] = [];
                         let tmpResults = [];
                         if (q.limit !== undefined && q.offset !== undefined) {
-                            tmpResults = Object.keys(this._findAllTemporaryArray['tmp']).slice(q.offset, q.limit + q.offset);
+                            tmpResults = Object.keys(this._tempData['tmp']).slice(q.offset, q.limit + q.offset);
                         }
                         else {
-                            tmpResults = Object.keys(this._findAllTemporaryArray['tmp']);
+                            tmpResults = Object.keys(this._tempData['tmp']);
                         }
                         if (q.offset && q.offset >= this._count) {
                             q.offset = 0;
@@ -589,19 +610,21 @@ class AbstractRepository {
                             }
                         }
                         if (q.limit && q.offset !== undefined) {
-                            this._pageIndex.next(q.offset / q.limit);
+                            this._tempData.pageIndex = q.offset / q.limit;
+                            this._pageIndex.next(this._tempData.pageIndex);
                         }
                         tmpResults.forEach(id => {
-                            const data = this._findAllTemporaryArray['tmp'][id];
-                            if (this._findAllTemporaryArray['reference'][id] === undefined) {
+                            const data = this._tempData['tmp'][id];
+                            if (this._tempData['reference'][id] === undefined) {
                                 this.initModelFromData(data, id);
                             }
                             else {
-                                this.updateHash(this._findAllTemporaryArray['reference'][id].setData(data));
+                                this.updateHash(this._tempData['reference'][id].setData(data));
                             }
-                            this._findAllTemporaryArray['result'].push(this._findAllTemporaryArray['reference'][id]);
+                            this._tempData['result'].push(this._tempData['reference'][id]);
                         });
-                        o.next(this._findAllTemporaryArray['result']);
+                        o.next(this._tempData['result']);
+                        this.setTempData();
                         if (!isObservableWatching) {
                             o.complete();
                         }
@@ -829,114 +852,125 @@ class AbstractRepository {
                         }
                     });
                     resolveQuery.subscribe((q) => {
-                        if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
-                            q.orderBy = '_index';
-                        }
-                        if (q && q.identifier !== undefined) {
-                            this._findOneByIdentifier(q.identifier, isWatch).subscribe((model) => {
-                                this.resetData();
-                                if (model) {
-                                    this._findAllTemporaryArray['reference'][model.getIdentifier()] = model;
-                                    this._findAllTemporaryArray['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
-                                }
-                                updateResults(q, observer, isWatch);
-                            });
+                        const qForCompare = JSON.parse(JSON.stringify(q));
+                        qForCompare.offset = 0;
+                        if (JSON.stringify(qForCompare) === lastCollectionHash) {
+                            updateResults(q, observer, isWatch);
                         }
                         else {
-                            if (!this.firestore) {
-                                observer.next([]);
-                                observer.complete();
-                                return;
+                            lastCollectionHash = JSON.stringify(qForCompare);
+                            if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
+                                q.orderBy = '_index';
                             }
-                            if (this.firestore.constructor.name === 'AngularFirestore') {
-                                subscriber = this.firestore
-                                    .collection(path, (reference) => {
-                                    let ref = reference;
+                            if (q && q.identifier !== undefined) {
+                                this._findOneByIdentifier(q.identifier, isWatch).subscribe((model) => {
+                                    this.resetTempData();
+                                    if (model) {
+                                        this._tempData['reference'][model.getIdentifier()] = model;
+                                        this._tempData['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
+                                    }
+                                    updateResults(q, observer, isWatch);
+                                });
+                            }
+                            else {
+                                if (!this.firestore) {
+                                    observer.next([]);
+                                    observer.complete();
+                                    return;
+                                }
+                                if (this.firestore.constructor.name === 'AngularFirestore') {
+                                    if (subscriber) {
+                                        subscriber.unsubscribe();
+                                    }
+                                    subscriber = this.firestore
+                                        .collection(path, (reference) => {
+                                        let ref = reference;
+                                        if (q.orderBy) {
+                                            ref = ref.orderBy(q.orderBy);
+                                        }
+                                        if (q.limit && q.offset === undefined) {
+                                            ref = ref.limit(q.limit);
+                                        }
+                                        const refs = [ref];
+                                        if (q.where) {
+                                            q.where.forEach((w) => {
+                                                refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
+                                            });
+                                        }
+                                        return refs[refs.length - 1];
+                                    })
+                                        .stateChanges(['added', 'removed', 'modified'])
+                                        .subscribe((results) => {
+                                        results.forEach((data) => {
+                                            switch (data.type) {
+                                                case 'added':
+                                                    this._tempData['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                    break;
+                                                case 'modified':
+                                                    this._tempData['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                    if (this._tempData['reference'][data.payload.doc.id] === undefined) {
+                                                        this.initModelFromData(data.payload.doc.data(), data.payload.doc.id);
+                                                    }
+                                                    else {
+                                                        this.updateHash(this._tempData['reference'][data.payload.doc.id].setData(data.payload.doc.data()));
+                                                    }
+                                                    break;
+                                                case 'removed':
+                                                    if (this._tempData['reference'][data.payload.doc.id]) {
+                                                        delete this._tempData['reference'][data.payload.doc.id];
+                                                    }
+                                                    if (this._tempData['tmp'][data.payload.doc.id]) {
+                                                        delete this._tempData['tmp'][data.payload.doc.id];
+                                                    }
+                                                    break;
+                                            }
+                                        });
+                                        updateResults(q, observer, isWatch);
+                                    });
+                                    if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
+                                        setTimeout(() => {
+                                            observer.complete();
+                                            subscriber.unsubscribe();
+                                        }, subscribeUntil.value);
+                                    }
+                                }
+                                if (this.firestore.constructor.name !== 'AngularFirestore') {
+                                    let ref = this.firestore.collection(path);
                                     if (q.orderBy) {
                                         ref = ref.orderBy(q.orderBy);
                                     }
                                     if (q.limit && q.offset === undefined) {
                                         ref = ref.limit(q.limit);
                                     }
-                                    const refs = [ref];
                                     if (q.where) {
                                         q.where.forEach((w) => {
-                                            refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
+                                            ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
                                         });
                                     }
-                                    return refs[refs.length - 1];
-                                })
-                                    .stateChanges()
-                                    .subscribe((results) => {
-                                    results.forEach((data) => {
-                                        switch (data.type) {
-                                            case 'added':
-                                                this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
-                                                break;
-                                            case 'modified':
-                                                this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
-                                                if (this._findAllTemporaryArray['reference'][data.payload.doc.id] === undefined) {
-                                                    this.initModelFromData(data.payload.doc.data(), data.payload.doc.id);
-                                                }
-                                                else {
-                                                    this.updateHash(this._findAllTemporaryArray['reference'][data.payload.doc.id].setData(data.payload.doc.data()));
-                                                }
-                                                break;
-                                            case 'removed':
-                                                if (this._findAllTemporaryArray['reference'][data.payload.doc.id]) {
-                                                    delete this._findAllTemporaryArray['reference'][data.payload.doc.id];
-                                                }
-                                                if (this._findAllTemporaryArray['tmp'][data.payload.doc.id]) {
-                                                    delete this._findAllTemporaryArray['tmp'][data.payload.doc.id];
-                                                }
-                                                break;
-                                        }
-                                    });
-                                    updateResults(q, observer, isWatch);
-                                });
-                                if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
-                                    setTimeout(() => {
-                                        observer.complete();
-                                        subscriber.unsubscribe();
-                                    }, subscribeUntil.value);
-                                }
-                            }
-                            if (this.firestore.constructor.name !== 'AngularFirestore') {
-                                let ref = this.firestore.collection(path);
-                                if (q.orderBy) {
-                                    ref = ref.orderBy(q.orderBy);
-                                }
-                                if (q.limit && q.offset === undefined) {
-                                    ref = ref.limit(q.limit);
-                                }
-                                if (q.where) {
-                                    q.where.forEach((w) => {
-                                        ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
-                                    });
-                                }
-                                if (subs) {
-                                    subs();
-                                }
-                                subs = ref.onSnapshot((querySnapshot) => {
-                                    querySnapshot.forEach((doc) => {
-                                        this._findAllTemporaryArray['tmp'][doc.id] = doc.data();
-                                    });
-                                    updateResults(q, observer, isWatch);
-                                }, (e) => {
-                                    observer.error(e);
-                                    observer.complete();
-                                    subs();
-                                });
-                                if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
-                                    setTimeout(() => {
+                                    if (subs) {
+                                        subs();
+                                    }
+                                    subs = ref.onSnapshot((querySnapshot) => {
+                                        querySnapshot.forEach((doc) => {
+                                            this._tempData['tmp'][doc.id] = doc.data();
+                                        });
+                                        updateResults(q, observer, isWatch);
+                                    }, (e) => {
+                                        observer.error(e);
                                         observer.complete();
                                         subs();
-                                        this.status$.next({
-                                            isWorking: false,
-                                            target: self,
-                                            action: 'subscriptionClosedAfterTimeoutOrMaxCount',
-                                        });
-                                    }, subscribeUntil.value);
+                                    });
+                                    if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
+                                        setTimeout(() => {
+                                            observer.complete();
+                                            subs();
+                                            this.status$.next({
+                                                isWorking: false,
+                                                target: self,
+                                                action: 'subscriptionClosedAfterTimeoutOrMaxCount',
+                                            });
+                                        }, subscribeUntil.value);
+                                    }
                                 }
                             }
                         }
@@ -1050,11 +1084,11 @@ class AbstractRepository {
                 .then(() => {
                 const model = new self.model()._init(self, initialData, identifier);
                 this.updateHash(model);
-                if (!this._findAllTemporaryArray) {
-                    this.resetData();
+                if (!this._tempData) {
+                    this.resetTempData();
                 }
-                this._findAllTemporaryArray['reference'][identifier] = model;
-                resolve(this._findAllTemporaryArray['reference'][identifier]);
+                this._tempData['reference'][identifier] = model;
+                resolve(this._tempData['reference'][identifier]);
             })
                 .catch((e) => {
                 reject(e);
@@ -1197,23 +1231,34 @@ class AbstractRepository {
     }
     getState(property, defaultValue) {
         const properties = this._statePropertiesFromInvoker.getValue();
+        const tmpData = this.getTempData();
+        let initialValue = defaultValue;
         properties.push(property);
-        if (defaultValue !== undefined) {
-            this._initialStateFromStateProperties[property] = defaultValue;
+        if (tmpData && tmpData.state && tmpData.state[property]) {
+            initialValue = tmpData.state[property];
+        }
+        if (initialValue !== undefined) {
+            this._initialStateFromStateProperties[property] = initialValue;
             if (this.invoker[property]) {
-                this.invoker[property].next(defaultValue);
+                this.invoker[property].next(initialValue);
             }
         }
         this._statePropertiesFromInvoker.next(properties);
-        return this._initialStateFromStateProperties[property];
+        return initialValue ? initialValue : this._initialStateFromStateProperties[property];
+    }
+    removeTempData(identifier) {
+        if (this._tempData.reference[identifier]) {
+            delete this._tempData.reference[identifier];
+        }
+        return;
     }
     updateIsSelectedAll() {
         const selectedCount = this.getSelected().length;
-        const isSelectedAll = selectedCount > 0 && Object.keys(this._findAllTemporaryArray['reference']).length === selectedCount;
+        const isSelectedAll = selectedCount > 0 && Object.keys(this._tempData['reference']).length === selectedCount;
         if (this._isSelected) {
             Object.keys(this._isSelected).forEach((id) => {
-                if (this._isSelected[id] && this._findAllTemporaryArray['reference'][id]) {
-                    this._findAllTemporaryArray['reference'][id]['_isSelected'] = true;
+                if (this._isSelected[id] && this._tempData['reference'][id]) {
+                    this._tempData['reference'][id]['_isSelected'] = true;
                 }
             });
         }
@@ -1222,12 +1267,12 @@ class AbstractRepository {
     }
     getModelReferences() {
         const references = [];
-        if (!this._findAllTemporaryArray) {
+        if (!this._tempData) {
             return references;
         }
-        if (this._findAllTemporaryArray.reference) {
-            Object.keys(this._findAllTemporaryArray.reference).forEach((identifier) => {
-                references.push(this._findAllTemporaryArray.reference[identifier]);
+        if (this._tempData.reference) {
+            Object.keys(this._tempData.reference).forEach((identifier) => {
+                references.push(this._tempData.reference[identifier]);
             });
         }
         return references;
@@ -1316,12 +1361,12 @@ class AbstractRepository {
         return initialData;
     }
     getData() {
-        return this._findAllTemporaryArray && this._findAllTemporaryArray['result']
-            ? this._findAllTemporaryArray['result']
+        return this._tempData && this._tempData['result']
+            ? this._tempData['result']
             : null;
     }
-    resetData() {
-        this._findAllTemporaryArray = { reference: {}, result: [], hashes: {}, tmp: {} };
+    resetTempData(initialData) {
+        this._tempData = initialData ? initialData : this.getTempData();
     }
     initModelFromData(data, identifier) {
         let model = null;
@@ -1337,10 +1382,10 @@ class AbstractRepository {
         if (data !== undefined) {
             this.updateHash(model);
         }
-        if (!this._findAllTemporaryArray) {
-            this.resetData();
+        if (!this._tempData) {
+            this.resetTempData();
         }
-        this._findAllTemporaryArray['reference'][identifier] = model;
+        this._tempData['reference'][identifier] = model;
         return model;
     }
     setInstanceName(name) {
@@ -1355,6 +1400,7 @@ class AbstractRepository {
         }
         this.isStateIsSynchronizing = true;
         let initialState = {};
+        let pushStateTimeout = null;
         const state = {};
         const identifier = 'test';
         const path = '__state/' + this.instanceName + '/repository';
@@ -1368,14 +1414,22 @@ class AbstractRepository {
                 }
             });
         });
-        const pushState = (s) => {
+        const pushState = () => {
             if (!this.firestore) {
                 return;
             }
-            this.firestore
-                .collection(path)
-                .doc(identifier)
-                .set(s).then().catch();
+            if (pushStateTimeout) {
+                clearTimeout(pushStateTimeout);
+            }
+            this._tempData.state = state;
+            if (this.isReady$.getValue()) {
+                pushStateTimeout = setTimeout(() => {
+                    this.firestore
+                        .collection(path)
+                        .doc(identifier)
+                        .set(state).then().catch();
+                }, 100);
+            }
         };
         const loadState = () => {
             return new Promise((resolve, reject) => {
@@ -1413,7 +1467,7 @@ class AbstractRepository {
                 }
             });
             changeDetection.subscribe((e) => {
-                pushState(e);
+                pushState();
             });
             this.setIsReady();
         });
@@ -1423,7 +1477,7 @@ class AbstractRepository {
                     invoker[key].subscribe((v) => {
                         if (v !== undefined) {
                             state[key] = v;
-                            pushState(state);
+                            pushState();
                         }
                     });
                 }
@@ -1438,6 +1492,28 @@ class AbstractRepository {
     }
     setInvoker(invoker) {
         this.invoker = invoker;
+    }
+    setParentInstance(parentInstance) {
+        this.parentInstance = parentInstance;
+    }
+    getTempData(instanceName) {
+        if (this.parentInstance) {
+            return this.parentInstance.getTempData(this.instanceName);
+        }
+        if (!instanceName || !this._temp[instanceName]) {
+            return { reference: {}, result: [], hashes: {}, tmp: {}, count: 0, pageIndex: 0 };
+        }
+        return this._temp[instanceName]._tempData;
+    }
+    setTempData(data, instanceName) {
+        if (this.parentInstance) {
+            this.parentInstance.setTempData(this._tempData, this.instanceName);
+            return;
+        }
+        if (!instanceName || !data) {
+            return;
+        }
+        this._temp[instanceName] = { _tempData: data };
     }
 }
 exports.AbstractRepository = AbstractRepository;

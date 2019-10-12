@@ -62,7 +62,7 @@ class AbstractModel {
         this.getRepository().toggleSelection(this);
     }
     setChanges(hasChanges) {
-        this._hasChanges = hasChanges ? hasChanges : true;
+        this._hasChanges = hasChanges !== undefined ? hasChanges : true;
     }
     hasChanges() {
         return this._hasChanges;
@@ -164,7 +164,7 @@ class AbstractModel {
             .getRelationWhere(targetRelation), 'move');
     }
     add(target, data, identifier, parentRepo, parentRelationsWhere, statusAction) {
-        if (target === undefined) {
+        if (target === undefined && this._repository) {
             return this._repository.add(data);
         }
         return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -172,8 +172,8 @@ class AbstractModel {
                 this.initRelationRepository(this._firestore$.getValue(), target);
             }
             const statusActionName = statusAction === undefined ? 'add' : statusAction;
-            const repo = parentRepo === undefined ? this._relationsRepo[target] : parentRepo;
-            const relationsWhere = parentRelationsWhere !== undefined ? parentRelationsWhere : this._relationsWhere[target];
+            const repo = parentRepo === undefined && target ? this._relationsRepo[target] : parentRepo;
+            const relationsWhere = parentRelationsWhere !== undefined ? parentRelationsWhere : this._relationsWhere[target ? target : 0];
             const initialData = {};
             const status$ = repo.getParentModel() ? repo.getParentModel().getRepository().status$ : repo.status$;
             const statusTarget = target ? target : this;
@@ -408,9 +408,16 @@ class AbstractModel {
     }
     save(callback) {
         const self = this;
+        if (!this._repository) {
+            if (callback) {
+                callback(self, 'no repository connected');
+            }
+            return;
+        }
         this._repository
             .update(this)
             .then(() => {
+            self.setChanges(false);
             if (callback) {
                 callback(self, null);
             }
@@ -424,6 +431,12 @@ class AbstractModel {
     }
     remove(callback) {
         const self = this;
+        if (!this._repository) {
+            if (callback) {
+                callback(self, 'no repository connected');
+            }
+            return;
+        }
         this._repository
             .remove(this)
             .then(() => {
@@ -454,7 +467,7 @@ class AbstractModel {
                                     typeof this[key] === 'object' &&
                                     this[key].constructor &&
                                     'Observable' === this[key].constructor.name) {
-                                    this[key].pipe(operators_1.take(1)).subscribe((d) => {
+                                    this[key].pipe(operators_1.take(1)).subscribe(() => {
                                         if (this.getRelationData(key)) {
                                             properties.push({
                                                 key: key,

@@ -30,6 +30,7 @@
   "homepage": "https://github.com/**r#readme",
   "dependencies": {
     "@types/node": "^12.7.8",
+    "firebase": "^7.2.0",
     "guid-typescript": "^1.0.9",
     "rxjs": "^6.5.3",
     "ts-md5": "^1.2.6"

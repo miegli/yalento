@@ -69,7 +69,7 @@ export abstract class AbstractModel {
   }
 
   public setChanges(hasChanges?: boolean): void {
-    this._hasChanges = hasChanges ? hasChanges : true;
+    this._hasChanges = hasChanges !== undefined ? hasChanges : true;
   }
 
   public hasChanges() {
@@ -213,7 +213,7 @@ export abstract class AbstractModel {
     parentRelationsWhere?: IWhere[] | undefined,
     statusAction?: string,
   ): Promise<any> {
-    if (target === undefined) {
+    if (target === undefined && this._repository) {
       return this._repository.add(data);
     }
 
@@ -223,8 +223,8 @@ export abstract class AbstractModel {
       }
 
       const statusActionName = statusAction === undefined ? 'add' : statusAction;
-      const repo = parentRepo === undefined ? this._relationsRepo[target] : parentRepo;
-      const relationsWhere = parentRelationsWhere !== undefined ? parentRelationsWhere : this._relationsWhere[target];
+      const repo = parentRepo === undefined && target ? this._relationsRepo[target] : parentRepo;
+      const relationsWhere = parentRelationsWhere !== undefined ? parentRelationsWhere : this._relationsWhere[target ? target : 0];
       const initialData: { [key: string]: any } = {};
       const status$ = repo.getParentModel() ? repo.getParentModel().getRepository().status$ : repo.status$;
       const statusTarget = target ? target : this;
@@ -482,9 +482,16 @@ export abstract class AbstractModel {
 
   public save(callback?: (model: any, error?: any) => void): void {
     const self = this;
+    if (!this._repository) {
+      if (callback) {
+        callback(self, 'no repository connected');
+      }
+      return;
+    }
     this._repository
       .update(this)
       .then(() => {
+        self.setChanges(false);
         if (callback) {
           callback(self, null);
         }
@@ -499,6 +506,12 @@ export abstract class AbstractModel {
 
   public remove(callback?: (model: any, error?: any) => void): void {
     const self = this;
+    if (!this._repository) {
+      if (callback) {
+        callback(self, 'no repository connected');
+      }
+      return;
+    }
     this._repository
       .remove(this)
       .then(() => {
@@ -539,7 +552,7 @@ export abstract class AbstractModel {
                     'Observable' === this[key].constructor.name
                   ) {
                     // @ts-ignore
-                    this[key].pipe(take(1)).subscribe((d: any) => {
+                    this[key].pipe(take(1)).subscribe(() => {
                       if (this.getRelationData(key)) {
                         properties.push({
                           key: key,

@@ -1,7 +1,9 @@
+import 'firebase/auth';
 import { Guid } from 'guid-typescript';
 import { BehaviorSubject, Observable, Observer } from 'rxjs';
 import { Md5 } from 'ts-md5';
 import { AbstractModel, IModelProperty } from './abstractModel';
+
 
 export interface IWhere {
     property: string;
@@ -45,6 +47,17 @@ export interface IStatus {
     external?: boolean;
 }
 
+
+export interface ITempData {
+    reference: any;
+    result: any[];
+    hashes: any;
+    tmp: any;
+    count: number;
+    pageIndex: number;
+    state?: any;
+}
+
 /**
  *
  */
@@ -52,10 +65,12 @@ export abstract class AbstractRepository {
     public status$: BehaviorSubject<IStatus> = new BehaviorSubject({});
     public path: string = '/undefined';
     public model: any | AbstractModel;
+    public parentInstance: any | AbstractRepository = null;
     public isSelectedAll$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
     public hasSelected$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
     private isReady$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    private _findAllTemporaryArray: any = { reference: {}, result: [], hashes: {}, tmp: {} };
+    private _tempData: ITempData = { reference: {}, result: [], hashes: {}, tmp: {}, count: 0, pageIndex: 0 };
+    private _temp: { [instanceName: string]: { _tempData: ITempData }; } = {};
     private _isSelected: any = {};
     private _count: number = 0;
     private _pageIndex: BehaviorSubject<number> = new BehaviorSubject<number>(0);
@@ -70,6 +85,7 @@ export abstract class AbstractRepository {
     private _statePropertiesFromInvoker: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
     private _initialStateFromStateProperties: any = {};
     private invoker: any = null;
+
 
     /**
      * construct repository with AngularFire.Firestore or Firebase.Firestore argument
@@ -105,6 +121,7 @@ export abstract class AbstractRepository {
         const instance = new this.constructor(this.firestore);
         instance.synchronizeState(invoker);
         instance.setInvoker(invoker);
+        instance.setParentInstance(this);
 
         return instance;
 
@@ -126,17 +143,17 @@ export abstract class AbstractRepository {
             if (this.isSelectedAll$.getValue()) {
                 this._isSelected = {};
             } else {
-                Object.keys(this._findAllTemporaryArray['tmp']).forEach(key => {
-                    if (this._findAllTemporaryArray['reference'][key] === undefined) {
-                        const data = this._findAllTemporaryArray['tmp'][key];
+                Object.keys(this._tempData['tmp']).forEach(key => {
+                    if (this._tempData['reference'][key] === undefined) {
+                        const data = this._tempData['tmp'][key];
                         this.initModelFromData(data, key);
                     }
-                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = false;
+                    this._tempData['reference'][key]['_isSelected'] = false;
                 });
 
-                Object.keys(this._findAllTemporaryArray['reference']).forEach(key => {
+                Object.keys(this._tempData['reference']).forEach(key => {
                     this._isSelected[key] = true;
-                    this._findAllTemporaryArray['reference'][key]['_isSelected'] = true;
+                    this._tempData['reference'][key]['_isSelected'] = true;
                 });
             }
         }
@@ -155,8 +172,8 @@ export abstract class AbstractRepository {
         }
 
         Object.keys(this._isSelected).forEach(key => {
-            if (this._isSelected[key] === true && this._findAllTemporaryArray['reference'][key]) {
-                selected.push(this._findAllTemporaryArray['reference'][key]);
+            if (this._isSelected[key] === true && this._tempData['reference'][key]) {
+                selected.push(this._tempData['reference'][key]);
             }
         });
 
@@ -203,6 +220,7 @@ export abstract class AbstractRepository {
     public getFirestore(): any {
         return this.firestore;
     }
+
 
     /**
      * get firestore batch (AngularFire.Firestore or Firebase.Firestore)
@@ -395,8 +413,8 @@ export abstract class AbstractRepository {
     ): Observable<boolean> {
         const self = this;
         const identifier: string = typeof item === 'string' ? item : item.getIdentifier();
-        const model: AbstractModel = self._findAllTemporaryArray
-            ? self._findAllTemporaryArray['reference'][identifier]
+        const model: AbstractModel = self._tempData
+            ? self._tempData['reference'][identifier]
             : null;
 
         return new Observable((observer: Observer<any>) => {
@@ -536,6 +554,7 @@ export abstract class AbstractRepository {
 
                 item.forEach((i: any) => {
                     const identifier = typeof i === 'string' ? i : i.getIdentifier();
+                    repo.removeTempData(identifier);
                     const refs = repo
                         .getFirestore()
                         .collection(repo.getPath())
@@ -563,6 +582,7 @@ export abstract class AbstractRepository {
         }
 
         return new Promise<any>((resolve, reject) => {
+
             const identifier = typeof item === 'string' ? item : item.getIdentifier();
             const target = item ? item : new this.model().setIdentifier(identifier);
 
@@ -580,6 +600,7 @@ export abstract class AbstractRepository {
             if (typeof repo.getFirestore() === 'undefined') {
                 if (typeof repo.getParentModel().removeItemFromRelationsData !== 'undefined') {
                     repo.getParentModel().removeItemFromRelationsData(identifier);
+                    repo.removeTempData(identifier);
                 }
                 clearTimeout(statusTimeout);
                 this.status$.next({
@@ -591,6 +612,8 @@ export abstract class AbstractRepository {
                 resolve(true);
                 return;
             }
+
+            repo.removeTempData(identifier);
 
             repo
                 .getFirestore()
@@ -628,7 +651,7 @@ export abstract class AbstractRepository {
      * @private
      */
     public _findOneByIdentifier(identifier: string, watchForChanges?: boolean): any {
-        const self = this;
+
         let watch: boolean;
 
         return new Observable((observer: Observer<any>) => {
@@ -637,6 +660,28 @@ export abstract class AbstractRepository {
                 observer.complete();
                 return;
             }
+
+            if (this._temp) {
+                Object.keys(this._temp).forEach((instanceId: string) => {
+                    if (this._temp[instanceId]._tempData && this._temp[instanceId]._tempData.reference && this._temp[instanceId]._tempData.reference[identifier]) {
+                        observer.next(this._temp[instanceId]._tempData.reference[identifier]);
+                        if (watchForChanges === false) {
+                            observer.complete();
+                        }
+                        return;
+                    }
+                });
+            }
+
+            /**
+            if (this._tempData.reference && this._tempData.reference[identifier]) {
+                observer.next(this._tempData.reference[identifier]);
+                if (watchForChanges === false) {
+                    observer.complete();
+                }
+                return;
+            }
+             **/
 
             if (this.firestore.constructor.name === 'AngularFirestore') {
                 watch = watchForChanges === undefined ? true : watchForChanges;
@@ -731,10 +776,18 @@ export abstract class AbstractRepository {
     public find(query?: IQuery, watch?: boolean, subscribeUntil?: ISubscribeUntil): any | Observable<any[]> {
 
         const self = this;
+        this.resetTempData();
+        const isAngular: boolean = this.firestore && this.firestore.constructor.name === 'AngularFirestore';
 
         return new Observable((observer: Observer<any>) => {
-            this.isReady$.subscribe((ready: boolean) => {
 
+            if (isAngular) {
+                observer.next(this._tempData.result);
+                this._count = this._tempData.count;
+                this._pageIndex.next(this._tempData.pageIndex);
+            }
+
+            this.isReady$.subscribe((ready: boolean) => {
 
                 if (ready || !this.invoker) {
 
@@ -753,7 +806,7 @@ export abstract class AbstractRepository {
                     }
 
                     let isWatch: boolean;
-                    const isAngular: boolean = this.firestore && this.firestore.constructor.name === 'AngularFirestore';
+
                     if (isAngular) {
                         isWatch = typeof watch === 'undefined' ? true : watch;
                     } else {
@@ -763,28 +816,25 @@ export abstract class AbstractRepository {
                     let subscriber: any = null;
                     let subs: any = null;
 
-                    if (isAngular) {
-                        observer.next([]);
-                    }
-
-                    this.resetData();
                     let subLimit: any;
                     let subOffset: any;
                     let subOrderBy: any;
                     let lastQueryString = '';
+                    let lastCollectionHash = '';
                     const subWhere: any = {};
 
                     const updateResults = (q: IQuery, o: Observer<any>, isObservableWatching: boolean) => {
                         this.updateIsSelectedAll();
 
-                        this._count = Object.keys(this._findAllTemporaryArray['tmp']).length;
+                        this._count = Object.keys(this._tempData['tmp']).length;
+                        this._tempData['count'] = this._count;
+                        this._tempData['result'] = [];
 
-                        this._findAllTemporaryArray['result'] = [];
                         let tmpResults = [];
                         if (q.limit !== undefined && q.offset !== undefined) {
-                            tmpResults = Object.keys(this._findAllTemporaryArray['tmp']).slice(q.offset, q.limit + q.offset);
+                            tmpResults = Object.keys(this._tempData['tmp']).slice(q.offset, q.limit + q.offset);
                         } else {
-                            tmpResults = Object.keys(this._findAllTemporaryArray['tmp']);
+                            tmpResults = Object.keys(this._tempData['tmp']);
                         }
 
                         if (q.offset && q.offset >= this._count) {
@@ -798,23 +848,24 @@ export abstract class AbstractRepository {
                         }
 
                         if (q.limit && q.offset !== undefined) {
-                            this._pageIndex.next(q.offset / q.limit)
+                            this._tempData.pageIndex = q.offset / q.limit;
+                            this._pageIndex.next(this._tempData.pageIndex);
                         }
 
                         tmpResults.forEach(id => {
-                            const data = this._findAllTemporaryArray['tmp'][id];
+                            const data = this._tempData['tmp'][id];
 
-                            if (this._findAllTemporaryArray['reference'][id] === undefined) {
+                            if (this._tempData['reference'][id] === undefined) {
                                 this.initModelFromData(data, id);
                             } else {
-                                this.updateHash(this._findAllTemporaryArray['reference'][id].setData(data));
+                                this.updateHash(this._tempData['reference'][id].setData(data));
                             }
 
-                            this._findAllTemporaryArray['result'].push(this._findAllTemporaryArray['reference'][id]);
+                            this._tempData['result'].push(this._tempData['reference'][id]);
                         });
 
-
-                        o.next(this._findAllTemporaryArray['result']);
+                        o.next(this._tempData['result']);
+                        this.setTempData();
 
                         if (!isObservableWatching) {
                             o.complete();
@@ -1076,141 +1127,154 @@ export abstract class AbstractRepository {
 
                     resolveQuery.subscribe((q: IQuery) => {
 
-                        if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
-                            q.orderBy = '_index';
-                        }
+                        const qForCompare = JSON.parse(JSON.stringify(q));
+                        qForCompare.offset = 0;
 
-                        if (q && q.identifier !== undefined) {
-                            this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: AbstractModel) => {
-                                this.resetData();
-                                if (model) {
-                                    this._findAllTemporaryArray['reference'][model.getIdentifier()] = model;
-                                    this._findAllTemporaryArray['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
-                                }
-                                updateResults(q, observer, isWatch);
-                            });
+                        if (JSON.stringify(qForCompare) === lastCollectionHash) {
+                            updateResults(q, observer, isWatch);
                         } else {
-                            if (!this.firestore) {
-                                observer.next([]);
-                                observer.complete();
-                                return;
+
+                            lastCollectionHash = JSON.stringify(qForCompare);
+
+                            if (!q.orderBy && this.getPath().lastIndexOf('/') <= 0) {
+                                q.orderBy = '_index';
                             }
 
-                            if (this.firestore.constructor.name === 'AngularFirestore') {
+                            if (q && q.identifier !== undefined) {
+                                this._findOneByIdentifier(q.identifier, isWatch).subscribe((model: AbstractModel) => {
+                                    this.resetTempData();
+                                    if (model) {
+                                        this._tempData['reference'][model.getIdentifier()] = model;
+                                        this._tempData['tmp'][model.getIdentifier()] = this.getDataFromModel(model);
+                                    }
+                                    updateResults(q, observer, isWatch);
+                                });
+                            } else {
+                                if (!this.firestore) {
+                                    observer.next([]);
+                                    observer.complete();
+                                    return;
+                                }
 
-                                subscriber = this.firestore
-                                    .collection(path, (reference: any) => {
-                                        let ref = reference;
+                                if (this.firestore.constructor.name === 'AngularFirestore') {
 
-                                        if (q.orderBy) {
-                                            ref = ref.orderBy(q.orderBy);
-                                        }
-
-                                        if (q.limit && q.offset === undefined) {
-                                            ref = ref.limit(q.limit);
-                                        }
-
-                                        const refs = [ref];
-
-                                        if (q.where) {
-                                            q.where.forEach((w: IWhere) => {
-                                                refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
-                                            });
-                                        }
-
-                                        return refs[refs.length - 1];
-                                    })
-                                    .stateChanges()
-                                    .subscribe((results: any) => {
-                                        results.forEach((data: any) => {
-                                            switch (data.type) {
-                                                case 'added':
-                                                    this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
-                                                    break;
-                                                case 'modified':
-                                                    this._findAllTemporaryArray['tmp'][data.payload.doc.id] = data.payload.doc.data();
-                                                    if (this._findAllTemporaryArray['reference'][data.payload.doc.id] === undefined) {
-                                                        this.initModelFromData(data.payload.doc.data(), data.payload.doc.id);
-                                                    } else {
-                                                        this.updateHash(
-                                                            this._findAllTemporaryArray['reference'][data.payload.doc.id].setData(
-                                                                data.payload.doc.data(),
-                                                            ),
-                                                        );
-                                                    }
-                                                    break;
-                                                case 'removed':
-                                                    if (this._findAllTemporaryArray['reference'][data.payload.doc.id]) {
-                                                        delete this._findAllTemporaryArray['reference'][data.payload.doc.id];
-                                                    }
-                                                    if (this._findAllTemporaryArray['tmp'][data.payload.doc.id]) {
-                                                        delete this._findAllTemporaryArray['tmp'][data.payload.doc.id];
-                                                    }
-                                                    break;
-                                            }
-                                        });
-
-                                        updateResults(q, observer, isWatch);
-                                    });
-
-                                if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
-                                    setTimeout(() => {
-                                        observer.complete();
+                                    if (subscriber) {
                                         subscriber.unsubscribe();
-                                    }, subscribeUntil.value);
+                                    }
+                                    subscriber = this.firestore
+                                        .collection(path, (reference: any) => {
+                                            let ref = reference;
+
+                                            if (q.orderBy) {
+                                                ref = ref.orderBy(q.orderBy);
+                                            }
+
+                                            if (q.limit && q.offset === undefined) {
+                                                ref = ref.limit(q.limit);
+                                            }
+
+                                            const refs = [ref];
+
+                                            if (q.where) {
+                                                q.where.forEach((w: IWhere) => {
+                                                    refs.push(refs[refs.length - 1].where(w.property, w.operation ? w.operation : '==', w.value));
+                                                });
+                                            }
+
+                                            return refs[refs.length - 1];
+                                        })
+                                        .stateChanges(['added', 'removed', 'modified'])
+                                        .subscribe((results: any) => {
+                                            results.forEach((data: any) => {
+
+                                                switch (data.type) {
+                                                    case 'added':
+                                                        this._tempData['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                        break;
+                                                    case 'modified':
+                                                        this._tempData['tmp'][data.payload.doc.id] = data.payload.doc.data();
+                                                        if (this._tempData['reference'][data.payload.doc.id] === undefined) {
+                                                            this.initModelFromData(data.payload.doc.data(), data.payload.doc.id);
+                                                        } else {
+                                                            this.updateHash(
+                                                                this._tempData['reference'][data.payload.doc.id].setData(
+                                                                    data.payload.doc.data(),
+                                                                ),
+                                                            );
+                                                        }
+                                                        break;
+                                                    case 'removed':
+                                                        if (this._tempData['reference'][data.payload.doc.id]) {
+                                                            delete this._tempData['reference'][data.payload.doc.id];
+                                                        }
+                                                        if (this._tempData['tmp'][data.payload.doc.id]) {
+                                                            delete this._tempData['tmp'][data.payload.doc.id];
+                                                        }
+                                                        break;
+                                                }
+                                            });
+                                            updateResults(q, observer, isWatch);
+                                        });
+
+                                    if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
+                                        setTimeout(() => {
+                                            observer.complete();
+                                            subscriber.unsubscribe();
+                                        }, subscribeUntil.value);
+                                    }
+                                }
+
+                                if (this.firestore.constructor.name !== 'AngularFirestore') {
+
+                                    let ref = this.firestore.collection(path);
+
+                                    if (q.orderBy) {
+                                        ref = ref.orderBy(q.orderBy);
+                                    }
+
+                                    if (q.limit && q.offset === undefined) {
+                                        ref = ref.limit(q.limit);
+                                    }
+
+                                    if (q.where) {
+                                        q.where.forEach((w: IWhere) => {
+                                            ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
+                                        });
+                                    }
+
+                                    if (subs) {
+                                        subs();
+                                    }
+                                    subs = ref.onSnapshot(
+                                        (querySnapshot: any) => {
+                                            querySnapshot.forEach((doc: any) => {
+                                                this._tempData['tmp'][doc.id] = doc.data();
+                                            });
+                                            updateResults(q, observer, isWatch);
+                                        },
+                                        (e: any) => {
+                                            observer.error(e);
+                                            observer.complete();
+                                            subs();
+                                        },
+                                    );
+
+                                    if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
+                                        setTimeout(() => {
+                                            observer.complete();
+                                            subs();
+                                            this.status$.next({
+                                                isWorking: false,
+                                                target: self,
+                                                action: 'subscriptionClosedAfterTimeoutOrMaxCount',
+                                            });
+                                        }, subscribeUntil.value);
+                                    }
+
                                 }
                             }
 
-                            if (this.firestore.constructor.name !== 'AngularFirestore') {
-
-                                let ref = this.firestore.collection(path);
-
-                                if (q.orderBy) {
-                                    ref = ref.orderBy(q.orderBy);
-                                }
-
-                                if (q.limit && q.offset === undefined) {
-                                    ref = ref.limit(q.limit);
-                                }
-
-                                if (q.where) {
-                                    q.where.forEach((w: IWhere) => {
-                                        ref = ref.where(w.property, w.operation ? w.operation : '==', w.value);
-                                    });
-                                }
-
-                                if (subs) {
-                                    subs();
-                                }
-                                subs = ref.onSnapshot(
-                                    (querySnapshot: any) => {
-                                        querySnapshot.forEach((doc: any) => {
-                                            this._findAllTemporaryArray['tmp'][doc.id] = doc.data();
-                                        });
-                                        updateResults(q, observer, isWatch);
-                                    },
-                                    (e: any) => {
-                                        observer.error(e);
-                                        observer.complete();
-                                        subs();
-                                    },
-                                );
-
-                                if (isWatch && subscribeUntil && subscribeUntil.until === 'timeout') {
-                                    setTimeout(() => {
-                                        observer.complete();
-                                        subs();
-                                        this.status$.next({
-                                            isWorking: false,
-                                            target: self,
-                                            action: 'subscriptionClosedAfterTimeoutOrMaxCount',
-                                        });
-                                    }, subscribeUntil.value);
-                                }
-
-                            }
                         }
-
                     });
                 }
             });
@@ -1354,12 +1418,11 @@ export abstract class AbstractRepository {
                 .then(() => {
                     const model = new self.model()._init(self, initialData, identifier);
                     this.updateHash(model);
-
-                    if (!this._findAllTemporaryArray) {
-                        this.resetData();
+                    if (!this._tempData) {
+                        this.resetTempData();
                     }
-                    this._findAllTemporaryArray['reference'][identifier] = model;
-                    resolve(this._findAllTemporaryArray['reference'][identifier]);
+                    this._tempData['reference'][identifier] = model;
+                    resolve(this._tempData['reference'][identifier]);
                 })
                 .catch((e: any) => {
                     reject(e);
@@ -1523,23 +1586,41 @@ export abstract class AbstractRepository {
     /**
      *
      * @param property
+     * @param defaultValue
      */
     public getState(property: string, defaultValue: any) {
 
         const properties = this._statePropertiesFromInvoker.getValue();
+        const tmpData = this.getTempData();
+        let initialValue = defaultValue;
+
         properties.push(property);
 
-        if (defaultValue !== undefined) {
-            this._initialStateFromStateProperties[property] = defaultValue;
+        if (tmpData && tmpData.state && tmpData.state[property]) {
+            initialValue = tmpData.state[property];
+        }
+
+        if (initialValue !== undefined) {
+            this._initialStateFromStateProperties[property] = initialValue;
             if (this.invoker[property]) {
-                this.invoker[property].next(defaultValue);
+                this.invoker[property].next(initialValue);
             }
         }
 
         this._statePropertiesFromInvoker.next(properties);
 
-        return this._initialStateFromStateProperties[property];
+        return initialValue ? initialValue : this._initialStateFromStateProperties[property];
 
+    }
+
+
+    public removeTempData(identifier: string): void {
+
+        if (this._tempData.reference[identifier]) {
+            delete this._tempData.reference[identifier];
+        }
+
+        return;
     }
 
     /**
@@ -1548,12 +1629,12 @@ export abstract class AbstractRepository {
     private updateIsSelectedAll() {
         const selectedCount = this.getSelected().length;
         const isSelectedAll =
-            selectedCount > 0 && Object.keys(this._findAllTemporaryArray['reference']).length === selectedCount;
+            selectedCount > 0 && Object.keys(this._tempData['reference']).length === selectedCount;
 
         if (this._isSelected) {
             Object.keys(this._isSelected).forEach((id: string) => {
-                if (this._isSelected[id] && this._findAllTemporaryArray['reference'][id]) {
-                    this._findAllTemporaryArray['reference'][id]['_isSelected'] = true;
+                if (this._isSelected[id] && this._tempData['reference'][id]) {
+                    this._tempData['reference'][id]['_isSelected'] = true;
                 }
             });
         }
@@ -1568,13 +1649,13 @@ export abstract class AbstractRepository {
     private getModelReferences(): AbstractModel[] {
         const references: any[] = [];
 
-        if (!this._findAllTemporaryArray) {
+        if (!this._tempData) {
             return references;
         }
 
-        if (this._findAllTemporaryArray.reference) {
-            Object.keys(this._findAllTemporaryArray.reference).forEach((identifier: string) => {
-                references.push(this._findAllTemporaryArray.reference[identifier]);
+        if (this._tempData.reference) {
+            Object.keys(this._tempData.reference).forEach((identifier: string) => {
+                references.push(this._tempData.reference[identifier]);
             });
         }
 
@@ -1700,16 +1781,16 @@ export abstract class AbstractRepository {
      * internal use only: get temporary data
      */
     private getData() {
-        return this._findAllTemporaryArray && this._findAllTemporaryArray['result']
-            ? this._findAllTemporaryArray['result']
+        return this._tempData && this._tempData['result']
+            ? this._tempData['result']
             : null;
     }
 
     /**
      * internal use only: reset tmp data
      */
-    private resetData() {
-        this._findAllTemporaryArray = { reference: {}, result: [], hashes: {}, tmp: {} };
+    private resetTempData(initialData?: ITempData) {
+        this._tempData = initialData ? initialData : this.getTempData();
     }
 
     /**
@@ -1735,10 +1816,10 @@ export abstract class AbstractRepository {
         }
 
 
-        if (!this._findAllTemporaryArray) {
-            this.resetData();
+        if (!this._tempData) {
+            this.resetTempData();
         }
-        this._findAllTemporaryArray['reference'][identifier] = model;
+        this._tempData['reference'][identifier] = model;
 
         return model;
     }
@@ -1768,6 +1849,7 @@ export abstract class AbstractRepository {
         this.isStateIsSynchronizing = true;
 
         let initialState: any = {};
+        let pushStateTimeout: any = null;
         const state: any = {};
         const identifier = 'test';
         const path = '__state/' + this.instanceName + '/repository';
@@ -1791,18 +1873,28 @@ export abstract class AbstractRepository {
         });
 
         /**
-         * push statee to backend method
-         * @param s
+         * push state to backend method
          */
-        const pushState = (s: any) => {
+        const pushState = () => {
             if (!this.firestore) {
                 return;
             }
 
-            this.firestore
-                .collection(path)
-                .doc(identifier)
-                .set(s).then().catch()
+            if (pushStateTimeout) {
+                clearTimeout(pushStateTimeout);
+            }
+
+            this._tempData.state = state;
+
+            if (this.isReady$.getValue()) {
+                pushStateTimeout = setTimeout(() => {
+                    this.firestore
+                        .collection(path)
+                        .doc(identifier)
+                        .set(state).then().catch();
+                }, 100);
+            }
+
         };
 
         /**
@@ -1834,6 +1926,7 @@ export abstract class AbstractRepository {
          */
         loadState().then((s) => {
             initialState = s;
+
             Object.keys(s).forEach((key: string) => {
                 // @ts-ignore
                 if (this[key] && this[key].next) {
@@ -1853,7 +1946,7 @@ export abstract class AbstractRepository {
             });
 
             changeDetection.subscribe((e: any) => {
-                pushState(e);
+                pushState();
             });
             this.setIsReady();
         });
@@ -1867,7 +1960,7 @@ export abstract class AbstractRepository {
                     invoker[key].subscribe((v: any) => {
                         if (v !== undefined) {
                             state[key] = v;
-                            pushState(state);
+                            pushState();
                         }
                     })
                 }
@@ -1889,5 +1982,40 @@ export abstract class AbstractRepository {
     private setInvoker(invoker: any) {
         this.invoker = invoker;
     }
+
+    private setParentInstance(parentInstance: AbstractRepository) {
+        this.parentInstance = parentInstance;
+    }
+
+    private getTempData(instanceName?: string): ITempData {
+
+        if (this.parentInstance) {
+            return this.parentInstance.getTempData(this.instanceName);
+        }
+
+        if (!instanceName || !this._temp[instanceName]) {
+            return { reference: {}, result: [], hashes: {}, tmp: {}, count: 0, pageIndex: 0 };
+        }
+
+        return this._temp[instanceName]._tempData;
+
+    }
+
+    private setTempData(data?: ITempData, instanceName?: string) {
+
+
+        if (this.parentInstance) {
+            this.parentInstance.setTempData(this._tempData, this.instanceName);
+            return;
+        }
+
+        if (!instanceName || !data) {
+            return;
+        }
+
+        this._temp[instanceName] = { _tempData: data };
+
+    }
+
 
 }
