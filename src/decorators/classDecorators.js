@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 function Connect(config) {
-    return function (constructor) {
+    return (constructor) => {
         var _a;
         return _a = class extends constructor {
             },
