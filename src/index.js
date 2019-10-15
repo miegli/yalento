@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+  for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
-Object.defineProperty(exports, "__esModule", { value: true });
-__export(require("./models/AbstractModel"));
-__export(require("sequelize"));
-__export(require("./decorators/classDecorators"));
+Object.defineProperty(exports, '__esModule', { value: true });
+__export(require('./models/AbstractModel'));
+__export(require('sequelize'));
+__export(require('./decorators/classDecorators'));

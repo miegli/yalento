@@ -1,14 +1,12 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-require("reflect-metadata");
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
+require('reflect-metadata');
 function Connect(config) {
-    return (constructor) => {
-        var _a;
-        return _a = class extends constructor {
-            },
-            _a.CONFIG = config,
-            _a.TABLE = constructor.toString().split(' ')[1],
-            _a;
-    };
+  return constructor => {
+    var _a;
+    return (
+      (_a = class extends constructor {}), (_a.CONFIG = config), (_a.TABLE = constructor.toString().split(' ')[1]), _a
+    );
+  };
 }
 exports.Connect = Connect;

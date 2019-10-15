@@ -4,52 +4,43 @@ import { Sequelize } from 'sequelize-typescript';
 import * as sql from 'sql.js/dist/sql-wasm.js';
 
 export interface IConfig {
-
-    attributes: ModelAttributes;
-
+  attributes: ModelAttributes;
 }
 
 export abstract class AbstractModel extends Model {
+  public static CONFIG: IConfig;
+  public static connect<M extends Model = Model>(this: any): Promise<boolean> {
+    return new Promise<any>(resolve => {
+      if (this._connected) {
+        resolve(true);
+        return;
+      }
 
-    public static CONFIG: IConfig;
-    public static connect<M extends Model = Model>(this: any): Promise<boolean> {
+      const sequelize = new Sequelize({
+        database: ':memory:',
+        dialect: 'sqlite',
+        username: 'root',
+        password: '',
+        storage: ':memory:',
+        dialectModule: sql.Database,
+        logging: false,
+      });
 
-        return new Promise<any>((resolve) => {
+      this.init(this.CONFIG.attributes, {
+        modelName: this.TABLE,
+        tableName: this.TABLE,
+        sequelize: sequelize,
+      });
 
-            if (this._connected) {
-                resolve(true);
-                return;
-            }
+      this.afterSave((t: any) => {
+        //
+      });
 
-            const sequelize = new Sequelize({
-                database: ':memory:',
-                dialect: 'sqlite',
-                username: 'root',
-                password: '',
-                storage: ':memory:',
-                dialectModule: sql.Database,
-                logging: false,
-            });
-
-            this.init(this.CONFIG.attributes, {
-                modelName: this.TABLE,
-                tableName: this.TABLE,
-                sequelize: sequelize,
-
-            });
-
-            this.afterSave((t: any) => {
-                //
-            })
-
-            this.sync({ force: true }).then(() => {
-                this._connected = true;
-                resolve(true);
-            });
-
-        });
-
-
-    }
-    private _connected: boolean = false;
+      this.sync({ force: true }).then(() => {
+        this._connected = true;
+        resolve(true);
+      });
+    });
+  }
+  private _connected: boolean = false;
 }
