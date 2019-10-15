@@ -12,8 +12,6 @@ export interface IConfig {
 export abstract class AbstractModel extends Model {
 
     public static CONFIG: IConfig;
-    private _connected: boolean = false;
-
     public static connect<M extends Model = Model>(this: any): Promise<boolean> {
 
         return new Promise<any>((resolve) => {
@@ -41,7 +39,7 @@ export abstract class AbstractModel extends Model {
             });
 
             this.afterSave((t: any) => {
-                console.log('save', t['dataValues']);
+                //
             })
 
             this.sync({ force: true }).then(() => {
@@ -53,5 +51,5 @@ export abstract class AbstractModel extends Model {
 
 
     }
-
+    private _connected: boolean = false;
 }
