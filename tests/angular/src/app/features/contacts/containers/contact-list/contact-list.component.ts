@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
+import { Component } from '@angular/core';
 import { MatDialog, PageEvent } from '@angular/material';
 import { BehaviorSubject } from 'rxjs';
 import { Contact } from '../../models/contact';
-import { ContactRepository } from '../../repositories/contact-repository';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
+
+import 'reflect-metadata';
 
 @Component({
   selector: 'app-contact-list',
@@ -13,17 +13,17 @@ import { ContactDialogComponent } from '../contact-dialog/contact-dialog.compone
 })
 export class ContactListComponent {
 
-  contactRepository: ContactRepository;
-  contacts$: BehaviorSubject<Contact[]>;
+  contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
-  constructor(contactRepository: ContactRepository, public dialog: MatDialog) {
-    this.contactRepository = contactRepository.createInstance(this);
-    this.limit$ = new BehaviorSubject<number>(this.contactRepository.getState('limit$', 25));
-    this.offset$ = new BehaviorSubject<number>(this.contactRepository.getState('offset$', 0));
-    this.contacts$ = this.contactRepository.getAll(this.limit$, this.offset$);
+  constructor(public dialog: MatDialog) {
+    this.limit$ = new BehaviorSubject<number>(25);
+    this.offset$ = new BehaviorSubject<number>(0);
+    this.contacts$.next([new Contact()]);
+
+
   }
 
   edit(contact: Contact): void {
@@ -31,7 +31,7 @@ export class ContactListComponent {
     if (!this.dialog.getDialogById('ContactListComponent')) {
       this.dialog.open(ContactDialogComponent, {
         id: 'ContactListComponent',
-        data: this.contactRepository.getOneByIdentifier(contact.getIdentifier()),
+        data: contact,
       });
     }
   }
@@ -43,13 +43,6 @@ export class ContactListComponent {
 
   add(count?: number): void {
 
-    if (count && count > 1) {
-      this.contactRepository.addMultiple(count).then();
-    } else {
-      this.contactRepository.add().then((contact: Contact) => {
-        this.edit(contact);
-      });
-    }
 
   }
 

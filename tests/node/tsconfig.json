@@ -3,10 +3,11 @@
     "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "removeComments": true,
     "noImplicitAny": false,
-    "types" : ["node"]
+    "types" : ["node"],
+    "lib": ["es6", "es2016", "dom", "scripthost"]
   }
 }

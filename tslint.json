@@ -5,6 +5,7 @@
     "no-string-literal": false,
     "max-classes-per-file": false,
     "object-literal-shorthand": false,
+    "no-unused-expression": false,
     "variable-name": {
       "options": [
         "allow-leading-underscore"

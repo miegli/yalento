@@ -2,7 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": []
+    "types": [ "node" ],
+    "typeRoots": [ "node_modules/@types" ],
+    "paths": {
+      "@yalento": ["../../src"]
+    }
   },
   "files": [
     "src/main.ts",

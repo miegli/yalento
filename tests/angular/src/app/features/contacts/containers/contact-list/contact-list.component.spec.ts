@@ -5,8 +5,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { CoreModule } from '../../../../core/core.module';
 import { MaterialModule } from '../../../../material/material.module';
-import { ContactRepository } from '../../repositories/contact-repository';
-
 import { ContactListComponent } from './contact-list.component';
 
 describe('ContactListComponent', () => {
@@ -17,7 +15,7 @@ describe('ContactListComponent', () => {
     TestBed.configureTestingModule({
       imports: [ CoreModule, MaterialModule, FormsModule, CommonModule, RouterModule.forRoot([]), NoopAnimationsModule ],
       declarations: [ ContactListComponent ],
-      providers: [ ContactRepository ]
+      providers: [ ]
     })
     .compileComponents();
   }));

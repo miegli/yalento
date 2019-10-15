@@ -1,7 +1,7 @@
 <div *ngIf="(contact$ | async) as contact">
   <app-contact [contact]="contact" (submitted)="save($event)"></app-contact>
   <div class="button-row">
-    <button  mat-stroked-button (click)="save(contact)" [disabled]="!contact.hasChanges()">Save</button>
+    <button  mat-stroked-button (click)="save(contact)">Save</button>
     <button  mat-stroked-button (click)="close()">Close</button>
   </div>
 </div>

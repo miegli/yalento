@@ -1,10 +1,29 @@
-import { BaseModel } from '../../../core/base-model';
+import { AbstractModel, Connect } from '@yalento';
+import { DataTypes } from 'sequelize';
 
-export class Contact extends BaseModel {
+@Connect({
+  attributes: {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: {
+      type: new DataTypes.STRING(128),
+      allowNull: false,
+    },
+    preferredName: {
+      type: new DataTypes.STRING(128),
+      allowNull: true,
+    },
+  },
+})
+export class Contact extends AbstractModel {
 
-  name: string;
-  lastName: string;
-  street: string;
+
+  public id!: number; // Note that the `null assertion` `!` is required in strict mode.
+  public name!: string;
+  public preferredName!: string | null; // for nullable fields
 
 
 }

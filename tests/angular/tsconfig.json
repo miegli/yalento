@@ -11,6 +11,10 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "target": "es2015",
+    "types": [ "node" ],
+    "paths": {
+      "@yalento": ["../../src"]
+    },
     "typeRoots": [
       "node_modules/@types"
     ],

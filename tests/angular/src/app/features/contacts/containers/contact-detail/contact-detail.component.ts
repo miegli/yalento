@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { Contact } from '../../models/contact';
-import { ContactRepository } from '../../repositories/contact-repository';
 
 @Component({
   selector: 'app-contact-detail',
@@ -13,22 +12,20 @@ export class ContactDetailComponent implements OnInit {
 
   contact$: BehaviorSubject<Contact>;
 
-  constructor(private route: ActivatedRoute, private router: Router, private contactRepository: ContactRepository) {
+  constructor(private route: ActivatedRoute, private router: Router) {
   }
 
   ngOnInit() {
 
     this.route.paramMap.subscribe(params => {
-      this.contact$ = this.contactRepository.getOneByIdentifier(params.get('identifier'));
+      console.log(params);
     });
 
   }
 
   save(contact: Contact) {
 
-    contact.save(() => {
-      this.cancel();
-    });
+
 
   }
 

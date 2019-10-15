@@ -1,13 +1,8 @@
-import { modelRelations } from './modelRelations';
-import { paths } from './paths';
-import { repository } from './repository';
-import { model } from './model';
-import { serialize } from './serialize';
-import { watch } from './watch';
+import { modelTest } from './Model/modelTest';
 
 const argv = require('yargs').argv;
 
-const allTests: any[] = [repository, model, modelRelations, serialize, paths, watch];
+const allTests: any[] = [modelTest];
 const tests = [];
 
 if (argv.only && typeof argv.only === 'string') {

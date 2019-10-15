@@ -1,2 +1,3 @@
-export * from './abstractModel';
-export * from './abstractRepository';
+export * from './models/AbstractModel';
+export * from 'sequelize'
+export * from './decorators/classDecorators';

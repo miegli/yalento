@@ -1,22 +1,18 @@
 <div>
-  <button mat-raised-button (click)="contactRepository.removeSelected()"
-          [disabled]="!(contactRepository.hasSelected$ | async)">Remove selected
-  </button>
   <button mat-raised-button (click)="add();">Add</button>
   <button mat-raised-button (click)="add(1000);">Add 1000 entries</button>
 </div>
+
 <table mat-table [dataSource]="contacts$">
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">
     <th mat-header-cell *matHeaderCellDef>
-      <mat-checkbox (change)="contactRepository.toggleSelection()" [checked]="contactRepository.isSelectedAll$ | async">
+      <mat-checkbox [checked]="false">
       </mat-checkbox>
     </th>
     <td mat-cell *matCellDef="let Contact">
-      <mat-checkbox (click)="$event.stopPropagation()"
-                    (change)="Contact.toggleSelection()"
-                    [checked]="Contact.isSelected()">
+      <mat-checkbox (click)="$event.stopPropagation()">
       </mat-checkbox>
     </td>
   </ng-container>
@@ -39,7 +35,7 @@
   <ng-container matColumnDef="action">
     <th mat-header-cell *matHeaderCellDef> Action</th>
     <td mat-cell *matCellDef="let contact">
-      <button mat-raised-button [routerLink]="['/contact', contact.getIdentifier()]">Details</button>
+      <button mat-raised-button [routerLink]="['/contact']">Details</button>
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -47,9 +43,9 @@
   </tr>
 
 </table>
-<mat-paginator [length]="contactRepository.count()"
+<mat-paginator [length]="1"
                [pageSize]="limit$ | async"
                [pageSizeOptions]="[5, 10, 25, 100]"
                (page)="changePaginator($event)"
-               [pageIndex]="contactRepository.pageIndex() | async">
+               [pageIndex]="0">
 </mat-paginator>

@@ -5,7 +5,6 @@ import { RouterModule } from '@angular/router';
 import { CoreModule } from '../../../../core/core.module';
 import { MaterialModule } from '../../../../material/material.module';
 import { ContactComponent } from '../../components/contact/contact.component';
-import { ContactRepository } from '../../repositories/contact-repository';
 import { ContactDetailComponent } from './contact-detail.component';
 
 describe('ContactDetailComponent', () => {
@@ -16,7 +15,7 @@ describe('ContactDetailComponent', () => {
     TestBed.configureTestingModule({
       declarations: [ ContactDetailComponent, ContactComponent ],
       imports: [ CoreModule, FormsModule, RouterModule.forRoot([]), MaterialModule, NoopAnimationsModule ],
-      providers: [ ContactRepository ]
+      providers: [ ]
     })
     .compileComponents();
   }));

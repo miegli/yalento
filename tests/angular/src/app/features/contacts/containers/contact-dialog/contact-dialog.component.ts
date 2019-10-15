@@ -25,9 +25,6 @@ export class ContactDialogComponent implements OnInit {
 
   save(contact: Contact) {
 
-    contact.save(() => {
-      this.close();
-    });
 
   }
 
