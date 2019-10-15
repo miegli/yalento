@@ -19,10 +19,6 @@
     "mochawesome": "^4.1.0",
     "protractor": "^5.4.2",
     "rxjs": "~6.5.3",
-    "sequelize": "^5.19.6",
-    "sequelize-typescript": "^1.0.0",
-    "sql.js": "^1.0.0",
-    "sqlite3": "^4.1.0",
     "yargs": "^14.2.0"
   },
   "devDependencies": {

@@ -1,7 +1,4 @@
 import { async, TestBed } from '@angular/core/testing';
-import { AngularFireModule } from '@angular/fire';
-import { AngularFirestoreModule } from '@angular/fire/firestore';
-import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
@@ -10,8 +7,6 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
       declarations: [AppComponent],
       imports: [
-        AngularFireModule.initializeApp(environment.firebase),
-        AngularFirestoreModule,
         AppRoutingModule,
       ],
     }).compileComponents();

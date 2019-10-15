@@ -36,11 +36,7 @@
     "firebase": "^7.2.0",
     "guid-typescript": "^1.0.9",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^6.5.3",
-    "sqlite3": "^4.1.0",
-    "sequelize": "^5.19.6",
-    "sequelize-typescript": "^1.0.0",
-    "sql.js": "^1.0.0"
+    "rxjs": "^6.5.3"
   },
   "devDependencies": {
     "prettier": "^1.18.2",
