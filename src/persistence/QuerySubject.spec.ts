@@ -30,47 +30,47 @@ describe('QuerySubjectTest', async () => {
 
     it('sql without statement should return all items', async () => {
 
-        expect(repository.watch().getValue()).to.be.lengthOf(2);
+        expect(repository.select().getValue()).to.be.lengthOf(2);
 
     });
 
     it('sql where statement should be applied via alasql', async () => {
 
-        expect(repository.watch({ where: 'name LIKE ?', params: ['name1'] }).getValue()).to.be.lengthOf(1);
+        expect(repository.select({ where: 'name LIKE ?', params: ['name1'] }).getValue()).to.be.lengthOf(1);
 
     });
 
 
     it('sql groupBy statement should be applied via alasql', async () => {
 
-        expect(repository.watch({ groupBy: 'age' }).getValue()).to.be.lengthOf(1);
+        expect(repository.select({ groupBy: 'age' }).getValue()).to.be.lengthOf(1);
 
     });
 
     it('sql orderBy statement should be applied via alasql', async () => {
 
-        expect(repository.watch({ orderBy: 'name DESC' }).getValue()[0].name).to.be.equal('name2');
+        expect(repository.select({ orderBy: 'name DESC' }).getValue()[0].name).to.be.equal('name2');
 
     });
 
 
     it('sql limit statement should be applied via alasql', async () => {
 
-        expect(repository.watch({ limit: 1 }).getValue()).to.be.lengthOf(1);
+        expect(repository.select({ limit: 1 }).getValue()).to.be.lengthOf(1);
 
     });
 
     it('sql offset statement should be applied via alasql', async () => {
 
-        expect(repository.watch({ limit: 1, offset: 2 }).getValue()).to.be.lengthOf(0);
-        expect(repository.watch({ offset: 1 }).getValue()).to.be.lengthOf(1);
+        expect(repository.select({ limit: 1, offset: 2 }).getValue()).to.be.lengthOf(0);
+        expect(repository.select({ offset: 1 }).getValue()).to.be.lengthOf(1);
 
     });
 
 
     it('sql with full statement should be applied via alasql and return callback', async () => {
 
-        expect(repository.watch({
+        expect(repository.select({
             where: 'name LIKE ?',
             groupBy: 'age',
             orderBy: 'name DESC',

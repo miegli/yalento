@@ -13,22 +13,95 @@ export interface IStatement {
     params?: any[];
 }
 
+/**
+ * INTERNAL USE ONLY
+ */
 export class QuerySubject<T> {
 
     private readonly behaviorSubject: BehaviorSubject<T[]>;
+    private readonly temporaryTableName: string;
 
+    /**
+     * construct new query subject by injecting repository
+     * @param repository
+     * @param sql
+     * @param callback
+     */
     constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback) {
+        this.temporaryTableName = this.createDatabase();
         this.behaviorSubject = new BehaviorSubject<T[]>(this.execStatement(sql, callback));
+        if (sql) {
+            this.observeStatement(sql, callback);
+        }
     }
 
+    /**
+     * get behaviour subject
+     */
     public getBehaviourSubject(): BehaviorSubject<T[]> {
         return this.behaviorSubject;
     }
 
+    /**
+     * create temporary database if not exists
+     */
+    private createDatabase(): string {
+
+        const table = 'temp' + this.repository.getInstanceIdentifier();
+        alasql('CREATE TABLE IF NOT EXISTS ' + table);
+
+        return table;
+
+    }
+
+
+    /**
+     * observe and re-execute statement on any changes
+     * @param sql
+     * @param callback
+     */
+    private observeStatement(sql: IStatement, callback?: ICallback) {
+
+        if (sql.params) {
+            sql.params.forEach((param: any) => {
+                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
+                    param.asObservable().subscribe(() => {
+                        this.behaviorSubject.next(this.execStatement(sql, callback));
+                    });
+                }
+            })
+        }
+
+        return;
+
+    }
+
+    /**
+     * execute sql statement on alasql
+     * @param sql
+     * @param callback
+     */
     private execStatement(sql?: IStatement, callback?: ICallback): T[] {
 
         let statement = '';
+        let params = sql && sql.params !== undefined ? sql.params : null;
 
+        if (this.repository.getTempData().length) {
+            alasql('SELECT * INTO ' + this.temporaryTableName + ' FROM ?', [this.repository.getTempData()]);
+            this.repository.resetTempData();
+        }
+
+        if (params) {
+            const tmpParams: any = [];
+            params.forEach((param: any) => {
+                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
+                    tmpParams.push(param.getValue());
+                } else {
+                    tmpParams.push(param);
+                }
+            });
+            params = tmpParams;
+        }
 
         if (sql && sql.where) {
             statement += ' WHERE ' + sql.where;
@@ -41,17 +114,10 @@ export class QuerySubject<T> {
         if (sql && sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
-
+console.log('SELECT COUNT(_ref) FROM ' + this.temporaryTableName + ' ' + statement, params);
         if (callback) {
-            let countResult: any;
-            if (sql && sql.params) {
-                countResult = alasql('SELECT COUNT(*) as c FROM ?' + statement, [this.repository.getData(), ...sql.params]);
-            } else {
-                countResult = alasql('SELECT COUNT(*) as c FROM ?' + statement, [this.repository.getData()]);
-            }
-            callback(countResult[0]['c'], 1);
+            callback(alasql('SELECT COUNT(_ref) FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
         }
-
 
         if (sql && sql.limit) {
             statement += ' LIMIT ' + sql.limit;
@@ -64,10 +130,7 @@ export class QuerySubject<T> {
             statement += ' OFFSET ' + sql.offset;
         }
 
-        if (sql && sql.params) {
-            return alasql('SELECT * FROM ?' + statement, [this.repository.getData(), ...sql.params]).map((d: IRepositoryData) => d._ref);
-        }
-        return alasql('SELECT * FROM ?' + statement, [this.repository.getData()]).map((d: IRepositoryData) => d._ref);
-    }
+        return alasql('SELECT * FROM ' + this.temporaryTableName + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
 
+    }
 }

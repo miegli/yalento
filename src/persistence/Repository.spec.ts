@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-import { Base, ICallback, Repository } from '..';
+import { Base, Repository } from '..';
 
 
 export class Contact extends Base {
@@ -68,24 +68,36 @@ describe('RepositoryTest', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
         const model = repository.create({ street: 'testStreet' });
-        expect(repository.getData()[0]._ref).to.be.equal(model);
+        expect(repository.getTempData()[0]._ref).to.be.equal(model);
 
     });
 
-    it('watch with empty repository should return empty array', async () => {
+
+    it('create many should add entity references to repository data', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        expect(repository.watch().getValue()).to.be.lengthOf(0);
+        const models = repository.createMany([{ street: 'testStreet1' }, { street: 'testStreet3' }, { street: 'testStreet3' }]);
+        expect(repository.getTempData()[0]._ref).to.be.equal(models[0]);
+        expect(repository.getTempData()[1]._ref).to.be.equal(models[1]);
+        expect(repository.getTempData()[2]._ref).to.be.equal(models[2]);
+        expect(repository.getTempData()).to.be.lengthOf(3);
+
+    });
+
+    it('select with empty repository should return empty array', async () => {
+
+        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+        expect(repository.select().getValue()).to.be.lengthOf(0);
 
     });
 
 
-    it('watch with callback should return callback interface', async () => {
+    it('select with callback should return callback interface', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         const exec = async () => new Promise((resolve => {
-            repository.watch({}, (count, page) => {
+            repository.select({}, (count, page) => {
                 resolve({ count: count, page: page });
             });
         }));

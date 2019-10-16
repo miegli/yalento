@@ -3,6 +3,13 @@
   <button mat-raised-button (click)="add(1000);">Add 1000 entries</button>
 </div>
 
+<mat-toolbar>
+  <mat-toolbar-row>
+    <input matInput placeholder="search" type="number" name="search" [ngModel]="searchString$ | async"
+           (ngModelChange)="searchString$.next($event)">
+  </mat-toolbar-row>
+</mat-toolbar>
+
 <table mat-table [dataSource]="contacts$ | async">
 
   <!-- Checkbox Column -->
@@ -43,6 +50,7 @@
   </tr>
 
 </table>
+
 <mat-paginator [length]="1"
                [pageSize]="limit$ | async"
                [pageSizeOptions]="[5, 10, 25, 100]"

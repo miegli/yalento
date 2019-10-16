@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
 import { MatDialog, PageEvent } from '@angular/material';
-import { Repository } from '../../../../../../../../src';
 
 import 'reflect-metadata';
 import { BehaviorSubject } from 'rxjs';
+import { Repository } from '../../../../../../../../src';
 import { Contact } from '../../models/contact';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
 
@@ -15,27 +15,31 @@ import { ContactDialogComponent } from '../contact-dialog/contact-dialog.compone
 export class ContactListComponent {
 
   contactRepository: Repository<Contact>;
+  contactRepository1: Repository<Contact>;
   contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
+  searchString$: BehaviorSubject<number>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
   constructor(public dialog: MatDialog) {
     this.limit$ = new BehaviorSubject<number>(25);
     this.offset$ = new BehaviorSubject<number>(0);
     this.contactRepository = new Repository(Contact);
-    this.contactRepository.create({ lastName: 'test'});
-    this.contacts$ = this.contactRepository.watch({
+    this.contactRepository1 = new Repository(Contact);
+    this.searchString$ = new BehaviorSubject<number>(1);
+
+    for (let i = 0; i < 1000; i++) {
+      this.contactRepository.create({ lastName: '' + i, age: i });
+    }
+
+    this.contacts$ = this.contactRepository.select({
+      limit: 10,
       orderBy: 'age DESC',
-      limit: 5
+      where: 'age = ?',
+      params: [ this.searchString$ ]
     }, (count: number, page: number) => {
-      console.log(count, page);
-    });
-
-
-
-    this.contacts$.asObservable().subscribe((c: Contact[]) => {
-      console.log(1, c);
+      console.log(count);
     });
 
   }
