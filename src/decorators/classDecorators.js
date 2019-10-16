@@ -1,14 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-function Connect(config) {
+function Entity() {
     return (constructor) => {
-        var _a;
-        return _a = class extends constructor {
-            },
-            _a.CONFIG = config,
-            _a.TABLE = constructor.toString().split(' ')[1],
-            _a;
+        return class extends constructor {
+        };
     };
 }
-exports.Connect = Connect;
+exports.Entity = Entity;
+//# sourceMappingURL=classDecorators.js.map

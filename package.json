@@ -12,15 +12,15 @@
     "prepublishOnly": "npm test && npm run lint",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "test": "npm run build && nyc --reporter=lcov --reporter=text-summary node_modules/.bin/mocha --opts ./mocha.opts src"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/"
   },
   "keywords": [
-    "Hello",
-    "Greeter"
+    "firebase"
   ],
   "author": "C-J",
   "license": "ISC",
@@ -39,11 +39,20 @@
     "rxjs": "^6.5.3"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.3",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^10.14.21",
+    "nyc": "^15.0.0-beta.0",
     "prettier": "^1.18.2",
     "ts-jest": "^24.1.0",
     "tslint": "^5.20.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.6.3"
+    "typescript": "^3.6.3",
+    "mocha": "^6.2.1",
+    "mochawesome": "^4.1.0",
+    "chai": "^4.2.0",
+    "assert": "^1.4.1",
+    "ts-node": "^8.0.2"
   },
   "files": [
     "lib/**/*"

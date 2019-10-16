@@ -15,7 +15,7 @@ export class Repository<T> {
     private readonly _subjects: any[] = [];
     private data: IRepositoryData[] = [];
 
-    constructor(private constructor: Base, ...constructorArguments: any) {
+    constructor(private constructor: any, ...constructorArguments: any[]) {
         this._class = constructor;
         this._constructorArguments = constructorArguments;
     }

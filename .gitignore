@@ -74,4 +74,4 @@ node_modules
 
 # compiled
 /lib
-/tests/node/node_modules/
+/demo/node/node_modules/
