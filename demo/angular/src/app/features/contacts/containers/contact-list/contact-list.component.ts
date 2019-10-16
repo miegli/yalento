@@ -15,7 +15,6 @@ import { ContactDialogComponent } from '../contact-dialog/contact-dialog.compone
 export class ContactListComponent {
 
   contactRepository: Repository<Contact>;
-  contactRepository1: Repository<Contact>;
   contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
@@ -26,10 +25,9 @@ export class ContactListComponent {
     this.limit$ = new BehaviorSubject<number>(25);
     this.offset$ = new BehaviorSubject<number>(0);
     this.contactRepository = new Repository(Contact);
-    this.contactRepository1 = new Repository(Contact);
     this.searchString$ = new BehaviorSubject<number>(1);
 
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 1000000; i++) {
       this.contactRepository.create({ lastName: '' + i, age: i });
     }
 
@@ -37,11 +35,14 @@ export class ContactListComponent {
       limit: 10,
       orderBy: 'age DESC',
       where: 'age = ?',
-      params: [ this.searchString$ ]
+      params: [this.searchString$],
     }, (count: number, page: number) => {
       console.log(count);
     });
 
+    this.contacts$.subscribe((c: any) => {
+      console.log(c);
+    });
   }
 
   edit(contact: Contact): void {

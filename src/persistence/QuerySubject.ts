@@ -87,7 +87,7 @@ export class QuerySubject<T> {
         let params = sql && sql.params !== undefined ? sql.params : null;
 
         if (this.repository.getTempData().length) {
-            alasql('SELECT * INTO ' + this.temporaryTableName + ' FROM ?', [this.repository.getTempData()]);
+            alasql.tables[this.temporaryTableName].data = this.repository.getTempData();
             this.repository.resetTempData();
         }
 
@@ -116,7 +116,7 @@ export class QuerySubject<T> {
         }
 
         if (callback) {
-            callback(alasql('SELECT COUNT(_ref) as c FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
+            callback(alasql('SELECT COUNT(*) as c FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
         }
 
         if (sql && sql.limit) {
