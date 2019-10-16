@@ -1,9 +1,10 @@
  {
     "all": true,
     "include": [
-        "src/**/*"
+        "src/**/*.ts"
     ],
     "exclude": [
+      "*.js",
       "**/*.js",
       "**/*.spec.ts"
     ],

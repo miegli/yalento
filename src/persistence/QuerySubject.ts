@@ -28,7 +28,7 @@ export class QuerySubject<T> {
     private execStatement(sql?: IStatement, callback?: ICallback): T[] {
 
         let statement = '';
-        let countResult: any;
+
 
         if (sql && sql.where) {
             statement += ' WHERE ' + sql.where;
@@ -43,12 +43,13 @@ export class QuerySubject<T> {
         }
 
         if (callback) {
+            let countResult: any;
             if (sql && sql.params) {
                 countResult = alasql('SELECT COUNT(*) as c FROM ?' + statement, [this.repository.getData(), ...sql.params]);
             } else {
                 countResult = alasql('SELECT COUNT(*) as c FROM ?' + statement, [this.repository.getData()]);
             }
-            callback(countResult ? countResult[0]['c'] : 0, 1);
+            callback(countResult[0]['c'], 1);
         }
 
 
@@ -57,7 +58,7 @@ export class QuerySubject<T> {
         }
 
         if (sql && sql.offset) {
-            if (!sql.limit) {
+            if (sql.limit === undefined) {
                 statement += ' LIMIT 1';
             }
             statement += ' OFFSET ' + sql.offset;

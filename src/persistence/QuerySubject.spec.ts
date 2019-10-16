@@ -62,6 +62,7 @@ describe('QuerySubjectTest', async () => {
 
     it('sql offset statement should be applied via alasql', async () => {
 
+        expect(repository.watch({ limit: 1, offset: 2 }).getValue()).to.be.lengthOf(0);
         expect(repository.watch({ offset: 1 }).getValue()).to.be.lengthOf(1);
 
     });

@@ -29,7 +29,7 @@ export class Repository<T> {
 
     public create(data?: any): T {
 
-        const c = this._constructorArguments ? new this._class(...this._constructorArguments) : new this._class;
+        const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
 
         if (data) {
             Object.keys(data).forEach((key: string) => {
