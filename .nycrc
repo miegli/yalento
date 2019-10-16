@@ -6,5 +6,6 @@
     "exclude": [
       "**/*.js",
       "**/*.spec.ts"
-    ]
+    ],
+    "extends": "@istanbuljs/nyc-config-typescript"
 }

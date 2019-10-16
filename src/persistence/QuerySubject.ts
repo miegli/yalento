@@ -8,7 +8,6 @@ export interface IStatement {
     where?: string;
     orderBy?: string;
     groupBy?: string;
-    having?: string;
     limit?: number;
     offset?: number;
     params?: any[];
@@ -43,10 +42,6 @@ export class QuerySubject<T> {
             statement += ' ORDER BY ' + sql.orderBy;
         }
 
-        if (sql && sql.having) {
-            statement += ' HAVING ' + sql.having;
-        }
-
         if (callback) {
             if (sql && sql.params) {
                 countResult = alasql('SELECT COUNT(*) as c FROM ?' + statement, [this.repository.getData(), ...sql.params]);
@@ -62,6 +57,9 @@ export class QuerySubject<T> {
         }
 
         if (sql && sql.offset) {
+            if (!sql.limit) {
+                statement += ' LIMIT 1';
+            }
             statement += ' OFFSET ' + sql.offset;
         }
 
