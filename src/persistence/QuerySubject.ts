@@ -114,9 +114,9 @@ export class QuerySubject<T> {
         if (sql && sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
-console.log('SELECT COUNT(_ref) FROM ' + this.temporaryTableName + ' ' + statement, params);
+
         if (callback) {
-            callback(alasql('SELECT COUNT(_ref) FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
+            callback(alasql('SELECT COUNT(_ref) as c FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
         }
 
         if (sql && sql.limit) {
