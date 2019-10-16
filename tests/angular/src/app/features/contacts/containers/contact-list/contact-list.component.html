@@ -3,7 +3,7 @@
   <button mat-raised-button (click)="add(1000);">Add 1000 entries</button>
 </div>
 
-<table mat-table [dataSource]="contacts$">
+<table mat-table [dataSource]="contacts$ | async">
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">

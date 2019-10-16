@@ -1,8 +1,9 @@
 import { modelTest } from './Model/modelTest';
+import { repositoryTest } from './Repository/repositoryTest';
 
 const argv = require('yargs').argv;
 
-const allTests: any[] = [modelTest];
+const allTests: any[] = [modelTest, repositoryTest];
 const tests = [];
 
 if (argv.only && typeof argv.only === 'string') {

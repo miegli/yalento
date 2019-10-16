@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { MatDialog, PageEvent } from '@angular/material';
+import { Repository } from '../../../../../../../../src';
+
+import 'reflect-metadata';
 import { BehaviorSubject } from 'rxjs';
 import { Contact } from '../../models/contact';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
-
-import 'reflect-metadata';
 
 @Component({
   selector: 'app-contact-list',
@@ -13,6 +14,7 @@ import 'reflect-metadata';
 })
 export class ContactListComponent {
 
+  contactRepository: Repository<Contact>;
   contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
@@ -21,8 +23,20 @@ export class ContactListComponent {
   constructor(public dialog: MatDialog) {
     this.limit$ = new BehaviorSubject<number>(25);
     this.offset$ = new BehaviorSubject<number>(0);
-    this.contacts$.next([new Contact()]);
+    this.contactRepository = new Repository(Contact);
+    this.contactRepository.create({ lastName: 'test'});
+    this.contacts$ = this.contactRepository.watch({
+      orderBy: 'age DESC',
+      limit: 5
+    }, (count: number, page: number) => {
+      console.log(count, page);
+    });
 
+
+
+    this.contacts$.asObservable().subscribe((c: Contact[]) => {
+      console.log(1, c);
+    });
 
   }
 

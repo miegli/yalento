@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "allowSyntheticDefaultImports": false,
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
@@ -11,9 +12,14 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "target": "es2015",
-    "types": [ "node" ],
+    "types": [
+      "node",
+      "jest"
+    ],
     "paths": {
-      "@yalento": ["../../src"]
+      "@yalento": [
+        "../../src"
+      ]
     },
     "typeRoots": [
       "node_modules/@types"

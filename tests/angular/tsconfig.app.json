@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "allowSyntheticDefaultImports": false,
     "outDir": "./out-tsc/app",
     "types": [ "node" ],
     "typeRoots": [ "node_modules/@types" ],

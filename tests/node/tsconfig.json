@@ -8,6 +8,7 @@
     "removeComments": true,
     "noImplicitAny": false,
     "types" : ["node"],
+    "sourceMap": true,
     "lib": ["es6", "es2016", "dom", "scripthost"]
   }
 }

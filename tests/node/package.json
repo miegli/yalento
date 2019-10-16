@@ -6,7 +6,7 @@
     "build": "npm run tsc",
     "tsc": "tsc --project tsconfig.json",
     "tsc:w": "tsc --project tsconfig.json -w",
-    "test": "npm run tsc && mocha test --inspect --recursive  --exit --allow-uncaught --timeout 90000 test"
+    "test": "npm run tsc && nyc --all mocha --root ../../src test"
   },
   "dependencies": {
     "@types/chai": "^4.2.3",
@@ -22,11 +22,21 @@
     "yargs": "^14.2.0"
   },
   "devDependencies": {
+    "istanbul": "^0.4.5",
+    "karma-coverage-istanbul-reporter": "~2.0.1",
+    "nyc": "^14.1.1",
     "prettier": "^1.18.2",
-    "tslint-config-airbnb": "^5.11.2",
+    "source-map-support": "^0.5.13",
+    "ts-node": "^8.4.1",
     "tslint": "^5.20.0",
+    "tslint-config-airbnb": "^5.11.2",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.6.4",
-    "ts-node": "^8.4.1"
+    "typescript": "^3.6.4"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "all": true,
+    "check-coverage": true,
+    "instrument": true
   }
 }

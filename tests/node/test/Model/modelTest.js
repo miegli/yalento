@@ -11,16 +11,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = require("chai");
 const mocha_1 = require("mocha");
+const src_1 = require("../../../../src");
+class Contact extends src_1.Base {
+}
+exports.Contact = Contact;
 function modelTest() {
     return new Promise((resolve) => {
-        mocha_1.describe('RepositoryTest', () => __awaiter(this, void 0, void 0, function* () {
+        mocha_1.describe('ModelTest', () => __awaiter(this, void 0, void 0, function* () {
             mocha_1.after(() => __awaiter(this, void 0, void 0, function* () {
                 resolve();
             }));
-            mocha_1.it('model extends abstractModel', () => __awaiter(this, void 0, void 0, function* () {
-                chai_1.expect(1).to.equal(1);
+            mocha_1.it('construct new repository', () => __awaiter(this, void 0, void 0, function* () {
+                const contact = new Contact();
+                chai_1.expect(contact instanceof src_1.Base).to.be.true;
             }));
         }));
     });
 }
 exports.modelTest = modelTest;
+//# sourceMappingURL=modelTest.js.map

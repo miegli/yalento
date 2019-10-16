@@ -16,6 +16,7 @@ export class ContactDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+
     this.contact$.subscribe((contact: Contact) => {
       if (!contact) {
         this.dialogRef.close();

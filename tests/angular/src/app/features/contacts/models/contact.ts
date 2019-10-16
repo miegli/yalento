@@ -1,7 +1,10 @@
-export class Contact  {
+import { Base } from '../../../../../../../src';
 
-  public id!: number; // Note that the `null assertion` `!` is required in strict mode.
-  public name!: string;
-  public preferredName!: string | null; // for nullable fields
+export class Contact extends Base {
+
+  public name;
+  public lastName;
+  public age: number;
+
 
 }
