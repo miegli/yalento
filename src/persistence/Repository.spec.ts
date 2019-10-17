@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { Base, Repository } from '..';
+import { QueryCallback } from './query/QueryCallback';
 
 
 export class Contact extends Base {
@@ -96,23 +97,22 @@ describe('RepositoryTest', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
-        const exec = async () => new Promise((resolve => {
-            repository.select({}, (count, page) => {
-                resolve({ count: count, page: page });
+        const exec = async (): Promise<QueryCallback<Contact>> => new Promise<QueryCallback<Contact>>((resolve => {
+            repository.select({}, (callback: QueryCallback<Contact>) => {
+                resolve(callback);
             });
         }));
 
-        const result1: any = await exec();
-        expect(result1.count).to.be.equal(0);
-        expect(result1.page).to.be.equal(1);
+        const result1: QueryCallback<Contact> = await exec();
+        expect(result1.paginator.getLength()).to.be.equal(0);
 
         repository.create();
 
         const result2: any = await exec();
-        expect(result2.count).to.be.equal(1);
-        expect(result2.page).to.be.equal(1);
+        expect(result2.paginator.getLength()).to.be.equal(1);
 
     });
+
 
 
 });

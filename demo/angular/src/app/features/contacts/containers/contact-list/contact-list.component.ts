@@ -4,6 +4,7 @@ import { MatDialog, PageEvent } from '@angular/material';
 import 'reflect-metadata';
 import { BehaviorSubject } from 'rxjs';
 import { Repository } from '../../../../../../../../src';
+import { QueryCallback } from '../../../../../../../../src/persistence/query/QueryCallback';
 import { Contact } from '../../models/contact';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
 
@@ -26,10 +27,10 @@ export class ContactListComponent {
     this.limit$ = new BehaviorSubject<number>(25);
     this.offset$ = new BehaviorSubject<number>(0);
     this.contactRepository = new Repository(Contact);
-    this.searchString$ = new BehaviorSubject<number>(1);
+    this.searchString$ = new BehaviorSubject<number>(100000);
     this.count$ = new BehaviorSubject<number>(0);
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 100000; i++) {
       this.contactRepository.create({
         name: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
         lastName: '' + i,
@@ -38,13 +39,15 @@ export class ContactListComponent {
     }
 
     this.contacts$ = this.contactRepository.select({
-      limit: 10,
+      limit: 5,
       orderBy: 'name ASC',
-      where: 'age <= ? AND name LIKE ?',
-      params: [this.searchString$, 'm%'],
-    }, (count => {
-      this.count$.next(count);
+      where: 'age <= ?',
+      params: [this.searchString$],
+    }, ((callback: QueryCallback<Contact>) => {
+      console.log(callback, callback.getResults());
+      this.count$.next(callback.paginator.getLength());
     }));
+
 
   }
 

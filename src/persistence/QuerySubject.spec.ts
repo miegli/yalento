@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { BehaviorSubject } from 'rxjs';
 import { Base, Repository } from '..';
+import { QueryCallback } from './query/QueryCallback';
 
 
 export class Contact extends Base {
@@ -99,9 +100,22 @@ describe('QuerySubjectTest', async () => {
             limit: 1,
             offset: 0,
             params: ['name%'],
-        }, (count) => {
-            expect(count).to.be.equal(2);
+        }, (callback: QueryCallback<Contact>) => {
+            expect(callback.paginator.getLength()).to.be.equal(2);
         }).getValue()).to.be.lengthOf(1);
+
+    });
+
+
+    it('select should return two times the same result because we are in singleton repository', async () => {
+
+        expect(JSON.stringify(repository.select({
+            where: 'name LIKE ?',
+            params: ['name1'],
+        }).getValue())).to.be.equal(JSON.stringify(repository.select({
+            where: 'name LIKE ?',
+            params: ['name1'],
+        }).getValue()));
 
     });
 

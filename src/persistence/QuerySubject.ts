@@ -1,5 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
+import { QueryCallback } from './query/QueryCallback';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -13,13 +14,19 @@ export interface IStatement {
     params?: any[];
 }
 
+export interface IQueryCallbackChanges {
+    count?: number;
+    results?: any[];
+}
+
 /**
  * INTERNAL USE ONLY
  */
 export class QuerySubject<T> {
 
-    private readonly behaviorSubject: BehaviorSubject<T[]>;
-    private readonly temporaryTableName: string;
+    public queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
+    private readonly behaviorSubject$: BehaviorSubject<T[]>;
+    private readonly queryCallback: QueryCallback<T>;
 
     /**
      * construct new query subject by injecting repository
@@ -27,9 +34,9 @@ export class QuerySubject<T> {
      * @param sql
      * @param callback
      */
-    constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback) {
-        this.temporaryTableName = this.createDatabase();
-        this.behaviorSubject = new BehaviorSubject<T[]>(this.execStatement(sql, callback));
+    constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>) {
+        this.queryCallback = new QueryCallback<T>(this);
+        this.behaviorSubject$ = new BehaviorSubject<T[]>(this.execStatement(sql, callback));
         if (sql) {
             this.observeStatement(sql, callback);
         }
@@ -39,34 +46,28 @@ export class QuerySubject<T> {
      * get behaviour subject
      */
     public getBehaviourSubject(): BehaviorSubject<T[]> {
-        return this.behaviorSubject;
+        return this.behaviorSubject$;
     }
 
     /**
-     * create temporary database if not exists
+     *
      */
-    private createDatabase(): string {
-
-        const table = 'temp' + this.repository.getInstanceIdentifier();
-        alasql('CREATE TABLE IF NOT EXISTS ' + table);
-
-        return table;
-
+    private updateQueryCallback(changes: IQueryCallbackChanges) {
+        this.queryCallbackChanges$.next(changes);
     }
-
 
     /**
      * observe and re-execute statement on any changes
      * @param sql
      * @param callback
      */
-    private observeStatement(sql: IStatement, callback?: ICallback) {
+    private observeStatement(sql: IStatement, callback?: ICallback<T>) {
 
         if (sql.params) {
             sql.params.forEach((param: any) => {
                 if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
                     param.asObservable().subscribe(() => {
-                        this.behaviorSubject.next(this.execStatement(sql, callback));
+                        this.behaviorSubject$.next(this.execStatement(sql, callback));
                     });
                 }
             })
@@ -90,20 +91,17 @@ export class QuerySubject<T> {
         return statement;
     }
 
+
     /**
      * execute sql statement on alasql
      * @param sql
      * @param callback
      */
-    private execStatement(sql?: IStatement, callback?: ICallback): T[] {
+    private execStatement(sql?: IStatement, callback?: ICallback<T>): T[] {
 
+        let count: number = -1;
         let statement = '';
         let params = sql && sql.params !== undefined ? sql.params : null;
-
-        if (this.repository.getTempData().length) {
-            alasql.tables[this.temporaryTableName].data = this.repository.getTempData();
-            this.repository.resetTempData();
-        }
 
         if (params) {
             const tmpParams: any = [];
@@ -132,7 +130,7 @@ export class QuerySubject<T> {
         statement = this.replaceStatement(statement);
 
         if (callback) {
-            callback(alasql('SELECT COUNT(*) as c FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);
+            count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
         }
 
         if (sql && sql.limit) {
@@ -146,7 +144,15 @@ export class QuerySubject<T> {
             statement += ' OFFSET ' + sql.offset;
         }
 
-        return alasql('SELECT * FROM ' + this.temporaryTableName + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+        const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+
+        if (callback) {
+            const changes: IQueryCallbackChanges = { count: count, results: results };
+            this.updateQueryCallback(changes);
+            callback(this.queryCallback);
+        }
+
+        return results;
 
     }
 }

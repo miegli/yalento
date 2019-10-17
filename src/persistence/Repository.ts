@@ -1,9 +1,12 @@
 import { Guid } from "guid-typescript";
 import { BehaviorSubject } from 'rxjs';
+import { QueryCallback } from './query/QueryCallback';
 import { IStatement, QuerySubject } from './QuerySubject';
+/// <reference path="alasql.d.ts" />
+// tslint:disable-next-line:no-var-requires
+const alasql = require('alasql');
 
-export type ICallback = (count: number, page: number) => void;
-
+export type ICallback<T> = (callback: QueryCallback<T>) => void;
 
 export interface IRepositoryData {
     _ref: any;
@@ -17,11 +20,11 @@ export interface IClassProperty {
     name: string;
 }
 
+
 /**
  * Repository class
  * This class can be instantiated by new constructor.
- * You should not inject this class via singleton or provider
- * unless you know what you are doing.
+ * You can use the class as singleton, if you share repository data, otherwise initiate new instance for every sql statement
  */
 export class Repository<T> {
 
@@ -33,7 +36,7 @@ export class Repository<T> {
     private _tempData: IRepositoryData[] = [];
 
     /**
-     * construct new repository instance, this class should not be used as singleton
+     * construct new repository instance
      * @param constructor
      * @param constructorArguments
      */
@@ -41,6 +44,7 @@ export class Repository<T> {
         this._class = constructor;
         this._constructorArguments = constructorArguments;
         this._instanceIdentifier = Guid.create().toString().replace(/-/g, '');
+        this.createDatabase();
     }
 
     /**
@@ -48,7 +52,7 @@ export class Repository<T> {
      * @param sql
      * @param callback
      */
-    public select(sql?: IStatement, callback?: ICallback): BehaviorSubject<T[]> {
+    public select(sql?: IStatement, callback?: ICallback<T>): BehaviorSubject<T[]> {
         const subject = new QuerySubject<T>(this, sql, callback);
         this._subjects.push(subject);
         return subject.getBehaviourSubject();
@@ -98,13 +102,6 @@ export class Repository<T> {
     }
 
     /**
-     * INTERNAL USE ONLY: reset temp repository data
-     */
-    public resetTempData() {
-        this._tempData = [];
-    }
-
-    /**
      * INTERNAL USE ONLY: return temporary identifier
      */
     public getInstanceIdentifier(): string {
@@ -123,11 +120,29 @@ export class Repository<T> {
 
         keys.forEach((property: string) => {
             this._classProperties.push({ name: property });
-        })
+        });
 
         return this._classProperties;
 
     }
 
+
+    /**
+     * get assql table name
+     */
+    public getTableName(): string {
+        return 'temp' + this.getInstanceIdentifier();
+    }
+
+    /**
+     * create temporary database if not exists
+     */
+    private createDatabase() {
+
+
+        alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
+        alasql.tables[this.getTableName()].data = this._tempData;
+
+    }
 
 }
