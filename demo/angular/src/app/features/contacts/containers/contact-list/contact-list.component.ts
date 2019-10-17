@@ -18,6 +18,7 @@ export class ContactListComponent {
   contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
+  count$: BehaviorSubject<number>;
   searchString$: BehaviorSubject<number>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
@@ -26,23 +27,25 @@ export class ContactListComponent {
     this.offset$ = new BehaviorSubject<number>(0);
     this.contactRepository = new Repository(Contact);
     this.searchString$ = new BehaviorSubject<number>(1);
+    this.count$ = new BehaviorSubject<number>(0);
 
-    for (let i = 0; i < 1000000; i++) {
-      this.contactRepository.create({ lastName: '' + i, age: i });
+    for (let i = 0; i < 100; i++) {
+      this.contactRepository.create({
+        name: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+        lastName: '' + i,
+        age: i,
+      });
     }
 
     this.contacts$ = this.contactRepository.select({
       limit: 10,
-      orderBy: 'age DESC',
-      where: 'age = ?',
-      params: [this.searchString$],
-    }, (count: number, page: number) => {
-      console.log(count);
-    });
+      orderBy: 'name ASC',
+      where: 'age <= ? AND name LIKE ?',
+      params: [this.searchString$, 'm%'],
+    }, (count => {
+      this.count$.next(count);
+    }));
 
-    this.contacts$.subscribe((c: any) => {
-      console.log(c);
-    });
   }
 
   edit(contact: Contact): void {

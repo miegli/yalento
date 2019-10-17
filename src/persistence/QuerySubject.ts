@@ -1,5 +1,5 @@
 import { BehaviorSubject } from 'rxjs';
-import { ICallback, IRepositoryData, Repository } from '..';
+import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -77,6 +77,20 @@ export class QuerySubject<T> {
     }
 
     /**
+     *
+     * @param statement
+     */
+    private replaceStatement(statement: string): string {
+
+        this.repository.getClassProperties().forEach((property: IClassProperty) => {
+            statement = statement.replace(new RegExp(' ' + property.name + '->', 'gm'), ' _ref->' + property.name + '->');
+            statement = statement.replace(new RegExp(' ' + property.name + ' ', 'gm'), ' _ref->' + property.name + ' ');
+        });
+
+        return statement;
+    }
+
+    /**
      * execute sql statement on alasql
      * @param sql
      * @param callback
@@ -114,6 +128,8 @@ export class QuerySubject<T> {
         if (sql && sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
+
+        statement = this.replaceStatement(statement);
 
         if (callback) {
             callback(alasql('SELECT COUNT(*) as c FROM ' + this.temporaryTableName + ' ' + statement, params)[0]['c'], 1);

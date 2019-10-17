@@ -13,6 +13,10 @@ export interface IRepositoryDataCreate {
     [key: string]: any
 }
 
+export interface IClassProperty {
+    name: string;
+}
+
 /**
  * Repository class
  * This class can be instantiated by new constructor.
@@ -23,6 +27,7 @@ export class Repository<T> {
 
     private readonly _instanceIdentifier: any;
     private readonly _class: any;
+    private readonly _classProperties: IClassProperty[] = [];
     private readonly _constructorArguments: any;
     private readonly _subjects: any[] = [];
     private _tempData: IRepositoryData[] = [];
@@ -63,12 +68,7 @@ export class Repository<T> {
             });
         }
 
-        const e: IRepositoryData = { _ref: c };
-        Object.keys(c).forEach((key: string) => {
-            // @ts-ignore
-            e[key] = c[key];
-        });
-        this._tempData.push(e);
+        this._tempData.push({ _ref: c });
 
         return c;
 
@@ -109,6 +109,24 @@ export class Repository<T> {
      */
     public getInstanceIdentifier(): string {
         return this._instanceIdentifier;
+    }
+
+    /**
+     * INTERNAL USE ONLY: return temporary identifier
+     */
+    public getClassProperties(): IClassProperty[] {
+
+        if (this._classProperties.length) {
+            return this._classProperties;
+        }
+        const keys = Object.keys(this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class);
+
+        keys.forEach((property: string) => {
+            this._classProperties.push({ name: property });
+        })
+
+        return this._classProperties;
+
     }
 
 

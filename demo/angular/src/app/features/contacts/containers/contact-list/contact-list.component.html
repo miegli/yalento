@@ -5,7 +5,7 @@
 
 <mat-toolbar>
   <mat-toolbar-row>
-    <input matInput placeholder="search" type="number" name="search" [ngModel]="searchString$ | async"
+    <input [autofocus]="true" matInput placeholder="search" type="number" name="search" [ngModel]="searchString$ | async"
            (ngModelChange)="searchString$.next($event)">
   </mat-toolbar-row>
 </mat-toolbar>
@@ -51,7 +51,7 @@
 
 </table>
 
-<mat-paginator [length]="1"
+<mat-paginator [length]="count$ | async"
                [pageSize]="limit$ | async"
                [pageSizeOptions]="[5, 10, 25, 100]"
                (page)="changePaginator($event)"
