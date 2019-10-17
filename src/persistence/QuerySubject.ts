@@ -1,6 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
 import { QueryCallback } from './query/QueryCallback';
+import { QueryPaginator } from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -27,6 +28,7 @@ export class QuerySubject<T> {
     public queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
     private readonly behaviorSubject$: BehaviorSubject<T[]>;
     private readonly queryCallback: QueryCallback<T>;
+    private readonly queryPaginator$: BehaviorSubject<QueryPaginator<T>>;
 
     /**
      * construct new query subject by injecting repository
@@ -36,6 +38,10 @@ export class QuerySubject<T> {
      */
     constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>) {
         this.queryCallback = new QueryCallback<T>(this);
+        this.queryPaginator$ = new BehaviorSubject<QueryPaginator<T>>(this.queryCallback.paginator);
+        this.queryCallbackChanges$.subscribe(() => {
+            this.queryPaginator$.next(this.queryCallback.paginator);
+        });
         this.behaviorSubject$ = new BehaviorSubject<T[]>(this.execStatement(sql, callback));
         if (sql) {
             this.observeStatement(sql, callback);
@@ -47,6 +53,13 @@ export class QuerySubject<T> {
      */
     public getBehaviourSubject(): BehaviorSubject<T[]> {
         return this.behaviorSubject$;
+    }
+
+    /**
+     * get behaviour subject
+     */
+    public getPaginator(): BehaviorSubject<QueryPaginator<T>> {
+        return this.queryPaginator$;
     }
 
     /**
@@ -146,9 +159,10 @@ export class QuerySubject<T> {
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
 
+        const changes: IQueryCallbackChanges = { count: count, results: results };
+        this.updateQueryCallback(changes);
+
         if (callback) {
-            const changes: IQueryCallbackChanges = { count: count, results: results };
-            this.updateQueryCallback(changes);
             callback(this.queryCallback);
         }
 

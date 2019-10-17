@@ -1,6 +1,7 @@
 import { Guid } from "guid-typescript";
 import { BehaviorSubject } from 'rxjs';
 import { QueryCallback } from './query/QueryCallback';
+import { QueryPaginator } from './query/QueryPaginator';
 import { IStatement, QuerySubject } from './QuerySubject';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
@@ -56,6 +57,17 @@ export class Repository<T> {
         const subject = new QuerySubject<T>(this, sql, callback);
         this._subjects.push(subject);
         return subject.getBehaviourSubject();
+    }
+
+    /**
+     * perform sql statement and return behaviour subject as observable results
+     * @param sql
+     */
+    public selectWithPaginator(sql?: IStatement): BehaviorSubject<QueryPaginator<T>> {
+        const subject = new QuerySubject<T>(this, sql);
+        this._subjects.push(subject);
+        return subject.getPaginator();
+
     }
 
     /**
