@@ -4,7 +4,6 @@ import { MatDialog, PageEvent } from '@angular/material';
 import 'reflect-metadata';
 import { BehaviorSubject } from 'rxjs';
 import { Repository } from '../../../../../../../../src';
-import { QueryCallback } from '../../../../../../../../src/persistence/query/QueryCallback';
 import { QueryPaginator } from '../../../../../../../../src/persistence/query/QueryPaginator';
 import { Contact } from '../../models/contact';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
@@ -21,28 +20,33 @@ export class ContactListComponent {
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
   searchString$: BehaviorSubject<number>;
-  contactsWithPaginator$: BehaviorSubject<QueryPaginator<Contact>> = new BehaviorSubject<QueryPaginator<Contact>>(null);
+  contactsWithPaginator: QueryPaginator<Contact>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
 
   constructor(public dialog: MatDialog) {
     this.contactRepository = new Repository(Contact);
-    this.searchString$ = new BehaviorSubject<number>(100000);
+    this.searchString$ = new BehaviorSubject<number>(10);
 
-    for (let i = 0; i < 100000; i++) {
+    for (let i = 0; i < 1000; i++) {
       this.contactRepository.create({
-        name: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+        name: i,
         lastName: '' + i,
         age: i,
       });
     }
 
-    this.contactsWithPaginator$ = this.contactRepository.selectWithPaginator({
-      limit: 15,
-      orderBy: 'name DESC',
-      where: 'age <= ?',
-      params: [this.searchString$],
-    });
-
+    this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
+        sql: {
+          limit: 5,
+          orderBy: 'name DESC',
+          where: 'age <= ?',
+          params: [this.searchString$],
+        },
+        paginatorDefaults: {
+          pageSizeOptions: [1, 5, 10],
+        },
+      },
+    );
 
   }
 

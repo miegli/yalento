@@ -44,13 +44,11 @@
     "@types/node": "^10.14.21",
     "assert": "^1.4.1",
     "chai": "^4.2.0",
-    "jest": "^24.9.0",
     "mocha": "^6.2.1",
     "mochawesome": "^4.1.0",
     "nyc": "^15.0.0-beta.0",
     "prettier": "^1.18.2",
     "source-map-support": "^0.5.13",
-    "ts-jest": "^24.1.0",
     "ts-node": "^8.4.1",
     "tslint": "^5.20.0",
     "tslint-config-prettier": "^1.18.0",
@@ -58,5 +56,9 @@
   },
   "files": [
     "lib/**/*"
+  ],
+  "moduleDirectories": [
+    "node_modules",
+    "src"
   ]
 }

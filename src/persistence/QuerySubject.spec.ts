@@ -71,6 +71,10 @@ describe('QuerySubjectTest', async () => {
 
         expect(repository.select({ limit: 1 }).getValue()).to.be.lengthOf(1);
 
+        const select2 = repository.selectWithPaginator({ sql: { limit: 1 } });
+        expect(select2.getResults().getValue()).to.be.lengthOf(1);
+
+
     });
 
     it('sql offset statement should be applied via alasql', async () => {

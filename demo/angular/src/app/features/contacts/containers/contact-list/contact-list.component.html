@@ -5,12 +5,12 @@
 
 <mat-toolbar>
   <mat-toolbar-row>
-    <input [autofocus]="true" matInput placeholder="search" type="number" name="search" [ngModel]="searchString$ | async"
+    <input [autofocus]="true" matInput placeholder="search" type="number" [ngModel]="searchString$ | async"
            (ngModelChange)="searchString$.next($event)">
   </mat-toolbar-row>
 </mat-toolbar>
 
-<table mat-table [dataSource]="(contactsWithPaginator$ | async).getResults()">
+<table mat-table [dataSource]="contactsWithPaginator.getResults() | async">
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">
@@ -51,9 +51,9 @@
 
 </table>
 
-<mat-paginator *ngIf="(contactsWithPaginator$ | async) as paginator" [length]="paginator.getLength()"
-               [pageSize]="limit$ | async"
-               [pageSizeOptions]="[5, 10, 25, 100]"
-               (page)="changePaginator($event)"
-               [pageIndex]="0">
+<mat-paginator [length]="contactsWithPaginator.getLength()"
+               [pageSize]="contactsWithPaginator.getPageSize()"
+               [pageSizeOptions]="contactsWithPaginator.getPageSizeOptions()"
+               (page)="contactsWithPaginator.setPage($event)"
+               [pageIndex]="contactsWithPaginator.getPageIndex()">
 </mat-paginator>

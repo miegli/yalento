@@ -3,7 +3,6 @@ import { describe, it } from 'mocha';
 import { Base, Repository } from '..';
 import { QueryCallback } from './query/QueryCallback';
 
-
 export class Contact extends Base {
 
     public name: string;
@@ -105,11 +104,28 @@ describe('RepositoryTest', async () => {
 
         const result1: QueryCallback<Contact> = await exec();
         expect(result1.paginator.getLength()).to.be.equal(0);
+        expect(result1.getResults()).to.be.lengthOf(0);
 
         repository.create();
 
         const result2: any = await exec();
         expect(result2.paginator.getLength()).to.be.equal(1);
+        expect(result2.getResults()).to.be.lengthOf(1);
+
+    });
+
+
+    it('select with paginator should return paginator behaviour subject', async () => {
+
+        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+
+        expect(repository.selectWithPaginator().getLength()).to.be.equal(0);
+        expect(repository.selectWithPaginator().getResults().getValue()).to.be.lengthOf(0);
+
+        repository.create();
+
+        expect(repository.selectWithPaginator().getLength()).to.be.equal(1);
+        expect(repository.selectWithPaginator().getResults().getValue()).to.be.lengthOf(1);
 
     });
 

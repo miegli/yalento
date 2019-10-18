@@ -11,7 +11,7 @@ export class QueryCallback<T> {
     constructor(querySubject: QuerySubject<T>) {
         this._querySubject = querySubject;
         this.paginator = new QueryPaginator<T>(querySubject);
-        querySubject.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
+        querySubject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
             if (changes.results !== undefined) {
                 this.results = changes.results;
             }

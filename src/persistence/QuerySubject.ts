@@ -1,7 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
 import { QueryCallback } from './query/QueryCallback';
-import { QueryPaginator } from './query/QueryPaginator';
+import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -18,6 +18,8 @@ export interface IStatement {
 export interface IQueryCallbackChanges {
     count?: number;
     results?: any[];
+    pageSize?: number;
+    pageIndex?: number;
 }
 
 /**
@@ -25,10 +27,10 @@ export interface IQueryCallbackChanges {
  */
 export class QuerySubject<T> {
 
-    public queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
+    private queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
     private readonly behaviorSubject$: BehaviorSubject<T[]>;
     private readonly queryCallback: QueryCallback<T>;
-    private readonly queryPaginator$: BehaviorSubject<QueryPaginator<T>>;
+    private _execStatementCount: number = 0;
 
     /**
      * construct new query subject by injecting repository
@@ -36,16 +38,14 @@ export class QuerySubject<T> {
      * @param sql
      * @param callback
      */
-    constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>) {
+    constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>, paginatorDefaults?: IQueryPaginatorDefaults) {
         this.queryCallback = new QueryCallback<T>(this);
-        this.queryPaginator$ = new BehaviorSubject<QueryPaginator<T>>(this.queryCallback.paginator);
-        this.queryCallbackChanges$.subscribe(() => {
-            this.queryPaginator$.next(this.queryCallback.paginator);
-        });
-        this.behaviorSubject$ = new BehaviorSubject<T[]>(this.execStatement(sql, callback));
-        if (sql) {
-            this.observeStatement(sql, callback);
-        }
+        this.setPaginatorDefaults(paginatorDefaults, sql);
+
+        this.behaviorSubject$ = new BehaviorSubject<T[]>(this.statementHasObservables(sql) ? [] : this.execStatement(sql, callback));
+        this.observeStatement(sql, callback);
+        this.observePaginatorChanges(sql, callback);
+
     }
 
     /**
@@ -58,15 +58,64 @@ export class QuerySubject<T> {
     /**
      * get behaviour subject
      */
-    public getPaginator(): BehaviorSubject<QueryPaginator<T>> {
-        return this.queryPaginator$;
+    public getPaginator(): QueryPaginator<T> {
+        return this.queryCallback.paginator;
+    }
+
+    /**
+     * update query callback changes
+     */
+    public updateQueryCallbackChanges(changes: IQueryCallbackChanges) {
+        this.queryCallbackChanges$.next(changes);
+    }
+
+    /**
+     * get query callback changes observer
+     */
+    public getQueryCallbackChanges(): BehaviorSubject<IQueryCallbackChanges> {
+        return this.queryCallbackChanges$;
     }
 
     /**
      *
+     * @param paginatorDefaults
+     * @param sql
      */
-    private updateQueryCallback(changes: IQueryCallbackChanges) {
-        this.queryCallbackChanges$.next(changes);
+    private setPaginatorDefaults(paginatorDefaults?: IQueryPaginatorDefaults, sql?: IStatement) {
+
+        if (paginatorDefaults && paginatorDefaults.pageSizeOptions) {
+            this.getPaginator().setPageSizeOptions(paginatorDefaults.pageSizeOptions);
+        }
+
+        if (paginatorDefaults && paginatorDefaults.pageSize) {
+            this.getPaginator().setPageSize(paginatorDefaults.pageSize, true);
+            if (this.getPaginator().getPageSizeOptions().indexOf(this.getPaginator().getPageSize()) < 0) {
+                this.getPaginator().addPageSizeOption(paginatorDefaults.pageSize);
+            }
+        } else if (sql && sql.limit) {
+            this.getPaginator().setPageSize(sql.limit, true);
+        }
+
+
+    }
+
+    /**
+     *
+     * @param sql
+     */
+    private statementHasObservables(sql?: IStatement): boolean {
+
+        let count = 0;
+
+        if (sql && sql.params) {
+            sql.params.forEach((param: any) => {
+                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
+                    count++;
+                }
+            })
+        }
+
+        return count > 0;
     }
 
     /**
@@ -74,9 +123,9 @@ export class QuerySubject<T> {
      * @param sql
      * @param callback
      */
-    private observeStatement(sql: IStatement, callback?: ICallback<T>) {
+    private observeStatement(sql?: IStatement, callback?: ICallback<T>) {
 
-        if (sql.params) {
+        if (sql && sql.params) {
             sql.params.forEach((param: any) => {
                 if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
                     param.asObservable().subscribe(() => {
@@ -85,6 +134,23 @@ export class QuerySubject<T> {
                 }
             })
         }
+
+        return;
+
+    }
+
+    /**
+     * observe and re-execute statement on any changes
+     * @param sql
+     * @param callback
+     */
+    private observePaginatorChanges(sql?: IStatement, callback?: ICallback<T>) {
+
+        this.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
+            if (changes.pageIndex !== undefined || changes.pageSize !== undefined) {
+                this.behaviorSubject$.next(this.execStatement(sql, callback));
+            }
+        });
 
         return;
 
@@ -112,9 +178,11 @@ export class QuerySubject<T> {
      */
     private execStatement(sql?: IStatement, callback?: ICallback<T>): T[] {
 
-        let count: number = -1;
         let statement = '';
         let params = sql && sql.params !== undefined ? sql.params : null;
+        if (!sql) {
+            sql = {};
+        }
 
         if (params) {
             const tmpParams: any = [];
@@ -128,43 +196,55 @@ export class QuerySubject<T> {
             params = tmpParams;
         }
 
-        if (sql && sql.where) {
+
+        if (sql.where) {
             statement += ' WHERE ' + sql.where;
         }
 
-        if (sql && sql.groupBy) {
+        if (sql.groupBy) {
             statement += ' GROUP BY ' + sql.groupBy;
         }
 
-        if (sql && sql.orderBy) {
+        if (sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
 
         statement = this.replaceStatement(statement);
 
-        if (callback) {
-            count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
-        }
+        const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
 
-        if (sql && sql.limit) {
+        if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
             statement += ' LIMIT ' + sql.limit;
+        } else if (this.getPaginator().getPageSize()) {
+            statement += ' LIMIT ' + this.getPaginator().getPageSize();
         }
 
-        if (sql && sql.offset) {
+        if (sql.offset) {
             if (sql.limit === undefined) {
                 statement += ' LIMIT 1';
             }
             statement += ' OFFSET ' + sql.offset;
+        } else {
+            if (count && this.getPaginator().getPageIndex() * this.getPaginator().getPageSize() > count) {
+                this.getPaginator().setPageIndex(Math.floor(count / this.getPaginator().getPageSize()));
+            }
+            if (this.getPaginator().getPageIndex() * this.getPaginator().getPageSize()) {
+                statement += ' OFFSET ' + this.getPaginator().getPageIndex() * this.getPaginator().getPageSize();
+            }
         }
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
 
         const changes: IQueryCallbackChanges = { count: count, results: results };
-        this.updateQueryCallback(changes);
+
+
+        this.updateQueryCallbackChanges(changes);
 
         if (callback) {
             callback(this.queryCallback);
         }
+
+        this._execStatementCount++;
 
         return results;
 
