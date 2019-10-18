@@ -4,7 +4,7 @@ import { MatDialog, PageEvent } from '@angular/material';
 import 'reflect-metadata';
 import { BehaviorSubject } from 'rxjs';
 import { Repository } from '../../../../../../../../src';
-import { QueryPaginator } from '../../../../../../../../src/persistence/query/QueryPaginator';
+import { IPageEventSort, QueryPaginator } from '../../../../../../../../src/persistence/query/QueryPaginator';
 import { Contact } from '../../models/contact';
 import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
 
@@ -21,7 +21,7 @@ export class ContactListComponent {
   offset$: BehaviorSubject<number>;
   searchString$: BehaviorSubject<number>;
   contactsWithPaginator: QueryPaginator<Contact>;
-  displayedColumns: string[] = ['select', 'name', 'lastName', 'action'];
+  displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
   constructor(public dialog: MatDialog) {
     this.contactRepository = new Repository(Contact);
@@ -68,6 +68,10 @@ export class ContactListComponent {
   add(count?: number): void {
 
 
+  }
+
+  sort(e: IPageEventSort) {
+    this.contactsWithPaginator.setPageSort(e);
   }
 
 

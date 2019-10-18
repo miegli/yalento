@@ -1,7 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
 import { QueryCallback } from './query/QueryCallback';
-import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
+import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -20,6 +20,7 @@ export interface IQueryCallbackChanges {
     results?: any[];
     pageSize?: number;
     pageIndex?: number;
+    pageSort?: IPageEventSort;
 }
 
 /**
@@ -87,6 +88,10 @@ export class QuerySubject<T> {
             this.getPaginator().setPageSizeOptions(paginatorDefaults.pageSizeOptions);
         }
 
+        if (paginatorDefaults && paginatorDefaults.pageSort) {
+            this.getPaginator().setPageSort(paginatorDefaults.pageSort);
+        }
+
         if (paginatorDefaults && paginatorDefaults.pageSize) {
             this.getPaginator().setPageSize(paginatorDefaults.pageSize, true);
             if (this.getPaginator().getPageSizeOptions().indexOf(this.getPaginator().getPageSize()) < 0) {
@@ -147,7 +152,7 @@ export class QuerySubject<T> {
     private observePaginatorChanges(sql?: IStatement, callback?: ICallback<T>) {
 
         this.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
-            if (changes.pageIndex !== undefined || changes.pageSize !== undefined) {
+            if (changes.pageIndex !== undefined || changes.pageSize !== undefined || changes.pageSort !== undefined) {
                 this.behaviorSubject$.next(this.execStatement(sql, callback));
             }
         });
@@ -205,7 +210,9 @@ export class QuerySubject<T> {
             statement += ' GROUP BY ' + sql.groupBy;
         }
 
-        if (sql.orderBy) {
+        if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
+            statement += ' ORDER BY ' + this.getPaginator().getPageSortProperty() + ' ' + this.getPaginator().getPageSortDirection();
+        } else if (sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
 

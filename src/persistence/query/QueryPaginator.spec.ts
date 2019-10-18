@@ -38,6 +38,24 @@ describe('QueryPaginatorTest', async () => {
 
     });
 
+    it('select with default page sort options should return paginator', async () => {
+
+
+        const select = repository.selectWithPaginator({
+            paginatorDefaults: {
+                pageSort: {
+                    active: 'name',
+                    direction: 'DESC',
+                },
+            },
+        });
+
+
+        expect(select.getResults().getValue()[99].age).to.be.equal(99);
+
+
+    });
+
     it('select with paginator default options should return paginator with correct pageSize and pageSize options', async () => {
 
 

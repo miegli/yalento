@@ -130,5 +130,28 @@ describe('RepositoryTest', async () => {
     });
 
 
+    it('select with paginator should sort results', async () => {
+
+        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+
+        for (let i = 0; i <= 100; i++) {
+            repository.create({ name: 'name', lastName: 'lastName', age: i });
+        }
+
+        const select = repository.selectWithPaginator();
+
+        expect(select.getResults().getValue()).to.be.lengthOf(101);
+
+        select.setPageSort({ active: 'age', direction: 'DESC' });
+        expect(select.getResults().getValue()[100].age).to.be.equal(0);
+        expect(select.getResults().getValue()[0].age).to.be.equal(100);
+
+        select.setPageSort({ active: 'age', direction: 'ASC' });
+        expect(select.getResults().getValue()[0].age).to.be.equal(0);
+        expect(select.getResults().getValue()[100].age).to.be.equal(100);
+
+
+    });
+
 
 });
