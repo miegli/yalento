@@ -26,9 +26,9 @@ export class ContactListComponent {
   constructor(public dialog: MatDialog) {
     this.contactRepository = new Repository(Contact);
 
-    this.searchString$ = new BehaviorSubject<number>(10);
+    this.searchString$ = new BehaviorSubject<number>(1000000);
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10000; i++) {
       this.contactRepository.create({
         name: i,
         lastName: '' + i,
