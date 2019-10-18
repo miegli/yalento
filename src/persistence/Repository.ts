@@ -11,6 +11,7 @@ export type ICallback<T> = (callback: QueryCallback<T>) => void;
 
 export interface IRepositoryData {
     _ref: any;
+    _uuid: string | number;
 }
 
 export interface IRepositoryDataCreate {
@@ -53,6 +54,16 @@ export class Repository<T> {
     }
 
     /**
+     * destroy repository instance
+     */
+    public destroy() {
+        Object.keys(this).forEach((key: string) => {
+            // @ts-ignore
+            delete this[key];
+        })
+    }
+
+    /**
      * perform sql statement and return behaviour subject as observable results
      * @param sql
      * @param callback
@@ -74,12 +85,21 @@ export class Repository<T> {
     }
 
     /**
-     * create entity of given repository
+     *
      * @param data
+     * @param id
      */
-    public create(data?: IRepositoryDataCreate): T {
+    public create(data?: IRepositoryDataCreate, id?: string | number): T {
 
+        const uuid = id === undefined ? Guid.create().toString() : id;
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
+
+        Object.defineProperty(c, '_uuid', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: uuid,
+        });
 
         if (data) {
             Object.keys(data).forEach((key: string) => {
@@ -87,7 +107,7 @@ export class Repository<T> {
             });
         }
 
-        this._tempData.push({ _ref: c });
+        this._tempData.push({ _ref: c, _uuid: uuid });
 
         return c;
 
@@ -131,9 +151,10 @@ export class Repository<T> {
         if (this._classProperties.length) {
             return this._classProperties;
         }
-        const keys = Object.keys(this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class);
 
-        keys.forEach((property: string) => {
+        const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
+
+        Object.keys(c).forEach((property: string) => {
             this._classProperties.push({ name: property });
         });
 
@@ -153,7 +174,6 @@ export class Repository<T> {
      * create temporary database if not exists
      */
     private createDatabase() {
-
 
         alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
         alasql.tables[this.getTableName()].data = this._tempData;

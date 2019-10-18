@@ -10,37 +10,43 @@
   </mat-toolbar-row>
 </mat-toolbar>
 
-<table mat-table matSort (matSortChange)="sort($event)" [dataSource]="contactsWithPaginator.getResults() | async">
+<table mat-table matSort (matSortChange)="sort({active: $event.active, direction: $event.direction})"
+       [dataSource]="contactsWithPaginator.getResults() | async">
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">
     <th mat-header-cell *matHeaderCellDef>
-      <mat-checkbox [checked]="false">
+      <mat-checkbox [checked]="contactsWithPaginator.isSelectedAll() | async"
+                    (change)="contactsWithPaginator.toggleSelection()">
       </mat-checkbox>
+      <span mat-basic-chip (click)="getSelected()">
+        {{contactsWithPaginator.getSelectedCount() | async}}
+      </span>
     </th>
     <td mat-cell *matCellDef="let Contact">
-      <mat-checkbox (click)="$event.stopPropagation()">
+      <mat-checkbox (click)="$event.stopPropagation()" (change)="toggleSelection(Contact)"
+                    [checked]="contactsWithPaginator.isSelected(Contact)">
       </mat-checkbox>
     </td>
   </ng-container>
 
   <!-- Name Column -->
   <ng-container matColumnDef="name">
-    <th  mat-sort-header="name"  mat-header-cell *matHeaderCellDef> First name</th>
+    <th mat-sort-header="name" mat-header-cell *matHeaderCellDef> First name</th>
     <td mat-cell *matCellDef="let contact">
       {{ contact.name }}
   </ng-container>
 
   <!-- LastName Column -->
   <ng-container matColumnDef="lastName">
-    <th mat-sort-header="lastName"  mat-header-cell *matHeaderCellDef> Name</th>
+    <th mat-sort-header="lastName" mat-header-cell *matHeaderCellDef> Name</th>
     <td mat-cell *matCellDef="let contact">
       {{ contact.lastName }}
   </ng-container>
 
   <!-- age Column -->
   <ng-container matColumnDef="age">
-    <th mat-sort-header="age"  mat-header-cell *matHeaderCellDef> Age</th>
+    <th mat-sort-header="age" mat-header-cell *matHeaderCellDef> Age</th>
     <td mat-cell *matCellDef="let contact">
       {{ contact.age }}
   </ng-container>

@@ -38,6 +38,17 @@ describe('RepositoryTest', async () => {
 
     });
 
+    it('destroying a repository should be destroy instance', async () => {
+
+        const repository: Repository<Contact> = new Repository(Contact);
+        expect(typeof repository === 'object').to.be.true;
+
+        repository.destroy();
+
+        expect(Object.keys(repository).length).to.be.equal(0);
+
+    });
+
     it('construct new repository should instantiate with model with constructor parameters', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
@@ -149,6 +160,22 @@ describe('RepositoryTest', async () => {
         select.setPageSort({ active: 'age', direction: 'ASC' });
         expect(select.getResults().getValue()[0].age).to.be.equal(0);
         expect(select.getResults().getValue()[100].age).to.be.equal(100);
+
+
+    });
+
+
+    it('creating model with given identifier should return model with uuid', async () => {
+
+        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+
+        for (let i = 0; i <= 100; i++) {
+            repository.create({ name: 'name', lastName: 'lastName', age: i }, i);
+        }
+
+        const select = repository.selectWithPaginator();
+        const results = select.getResults().getValue() as any[];
+        expect(results[100]['_uuid']).to.be.equal(100);
 
 
     });

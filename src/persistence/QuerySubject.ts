@@ -18,6 +18,7 @@ export interface IStatement {
 export interface IQueryCallbackChanges {
     count?: number;
     results?: any[];
+    resultsAll?: any[];
     pageSize?: number;
     pageIndex?: number;
     pageSort?: IPageEventSort;
@@ -217,7 +218,7 @@ export class QuerySubject<T> {
         }
 
         statement = this.replaceStatement(statement);
-
+        const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
         const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
 
         if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
@@ -241,9 +242,7 @@ export class QuerySubject<T> {
         }
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-
-        const changes: IQueryCallbackChanges = { count: count, results: results };
-
+        const changes: IQueryCallbackChanges = { count: count, results: results, resultsAll: resultsAll };
 
         this.updateQueryCallbackChanges(changes);
 

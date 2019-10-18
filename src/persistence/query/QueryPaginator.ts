@@ -26,13 +26,17 @@ export interface IPageEventSort {
 export class QueryPaginator<T> {
 
     private length: number = 0;
-    private results: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
+    private results$: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
+    private resultsAll: T[] = [];
     private pageSize: number = 0;
     private pageIndex: number = 0;
     private pageSizeOptions: number[] = [];
     private pageSort: IPageEventSort = { direction: 'ASC', active: '' };
     private _querySubject: QuerySubject<T>;
     private _hasPageSizeChanges: boolean = false;
+    private _selected: { [key: string]: boolean } = {};
+    private _isSelectedAll$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+    private _isSelectedCount$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
     /**
      *
@@ -44,11 +48,101 @@ export class QueryPaginator<T> {
             if (changes.count !== undefined) {
                 this.setLength(changes.count);
             }
-            if (changes.results !== undefined) {
+            if (changes.results !== undefined && changes.resultsAll !== undefined) {
+                const isSelectedAll = this.length === this.getSelectedCount().getValue() && this.getSelectedCount().getValue() > 0;
+                this._isSelectedAll$.next(isSelectedAll);
                 this.setResults(changes.results);
+                this.resultsAll = changes.resultsAll;
+                this._isSelectedCount$.next(this.countSelected());
             }
         });
 
+    }
+
+    /**
+     *
+     */
+    public getSelected(): T[] {
+
+        const selected: T[] = [];
+
+        if (this.isSelectedAll().getValue()) {
+            return this.resultsAll;
+        }
+
+        this.getResults().getValue().forEach((r: T) => {
+            // @ts-ignore
+            if (this._selected[r['_uuid']]) {
+                selected.push(r);
+                // @ts-ignore
+                r['_selected'] = true;
+            } else {
+                // @ts-ignore
+                r['_selected'] = true;
+            }
+        });
+
+        return selected;
+
+    }
+
+    /**
+     * get selected count
+     */
+    public getSelectedCount(): BehaviorSubject<number> {
+
+        return this._isSelectedCount$;
+
+    }
+
+    /**
+     *
+     * @param item
+     */
+    public toggleSelection(item?: T) {
+
+        if (item) {
+            // @ts-ignore
+            const uuid = item['_uuid'];
+            this._selected[uuid] = !this._selected[uuid];
+            this._isSelectedAll$.next(false);
+            this._isSelectedCount$.next(this.countSelected());
+            const isSelectedAll = this.length === this.getSelectedCount().getValue();
+            this._isSelectedAll$.next(isSelectedAll);
+        } else {
+
+            this._isSelectedCount$.next(this.countSelected());
+            if (this._isSelectedCount$.getValue() > 0 && this.isSelectedAll().getValue()) {
+                Object.keys(this._selected).forEach((key: string) => {
+                    this._selected[key] = false;
+                });
+                this._isSelectedAll$.next(false);
+            } else {
+                this.resultsAll.forEach((result: any) => {
+                    this._selected[result['_uuid']] = true;
+                });
+
+                this._isSelectedAll$.next(true);
+            }
+
+        }
+
+        this._isSelectedCount$.next(this.countSelected());
+    }
+
+    /**
+     *
+     */
+    public isSelected(item: T | any): boolean {
+        return this._selected[item['_uuid']] === true;
+    }
+
+    /**
+     *
+     */
+    public isSelectedAll(): BehaviorSubject<boolean> {
+
+        return this._isSelectedAll$;
     }
 
     /**
@@ -131,7 +225,7 @@ export class QueryPaginator<T> {
      *
      */
     public getResults(): BehaviorSubject<T[]> {
-        return this.results;
+        return this.results$;
     }
 
     /**
@@ -193,8 +287,38 @@ export class QueryPaginator<T> {
      * @param results
      */
     private setResults(results: T[]) {
-        this.results.next(results);
+
+        const selectedAll = this.isSelectedAll().getValue();
+        results.forEach((result: any) => {
+            if (result && this._selected[result['_uuid']] === undefined) {
+                this._selected[result['_uuid']] = selectedAll;
+            }
+        });
+
+
+        this.results$.next(results);
     }
 
+    private countSelected(): number {
+
+        let count = 0;
+
+        if (this.isSelectedAll().getValue()) {
+            return this.resultsAll.length;
+        } else {
+
+            this.getResults().getValue().forEach((r: T) => {
+                if (r) {
+                    // @ts-ignore
+                    if (this._selected[r['_uuid']]) {
+                        count++;
+                    }
+                }
+            });
+        }
+
+        return count;
+
+    }
 
 }

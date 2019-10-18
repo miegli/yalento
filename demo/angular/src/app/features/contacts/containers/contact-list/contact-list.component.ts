@@ -25,9 +25,10 @@ export class ContactListComponent {
 
   constructor(public dialog: MatDialog) {
     this.contactRepository = new Repository(Contact);
+
     this.searchString$ = new BehaviorSubject<number>(10);
 
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
       this.contactRepository.create({
         name: i,
         lastName: '' + i,
@@ -37,13 +38,13 @@ export class ContactListComponent {
 
     this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
         sql: {
-          limit: 5,
+          limit: 3,
           orderBy: 'name DESC',
           where: 'age <= ?',
           params: [this.searchString$],
         },
         paginatorDefaults: {
-          pageSizeOptions: [1, 5, 10],
+          pageSizeOptions: [1, 5, 10, 100],
         },
       },
     );
@@ -51,7 +52,7 @@ export class ContactListComponent {
   }
 
   edit(contact: Contact): void {
-
+    return;
     if (!this.dialog.getDialogById('ContactListComponent')) {
       this.dialog.open(ContactDialogComponent, {
         id: 'ContactListComponent',
@@ -74,5 +75,12 @@ export class ContactListComponent {
     this.contactsWithPaginator.setPageSort(e);
   }
 
+  toggleSelection(item: Contact) {
+    this.contactsWithPaginator.toggleSelection(item);
+  }
+
+  getSelected() {
+    console.log(this.contactsWithPaginator.getSelected());
+  }
 
 }

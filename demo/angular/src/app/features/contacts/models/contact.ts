@@ -1,10 +1,7 @@
-import { Base } from '../../../../../../../src';
-
-export class Contact extends Base {
+export class Contact {
 
   public name = '';
   public lastName = '';
   public age = 0;
-
 
 }

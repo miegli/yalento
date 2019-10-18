@@ -163,4 +163,47 @@ describe('QueryPaginatorTest', async () => {
     });
 
 
+    it('toggle select state for query results item should be applicable', async () => {
+
+        const repositorySelect: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+
+        for (let i = 0; i < 100; i++) {
+            repositorySelect.create({ name: 'name', lastName: 'lastName', age: i });
+        }
+
+        const contacts = repositorySelect.selectWithPaginator( { paginatorDefaults: { pageSize: 5}});
+
+        for (let i = 0; i < 5; i++) {
+            contacts.toggleSelection(contacts.getResults().getValue()[i]);
+        }
+
+        expect(contacts.getSelected()).to.be.lengthOf(5);
+        expect(contacts.getSelectedCount().getValue()).to.be.equal(5);
+
+        contacts.toggleSelection();
+
+        expect(contacts.getSelected()).to.be.lengthOf(100);
+        expect(contacts.getSelectedCount().getValue()).to.be.equal(100);
+
+        contacts.toggleSelection();
+
+        expect(contacts.getSelected()).to.be.lengthOf(0);
+        expect(contacts.getSelectedCount().getValue()).to.be.equal(0);
+
+        for (let i = 0; i < 5; i++) {
+            contacts.toggleSelection(contacts.getResults().getValue()[i]);
+        }
+
+        expect(contacts.getSelected()).to.be.lengthOf(5);
+        expect(contacts.getSelectedCount().getValue()).to.be.equal(5);
+
+        contacts.toggleSelection(contacts.getResults().getValue()[0]);
+        expect(contacts.isSelected(contacts.getResults().getValue()[0])).to.be.false;
+
+        contacts.toggleSelection(contacts.getResults().getValue()[0]);
+        expect(contacts.isSelected(contacts.getResults().getValue()[0])).to.be.true;
+
+
+    });
+
 });
