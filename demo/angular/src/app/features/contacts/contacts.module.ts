@@ -1,6 +1,7 @@
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {AngularFirestore} from "@angular/fire/firestore";
 import { FormsModule } from '@angular/forms';
 import { CoreModule } from '../../core/core.module';
 import { MaterialModule } from '../../material/material.module';
@@ -23,6 +24,6 @@ import { ContactDialogComponent } from './containers/contact-dialog/contact-dial
     FormsModule,
     HttpClientModule
   ],
-  providers: [ HttpClient ]
+  providers: [ HttpClient, AngularFirestore ]
 })
 export class ContactsModule { }

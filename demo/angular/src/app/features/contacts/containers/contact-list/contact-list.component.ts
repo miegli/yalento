@@ -1,30 +1,33 @@
-import { Component } from '@angular/core';
-import { MatDialog, PageEvent } from '@angular/material';
+import {Component, OnInit} from '@angular/core';
+import {AngularFirestore} from "@angular/fire/firestore";
+import {MatDialog, PageEvent} from '@angular/material';
 
 import 'reflect-metadata';
-import { BehaviorSubject } from 'rxjs';
-import { Repository } from '../../../../../../../../src';
-import { IPageEventSort, QueryPaginator } from '../../../../../../../../src/persistence/query/QueryPaginator';
-import { Contact } from '../../models/contact';
-import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
+import {BehaviorSubject} from 'rxjs';
+import {Repository} from '../../../../../../../../src';
+import {IPageEventSort, QueryPaginator} from '../../../../../../../../src/persistence/query/QueryPaginator';
+import {Contact} from '../../models/contact';
+import {ContactDialogComponent} from '../contact-dialog/contact-dialog.component';
 
 @Component({
   selector: 'app-contact-list',
   templateUrl: './contact-list.component.html',
   styleUrls: ['./contact-list.component.css'],
 })
-export class ContactListComponent {
+export class ContactListComponent implements OnInit {
 
   contactRepository: Repository<Contact>;
-  contacts$: BehaviorSubject<Contact[]> = new BehaviorSubject<Contact[]>([]);
   limit$: BehaviorSubject<number>;
   offset$: BehaviorSubject<number>;
   searchString$: BehaviorSubject<number>;
   contactsWithPaginator: QueryPaginator<Contact>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
-  constructor(public dialog: MatDialog) {
-    this.contactRepository = new Repository(Contact);
+  constructor(public dialog: MatDialog, db: AngularFirestore) {
+    this.contactRepository = new Repository(Contact, 'test', db);
+  }
+
+  ngOnInit(): void {
 
     this.searchString$ = new BehaviorSubject<number>(1000000);
 
@@ -48,6 +51,11 @@ export class ContactListComponent {
         },
       },
     );
+
+    this.contactsWithPaginator.getResults().subscribe((results: any[]) => {
+      console.log(results[0].getFirestore(), results[0]._toJson(), results[0]._toPlain());
+
+    });
 
   }
 

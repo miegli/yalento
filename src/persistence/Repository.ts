@@ -1,8 +1,11 @@
-import { Guid } from "guid-typescript";
-import { BehaviorSubject } from 'rxjs';
-import { QueryCallback } from './query/QueryCallback';
-import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
-import { IStatement, QuerySubject } from './QuerySubject';
+import {classToPlain, serialize} from "class-transformer";
+import "es6-shim";
+import {Guid} from "guid-typescript";
+import "reflect-metadata";
+import {BehaviorSubject} from 'rxjs';
+import {QueryCallback} from './query/QueryCallback';
+import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
+import {IStatement, QuerySubject} from './QuerySubject';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -40,6 +43,7 @@ export class Repository<T> {
     private readonly _constructorArguments: any;
     private readonly _subjects: any[] = [];
     private _tempData: IRepositoryData[] = [];
+    private _excludeSerializeProperties: string[] = [];
 
     /**
      * construct new repository instance
@@ -51,6 +55,7 @@ export class Repository<T> {
         this._constructorArguments = constructorArguments;
         this._instanceIdentifier = Guid.create().toString().replace(/-/g, '');
         this.createDatabase();
+        this.initSerializer();
     }
 
     /**
@@ -91,15 +96,7 @@ export class Repository<T> {
      */
     public create(data?: IRepositoryDataCreate, id?: string | number): T {
 
-        const uuid = id === undefined ? Guid.create().toString() : id;
-        const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
-
-        Object.defineProperty(c, '_uuid', {
-            enumerable: false,
-            configurable: false,
-            writable: false,
-            value: uuid,
-        });
+        const c = this.createClassInstance(id) as any;
 
         if (data) {
             Object.keys(data).forEach((key: string) => {
@@ -107,7 +104,7 @@ export class Repository<T> {
             });
         }
 
-        this._tempData.push({ _ref: c, _uuid: uuid });
+        this._tempData.push({_ref: c, _uuid: c._uuid});
 
         return c;
 
@@ -155,7 +152,7 @@ export class Repository<T> {
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
 
         Object.keys(c).forEach((property: string) => {
-            this._classProperties.push({ name: property });
+            this._classProperties.push({name: property});
         });
 
         return this._classProperties;
@@ -177,6 +174,57 @@ export class Repository<T> {
 
         alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
         alasql.tables[this.getTableName()].data = this._tempData;
+
+    }
+
+    private createClassInstance(id?: string | number): T {
+
+        const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
+        const uuid = id === undefined ? Guid.create().toString() : id;
+
+        Object.defineProperty(c, '_uuid', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: uuid,
+        });
+
+        Object.defineProperty(c, '_toJson', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: () => {
+                return serialize(c, {excludePrefixes: this._excludeSerializeProperties})
+            },
+        });
+
+        Object.defineProperty(c, '_toPlain', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: () => {
+                return classToPlain(c, {excludePrefixes: this._excludeSerializeProperties})
+            },
+        });
+
+        return c;
+
+    }
+
+    /**
+     * check properties that can to be serialized
+     */
+    private initSerializer() {
+
+        const c = this.createClassInstance() as any;
+        Object.keys(c).forEach((key: string) => {
+            try {
+                new c[key].constructor();
+            } catch (e) {
+                this._excludeSerializeProperties.push(key);
+            }
+        });
+
 
     }
 

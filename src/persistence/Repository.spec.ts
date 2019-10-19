@@ -1,7 +1,8 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
-import { Base, Repository } from '..';
-import { QueryCallback } from './query/QueryCallback';
+import {expect} from 'chai';
+import {serialize} from "class-transformer";
+import {describe, it} from 'mocha';
+import {Base, Repository} from '..';
+import {QueryCallback} from './query/QueryCallback';
 
 export class Contact extends Base {
 
@@ -10,7 +11,7 @@ export class Contact extends Base {
     public street: string = '';
     public age: number;
 
-    constructor(name: string, lastName: string, age: number) {
+    constructor(name: string, lastName: string, age: number, private unserializableServices: any) {
         super();
         this.name = name;
         this.lastName = lastName;
@@ -18,6 +19,7 @@ export class Contact extends Base {
     }
 
 }
+
 
 export class ContactWithoutConstructor extends Base {
 
@@ -57,28 +59,32 @@ describe('RepositoryTest', async () => {
     });
 
 
-    it('create should return entity', async () => {
+    it('create should return serializable entity', async () => {
 
-        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        const model = repository.create({ street: 'testStreet' });
+        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1, serialize);
+        const model = repository.create({street: 'testStreet'}) as any;
         expect(model.name).to.be.equal('test1');
         expect(model.lastName).to.be.equal('test2');
         expect(model.street).to.be.equal('testStreet');
         expect(model.age).to.be.equal(1);
+        expect(model._toJson()).to.be.equal('{"street":"testStreet","name":"test1","lastName":"test2","age":1}');
+        expect(model._toPlain().name).to.be.equal('test1');
 
         const repository2: Repository<ContactWithoutConstructor> = new Repository(ContactWithoutConstructor);
-        const model2 = repository2.create();
+        const model2 = repository2.create() as any;
         expect(model2.name).to.be.equal('');
         expect(model2.lastName).to.be.equal('');
         expect(model2.street).to.be.equal('');
         expect(model2.age).to.be.equal(0);
+        expect(model2._toJson()).to.be.equal('{"name":"","lastName":"","street":"","age":0}');
+        expect(model2._toPlain().name).to.be.equal('');
 
     });
 
     it('create should add entity reference to repository data', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        const model = repository.create({ street: 'testStreet' });
+        const model = repository.create({street: 'testStreet'});
         expect(repository.getTempData()[0]._ref).to.be.equal(model);
 
     });
@@ -87,7 +93,7 @@ describe('RepositoryTest', async () => {
     it('create many should add entity references to repository data', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        const models = repository.createMany([{ street: 'testStreet1' }, { street: 'testStreet3' }, { street: 'testStreet3' }]);
+        const models = repository.createMany([{street: 'testStreet1'}, {street: 'testStreet3'}, {street: 'testStreet3'}]);
         expect(repository.getTempData()[0]._ref).to.be.equal(models[0]);
         expect(repository.getTempData()[1]._ref).to.be.equal(models[1]);
         expect(repository.getTempData()[2]._ref).to.be.equal(models[2]);
@@ -146,18 +152,18 @@ describe('RepositoryTest', async () => {
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         for (let i = 0; i <= 100; i++) {
-            repository.create({ name: 'name', lastName: 'lastName', age: i });
+            repository.create({name: 'name', lastName: 'lastName', age: i});
         }
 
         const select = repository.selectWithPaginator();
 
         expect(select.getResults().getValue()).to.be.lengthOf(101);
 
-        select.setPageSort({ active: 'age', direction: 'DESC' });
+        select.setPageSort({active: 'age', direction: 'DESC'});
         expect(select.getResults().getValue()[100].age).to.be.equal(0);
         expect(select.getResults().getValue()[0].age).to.be.equal(100);
 
-        select.setPageSort({ active: 'age', direction: 'ASC' });
+        select.setPageSort({active: 'age', direction: 'ASC'});
         expect(select.getResults().getValue()[0].age).to.be.equal(0);
         expect(select.getResults().getValue()[100].age).to.be.equal(100);
 
@@ -170,7 +176,7 @@ describe('RepositoryTest', async () => {
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         for (let i = 0; i <= 100; i++) {
-            repository.create({ name: 'name', lastName: 'lastName', age: i }, i);
+            repository.create({name: 'name', lastName: 'lastName', age: i}, i);
         }
 
         const select = repository.selectWithPaginator();
