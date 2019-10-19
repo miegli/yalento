@@ -35,12 +35,12 @@
   },
   "homepage": "https://github.com/miegli/yalento/blob/master/README.md",
   "dependencies": {
+    "@firebase/firestore-types": "^1.6.2",
     "@types/bluebird": "^3.5.27",
     "@types/validator": "^10.11.3",
     "alasql": "^0.5.1",
     "class-transformer": "^0.2.3",
     "es6-shim": "^0.35.5",
-    "firebase": "^7.2.0",
     "guid-typescript": "^1.0.9",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.5.3"

@@ -1,7 +1,7 @@
-import { BehaviorSubject } from 'rxjs';
-import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
-import { QueryCallback } from './query/QueryCallback';
-import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
+import {BehaviorSubject} from 'rxjs';
+import {ICallback, IClassProperty, IRepositoryData, Repository} from '..';
+import {QueryCallback} from './query/QueryCallback';
+import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -22,6 +22,7 @@ export interface IQueryCallbackChanges {
     pageSize?: number;
     pageIndex?: number;
     pageSort?: IPageEventSort;
+    dataAdded?: boolean;
 }
 
 /**
@@ -153,7 +154,7 @@ export class QuerySubject<T> {
     private observePaginatorChanges(sql?: IStatement, callback?: ICallback<T>) {
 
         this.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
-            if (changes.pageIndex !== undefined || changes.pageSize !== undefined || changes.pageSort !== undefined) {
+            if (changes.pageIndex !== undefined || changes.pageSize !== undefined || changes.pageSort !== undefined || changes.dataAdded !== undefined) {
                 this.behaviorSubject$.next(this.execStatement(sql, callback));
             }
         });
@@ -242,7 +243,7 @@ export class QuerySubject<T> {
         }
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-        const changes: IQueryCallbackChanges = { count: count, results: results, resultsAll: resultsAll };
+        const changes: IQueryCallbackChanges = {count: count, results: results, resultsAll: resultsAll};
 
         this.updateQueryCallbackChanges(changes);
 

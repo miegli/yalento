@@ -1,6 +1,6 @@
 import {Component, OnInit} from '@angular/core';
-import {AngularFirestore} from "@angular/fire/firestore";
-import {MatDialog, PageEvent} from '@angular/material';
+import {AngularFirestore} from '@angular/fire/firestore';
+import {MatDialog} from '@angular/material';
 
 import 'reflect-metadata';
 import {BehaviorSubject} from 'rxjs';
@@ -17,27 +17,18 @@ import {ContactDialogComponent} from '../contact-dialog/contact-dialog.component
 export class ContactListComponent implements OnInit {
 
   contactRepository: Repository<Contact>;
-  limit$: BehaviorSubject<number>;
-  offset$: BehaviorSubject<number>;
   searchString$: BehaviorSubject<number>;
   contactsWithPaginator: QueryPaginator<Contact>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
   constructor(public dialog: MatDialog, db: AngularFirestore) {
-    this.contactRepository = new Repository(Contact, 'test', db);
+    this.contactRepository = new Repository(Contact, 'test');
+    this.contactRepository.connectAngularFirestore(db);
   }
 
   ngOnInit(): void {
 
-    this.searchString$ = new BehaviorSubject<number>(1000000);
-
-    for (let i = 0; i < 10000; i++) {
-      this.contactRepository.create({
-        name: i,
-        lastName: '' + i,
-        age: i,
-      });
-    }
+    this.searchString$ = new BehaviorSubject<number>(10000000);
 
     this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
         sql: {
@@ -52,11 +43,6 @@ export class ContactListComponent implements OnInit {
       },
     );
 
-    this.contactsWithPaginator.getResults().subscribe((results: any[]) => {
-      console.log(results[0].getFirestore(), results[0]._toJson(), results[0]._toPlain());
-
-    });
-
   }
 
   edit(contact: Contact): void {
@@ -69,12 +55,15 @@ export class ContactListComponent implements OnInit {
     }
   }
 
-  changePaginator(event: PageEvent) {
-    this.limit$.next(event.pageSize);
-    this.offset$.next(event.pageIndex * event.pageSize);
-  }
-
   add(count?: number): void {
+
+    if (count === undefined) {
+      this.contactRepository.create({name: 'test1'});
+    } else {
+      this.contactRepository.createMany(Array(count).fill({
+        name: 'test'
+      }));
+    }
 
 
   }

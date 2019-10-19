@@ -3,9 +3,14 @@ import "es6-shim";
 import {Guid} from "guid-typescript";
 import "reflect-metadata";
 import {BehaviorSubject} from 'rxjs';
+import {
+    AngularFirestore,
+    AngularFirestoreConnector,
+    IConnectionAngularFirestore
+} from "./connector/AngularFirestoreConnector";
 import {QueryCallback} from './query/QueryCallback';
 import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
-import {IStatement, QuerySubject} from './QuerySubject';
+import {IQueryCallbackChanges, IStatement, QuerySubject} from './QuerySubject';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -30,6 +35,12 @@ export interface ISelectWithPaginator {
     paginatorDefaults?: IQueryPaginatorDefaults;
 }
 
+
+export interface IConnections {
+    angularFirestore?: AngularFirestoreConnector<any>
+}
+
+
 /**
  * Repository class
  * This class can be instantiated by new constructor.
@@ -37,13 +48,15 @@ export interface ISelectWithPaginator {
  */
 export class Repository<T> {
 
-    private readonly _instanceIdentifier: any;
+    private readonly _instanceIdentifier: string;
     private readonly _class: any;
     private readonly _classProperties: IClassProperty[] = [];
     private readonly _constructorArguments: any;
-    private readonly _subjects: any[] = [];
+    private readonly _subjects: Array<QuerySubject<T>> = [];
     private _tempData: IRepositoryData[] = [];
     private _excludeSerializeProperties: string[] = [];
+    private _connections: IConnections = {};
+    private _className: string = '';
 
     /**
      * construct new repository instance
@@ -66,6 +79,16 @@ export class Repository<T> {
             // @ts-ignore
             delete this[key];
         })
+    }
+
+    /**
+     *
+     * @param firestore
+     * @param options
+     */
+    public connectAngularFirestore(firestore: AngularFirestore, options?: IConnectionAngularFirestore): Repository<T> {
+        this._connections.angularFirestore = new AngularFirestoreConnector<T>(this, firestore, options);
+        return this;
     }
 
     /**
@@ -94,7 +117,7 @@ export class Repository<T> {
      * @param data
      * @param id
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number): T {
+    public create(data?: IRepositoryDataCreate, id?: string | number, skipChangeDetection?: boolean): T {
 
         const c = this.createClassInstance(id) as any;
 
@@ -105,6 +128,15 @@ export class Repository<T> {
         }
 
         this._tempData.push({_ref: c, _uuid: c._uuid});
+
+
+        if (!skipChangeDetection) {
+            Object.keys(this._connections as any).forEach((key: string) => {
+                // @ts-ignore
+                this._connections[key].add([c]);
+            });
+            this.updateSubjects({dataAdded: true});
+        }
 
         return c;
 
@@ -119,8 +151,14 @@ export class Repository<T> {
         const added: T[] = [];
 
         data.forEach(value => {
-            added.push(this.create(value));
+            added.push(this.create(value, undefined, true));
         });
+
+        Object.keys(this._connections as any).forEach((key: string) => {
+            // @ts-ignore
+            this._connections[key].add(added);
+        });
+        this.updateSubjects({dataAdded: true});
 
         return added;
 
@@ -168,6 +206,13 @@ export class Repository<T> {
     }
 
     /**
+     *
+     */
+    public getClassName(): string {
+        return this._className;
+    }
+
+    /**
      * create temporary database if not exists
      */
     private createDatabase() {
@@ -177,6 +222,22 @@ export class Repository<T> {
 
     }
 
+    /**
+     *
+     * @param changes
+     */
+    private updateSubjects(changes: IQueryCallbackChanges) {
+
+        this._subjects.forEach((subject: QuerySubject<any>) => {
+            subject.updateQueryCallbackChanges(changes);
+        })
+
+    }
+
+    /**
+     *
+     * @param id
+     */
     private createClassInstance(id?: string | number): T {
 
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
@@ -217,6 +278,7 @@ export class Repository<T> {
     private initSerializer() {
 
         const c = this.createClassInstance() as any;
+        this._className = c.constructor.name;
         Object.keys(c).forEach((key: string) => {
             try {
                 new c[key].constructor();
