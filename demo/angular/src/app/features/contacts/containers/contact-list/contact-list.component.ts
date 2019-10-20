@@ -28,13 +28,13 @@ export class ContactListComponent implements OnInit {
 
   ngOnInit(): void {
 
-    this.searchString$ = new BehaviorSubject<number>(10000000);
+    this.searchString$ = new BehaviorSubject<number>(0);
 
     this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
         sql: {
           limit: 3,
           orderBy: 'name DESC',
-          where: 'age <= ?',
+          where: 'age = ?',
           params: [this.searchString$],
         },
         paginatorDefaults: {

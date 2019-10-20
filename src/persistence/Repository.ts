@@ -3,11 +3,13 @@ import "es6-shim";
 import {Guid} from "guid-typescript";
 import "reflect-metadata";
 import {BehaviorSubject} from 'rxjs';
+import {AbstractConnector} from "./connector/AbstractConnector";
 import {
     AngularFirestore,
     AngularFirestoreConnector,
     IConnectionAngularFirestore
 } from "./connector/AngularFirestoreConnector";
+import {IConnectorInterface} from "./connector/ConnectorInterface";
 import {QueryCallback} from './query/QueryCallback';
 import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
 import {IQueryCallbackChanges, IStatement, QuerySubject} from './QuerySubject';
@@ -36,10 +38,11 @@ export interface ISelectWithPaginator {
 }
 
 
-export interface IConnections {
-    angularFirestore?: AngularFirestoreConnector<any>
+export interface IConnections<T> {
+    [key: string]: IConnectorInterface<T>;
 }
 
+export type IConnectionsKeys = ['angularFirestore'];
 
 /**
  * Repository class
@@ -55,7 +58,7 @@ export class Repository<T> {
     private readonly _subjects: Array<QuerySubject<T>> = [];
     private _tempData: IRepositoryData[] = [];
     private _excludeSerializeProperties: string[] = [];
-    private _connections: IConnections = {};
+    private _connections: IConnections<T> = {};
     private _className: string = '';
 
     /**
@@ -92,13 +95,20 @@ export class Repository<T> {
     }
 
     /**
-     * perform sql statement and return behaviour subject as observable results
+     * performs sql statement and return behaviour subject as observable results
      * @param sql
      * @param callback
      */
     public select(sql?: IStatement, callback?: ICallback<T>): BehaviorSubject<T[]> {
         const subject = new QuerySubject<T>(this, sql, callback);
         this._subjects.push(subject);
+        subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
+            if (changes.selectSqlStatement !== undefined) {
+                Object.keys(this._connections).forEach((key: string) => {
+                    this._connections[key].select(changes.selectSqlStatement ? changes.selectSqlStatement : '')
+                });
+            }
+        });
         return subject.getBehaviourSubject();
     }
 
@@ -109,6 +119,13 @@ export class Repository<T> {
     public selectWithPaginator(options?: ISelectWithPaginator): QueryPaginator<T> {
         const subject = new QuerySubject<T>(this, options ? options.sql : {}, undefined, options ? options.paginatorDefaults : undefined);
         this._subjects.push(subject);
+        subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
+            if (changes.selectSqlStatement !== undefined) {
+                (Object.keys(this._connections) as IConnectionsKeys).forEach((key: string) => {
+                    this._connections[key].select(changes.selectSqlStatement ? changes.selectSqlStatement : '')
+                });
+            }
+        });
         return subject.getPaginator();
     }
 
@@ -116,8 +133,10 @@ export class Repository<T> {
      *
      * @param data
      * @param id
+     * @param skipChangeDetection
+     * @param fromConnector
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number, skipChangeDetection?: boolean): T {
+    public create(data?: IRepositoryDataCreate, id?: string | number, skipChangeDetection?: boolean, fromConnector?: string): T {
 
         const c = this.createClassInstance(id) as any;
 
@@ -127,13 +146,24 @@ export class Repository<T> {
             });
         }
 
-        this._tempData.push({_ref: c, _uuid: c._uuid});
+        const existingItem = this._tempData.filter((item: IRepositoryData) => {
+            return item._uuid === c['__uuid'];
+        });
+
+        if (existingItem.length) {
+            existingItem.forEach((item: IRepositoryData) => {
+                item._ref = c;
+            })
+        } else {
+            this._tempData.push({_ref: c, _uuid: c._uuid});
+        }
 
 
         if (!skipChangeDetection) {
             Object.keys(this._connections as any).forEach((key: string) => {
-                // @ts-ignore
-                this._connections[key].add([c]);
+                if (key !== fromConnector) {
+                    this._connections[key].add([c]);
+                }
             });
             this.updateSubjects({dataAdded: true});
         }
@@ -143,21 +173,24 @@ export class Repository<T> {
     }
 
     /**
-     * create many entities of given repository
-     * @param data[]
+     *
+     * @param data
+     * @param fromConnector
      */
-    public createMany(data: IRepositoryDataCreate[]): T[] {
+    public createMany(data: IRepositoryDataCreate[], fromConnector?: string): T[] {
 
         const added: T[] = [];
 
         data.forEach(value => {
-            added.push(this.create(value, undefined, true));
+            added.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], true, fromConnector));
         });
 
-        Object.keys(this._connections as any).forEach((key: string) => {
-            // @ts-ignore
-            this._connections[key].add(added);
+        Object.keys(this._connections).forEach((key: string) => {
+            if (key !== fromConnector) {
+                this._connections[key].add(added);
+            }
         });
+
         this.updateSubjects({dataAdded: true});
 
         return added;
@@ -213,20 +246,10 @@ export class Repository<T> {
     }
 
     /**
-     * create temporary database if not exists
-     */
-    private createDatabase() {
-
-        alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
-        alasql.tables[this.getTableName()].data = this._tempData;
-
-    }
-
-    /**
      *
      * @param changes
      */
-    private updateSubjects(changes: IQueryCallbackChanges) {
+    public updateSubjects(changes: IQueryCallbackChanges) {
 
         this._subjects.forEach((subject: QuerySubject<any>) => {
             subject.updateQueryCallbackChanges(changes);
@@ -238,7 +261,7 @@ export class Repository<T> {
      *
      * @param id
      */
-    private createClassInstance(id?: string | number): T {
+    public createClassInstance(id?: string | number): T {
 
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
         const uuid = id === undefined ? Guid.create().toString() : id;
@@ -271,6 +294,16 @@ export class Repository<T> {
         return c;
 
     }
+
+    /**
+     * create temporary database if not exists
+     */
+    private createDatabase() {
+
+        alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
+        alasql.tables[this.getTableName()].data = this._tempData;
+    }
+
 
     /**
      * check properties that can to be serialized

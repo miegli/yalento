@@ -1,5 +1,7 @@
-export interface IConnectorInterface {
+export interface IConnectorInterface<T> {
 
-    add(items: []): void;
+    add(items: T[]): void;
+
+    select(sql: string): void;
 
 }

@@ -41,8 +41,12 @@
     "alasql": "^0.5.1",
     "class-transformer": "^0.2.3",
     "es6-shim": "^0.35.5",
+    "firebase": "^7.2.1",
+    "firesql": "^2.0.2",
     "guid-typescript": "^1.0.9",
+    "node-sql-parser": "^1.6.5",
     "reflect-metadata": "^0.1.13",
+    "rxfire": "^3.8.6",
     "rxjs": "^6.5.3"
   },
   "devDependencies": {

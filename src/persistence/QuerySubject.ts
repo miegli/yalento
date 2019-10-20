@@ -23,6 +23,7 @@ export interface IQueryCallbackChanges {
     pageIndex?: number;
     pageSort?: IPageEventSort;
     dataAdded?: boolean;
+    selectSqlStatement?: string;
 }
 
 /**
@@ -179,11 +180,12 @@ export class QuerySubject<T> {
 
 
     /**
-     * execute sql statement on alasql
+     *
      * @param sql
      * @param callback
+     * @param skipConnectors
      */
-    private execStatement(sql?: IStatement, callback?: ICallback<T>): T[] {
+    private execStatement(sql?: IStatement, callback?: ICallback<T>, skipConnectors?: boolean): T[] {
 
         let statement = '';
         let params = sql && sql.params !== undefined ? sql.params : null;
@@ -208,6 +210,13 @@ export class QuerySubject<T> {
             statement += ' WHERE ' + sql.where;
         }
 
+        let selectSqlStatement = alasql.parse('SELECT * FROM ' + this.repository.getClassName() + ' ' + statement, params).toString();
+        if (params) {
+            params.forEach((value: string, index: number) => {
+                selectSqlStatement = selectSqlStatement.replace('$' + index, value);
+            })
+        }
+
         if (sql.groupBy) {
             statement += ' GROUP BY ' + sql.groupBy;
         }
@@ -217,6 +226,7 @@ export class QuerySubject<T> {
         } else if (sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
+
 
         statement = this.replaceStatement(statement);
         const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
@@ -243,7 +253,15 @@ export class QuerySubject<T> {
         }
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-        const changes: IQueryCallbackChanges = {count: count, results: results, resultsAll: resultsAll};
+        const changes: IQueryCallbackChanges = {
+            count: count,
+            results: results,
+            resultsAll: resultsAll
+        };
+
+        if (!skipConnectors) {
+            changes.selectSqlStatement = selectSqlStatement;
+        }
 
         this.updateQueryCallbackChanges(changes);
 

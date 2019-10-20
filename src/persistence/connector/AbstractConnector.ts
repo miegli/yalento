@@ -3,7 +3,7 @@ import {IConnectionAngularFirestore} from "./AngularFirestoreConnector";
 
 export abstract class AbstractConnector<T> {
 
-    private repository: Repository<T>;
+    public repository: Repository<T>;
     private readonly options?: IConnectionAngularFirestore;
 
     protected constructor(repository: Repository<T>, options?: IConnectionAngularFirestore) {
