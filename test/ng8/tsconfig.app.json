@@ -1,12 +1,17 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
     "outDir": "./out-tsc/app",
-    "types": [ "node" ],
-    "typeRoots": [ "node_modules/@types" ],
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
     "paths": {
-      "@yalento": ["../../src"]
+      "@yalento": [
+        "../../src"
+      ]
     }
   },
   "files": [

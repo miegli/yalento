@@ -1,7 +1,7 @@
-import {BehaviorSubject} from 'rxjs';
-import {ICallback, IClassProperty, IRepositoryData, Repository} from '..';
-import {QueryCallback} from './query/QueryCallback';
-import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
+import { BehaviorSubject } from 'rxjs';
+import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
+import { QueryCallback } from './query/QueryCallback';
+import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -34,22 +34,34 @@ export class QuerySubject<T> {
     private queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
     private readonly behaviorSubject$: BehaviorSubject<T[]>;
     private readonly queryCallback: QueryCallback<T>;
-    private _execStatementCount: number = 0;
+    private _lastExecStatement: string = '';
 
     /**
-     * construct new query subject by injecting repository
+     *
      * @param repository
      * @param sql
      * @param callback
+     * @param paginatorDefaults
      */
     constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>, paginatorDefaults?: IQueryPaginatorDefaults) {
         this.queryCallback = new QueryCallback<T>(this);
+        this.behaviorSubject$ = new BehaviorSubject<T[]>(this.execStatement(sql));
         this.setPaginatorDefaults(paginatorDefaults, sql);
-
-        this.behaviorSubject$ = new BehaviorSubject<T[]>(this.statementHasObservables(sql) ? [] : this.execStatement(sql, callback));
         this.observeStatement(sql, callback);
         this.observePaginatorChanges(sql, callback);
 
+        if (callback) {
+            this.behaviorSubject$.subscribe(() => {
+                callback(this.queryCallback);
+            })
+        }
+    }
+
+    /**
+     *
+     */
+    public getLastExecStatement(): string {
+        return this._lastExecStatement;
     }
 
     /**
@@ -108,25 +120,6 @@ export class QuerySubject<T> {
     }
 
     /**
-     *
-     * @param sql
-     */
-    private statementHasObservables(sql?: IStatement): boolean {
-
-        let count = 0;
-
-        if (sql && sql.params) {
-            sql.params.forEach((param: any) => {
-                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
-                    count++;
-                }
-            })
-        }
-
-        return count > 0;
-    }
-
-    /**
      * observe and re-execute statement on any changes
      * @param sql
      * @param callback
@@ -137,7 +130,7 @@ export class QuerySubject<T> {
             sql.params.forEach((param: any) => {
                 if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
                     param.asObservable().subscribe(() => {
-                        this.behaviorSubject$.next(this.execStatement(sql, callback));
+                        this.behaviorSubject$.next(this.execStatement(sql));
                     });
                 }
             })
@@ -155,9 +148,13 @@ export class QuerySubject<T> {
     private observePaginatorChanges(sql?: IStatement, callback?: ICallback<T>) {
 
         this.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
+console.log(changes);
             if (changes.pageIndex !== undefined || changes.pageSize !== undefined || changes.pageSort !== undefined || changes.dataAdded !== undefined) {
-                this.behaviorSubject$.next(this.execStatement(sql, callback));
+                this.behaviorSubject$.next(this.execStatement(sql));
+            } else if (changes.selectSqlStatement) {
+                this.behaviorSubject$.next(this.execStatement(sql, true));
             }
+
         });
 
         return;
@@ -185,7 +182,7 @@ export class QuerySubject<T> {
      * @param callback
      * @param skipConnectors
      */
-    private execStatement(sql?: IStatement, callback?: ICallback<T>, skipConnectors?: boolean): T[] {
+    private execStatement(sql?: IStatement, skipConnectors?: boolean): T[] {
 
         let statement = '';
         let params = sql && sql.params !== undefined ? sql.params : null;
@@ -204,7 +201,6 @@ export class QuerySubject<T> {
             });
             params = tmpParams;
         }
-
 
         if (sql.where) {
             statement += ' WHERE ' + sql.where;
@@ -226,7 +222,6 @@ export class QuerySubject<T> {
         } else if (sql.orderBy) {
             statement += ' ORDER BY ' + sql.orderBy;
         }
-
 
         statement = this.replaceStatement(statement);
         const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
@@ -253,23 +248,19 @@ export class QuerySubject<T> {
         }
 
         const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-        const changes: IQueryCallbackChanges = {
+
+
+        if (!skipConnectors && this._lastExecStatement !== selectSqlStatement) {
+            this.updateQueryCallbackChanges({ selectSqlStatement: selectSqlStatement });
+        }
+
+        this.updateQueryCallbackChanges({
             count: count,
             results: results,
-            resultsAll: resultsAll
-        };
+            resultsAll: resultsAll,
+        });
 
-        if (!skipConnectors) {
-            changes.selectSqlStatement = selectSqlStatement;
-        }
-
-        this.updateQueryCallbackChanges(changes);
-
-        if (callback) {
-            callback(this.queryCallback);
-        }
-
-        this._execStatementCount++;
+        this._lastExecStatement = selectSqlStatement;
 
         return results;
 

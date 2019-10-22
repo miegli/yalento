@@ -1,18 +1,17 @@
-import {classToPlain, serialize} from "class-transformer";
+import { classToPlain, serialize } from "class-transformer";
 import "es6-shim";
-import {Guid} from "guid-typescript";
+import { Guid } from "guid-typescript";
 import "reflect-metadata";
-import {BehaviorSubject} from 'rxjs';
-import {AbstractConnector} from "./connector/AbstractConnector";
+import { BehaviorSubject } from 'rxjs';
 import {
-    AngularFirestore,
     AngularFirestoreConnector,
-    IConnectionAngularFirestore
+    Firestore,
+    IConnectionAngularFirestore,
 } from "./connector/AngularFirestoreConnector";
-import {IConnectorInterface} from "./connector/ConnectorInterface";
-import {QueryCallback} from './query/QueryCallback';
-import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
-import {IQueryCallbackChanges, IStatement, QuerySubject} from './QuerySubject';
+import { IConnectorInterface } from "./connector/ConnectorInterface";
+import { QueryCallback } from './query/QueryCallback';
+import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
+import { IQueryCallbackChanges, IStatement, QuerySubject } from './QuerySubject';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -78,10 +77,11 @@ export class Repository<T> {
      * destroy repository instance
      */
     public destroy() {
-        Object.keys(this).forEach((key: string) => {
-            // @ts-ignore
-            delete this[key];
-        })
+
+        Object.keys(this._connections).forEach((connectionId: string) => {
+            this._connections[connectionId].disconnect();
+        });
+
     }
 
     /**
@@ -89,8 +89,11 @@ export class Repository<T> {
      * @param firestore
      * @param options
      */
-    public connectAngularFirestore(firestore: AngularFirestore, options?: IConnectionAngularFirestore): Repository<T> {
+    public connectFirestore(firestore: Firestore, options?: IConnectionAngularFirestore): Repository<T> {
+
         this._connections.angularFirestore = new AngularFirestoreConnector<T>(this, firestore, options);
+        this.reloadSubjects();
+
         return this;
     }
 
@@ -102,13 +105,15 @@ export class Repository<T> {
     public select(sql?: IStatement, callback?: ICallback<T>): BehaviorSubject<T[]> {
         const subject = new QuerySubject<T>(this, sql, callback);
         this._subjects.push(subject);
+
         subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
             if (changes.selectSqlStatement !== undefined) {
                 Object.keys(this._connections).forEach((key: string) => {
-                    this._connections[key].select(changes.selectSqlStatement ? changes.selectSqlStatement : '')
+                    this._connections[key].select(changes.selectSqlStatement as string);
                 });
             }
         });
+
         return subject.getBehaviourSubject();
     }
 
@@ -119,13 +124,17 @@ export class Repository<T> {
     public selectWithPaginator(options?: ISelectWithPaginator): QueryPaginator<T> {
         const subject = new QuerySubject<T>(this, options ? options.sql : {}, undefined, options ? options.paginatorDefaults : undefined);
         this._subjects.push(subject);
+
         subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
             if (changes.selectSqlStatement !== undefined) {
                 (Object.keys(this._connections) as IConnectionsKeys).forEach((key: string) => {
-                    this._connections[key].select(changes.selectSqlStatement ? changes.selectSqlStatement : '')
+                    this._connections[key].select(changes.selectSqlStatement as string)
                 });
             }
         });
+
+        this.reloadSubjects();
+
         return subject.getPaginator();
     }
 
@@ -155,7 +164,7 @@ export class Repository<T> {
                 item._ref = c;
             })
         } else {
-            this._tempData.push({_ref: c, _uuid: c._uuid});
+            this._tempData.push({ _ref: c, _uuid: c._uuid });
         }
 
 
@@ -165,7 +174,7 @@ export class Repository<T> {
                     this._connections[key].add([c]);
                 }
             });
-            this.updateSubjects({dataAdded: true});
+            this.updateSubjects({ dataAdded: true });
         }
 
         return c;
@@ -191,7 +200,7 @@ export class Repository<T> {
             }
         });
 
-        this.updateSubjects({dataAdded: true});
+        this.updateSubjects({ dataAdded: true });
 
         return added;
 
@@ -223,7 +232,7 @@ export class Repository<T> {
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
 
         Object.keys(c).forEach((property: string) => {
-            this._classProperties.push({name: property});
+            this._classProperties.push({ name: property });
         });
 
         return this._classProperties;
@@ -278,7 +287,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: () => {
-                return serialize(c, {excludePrefixes: this._excludeSerializeProperties})
+                return serialize(c, { excludePrefixes: this._excludeSerializeProperties })
             },
         });
 
@@ -287,7 +296,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: () => {
-                return classToPlain(c, {excludePrefixes: this._excludeSerializeProperties})
+                return classToPlain(c, { excludePrefixes: this._excludeSerializeProperties })
             },
         });
 
@@ -302,6 +311,12 @@ export class Repository<T> {
 
         alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
         alasql.tables[this.getTableName()].data = this._tempData;
+    }
+
+    private reloadSubjects() {
+        this._subjects.forEach((sub: QuerySubject<T>) => {
+            sub.updateQueryCallbackChanges({ selectSqlStatement: sub.getLastExecStatement() });
+        });
     }
 
 

@@ -13,7 +13,8 @@
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
-    "test": "npm run build && nyc --reporter=lcov --reporter=text-summary node_modules/.bin/mocha --opts ./mocha.opts src"
+    "test": "npm run build && nyc --reporter=lcov --reporter=text-summary node_modules/.bin/mocha --opts ./mocha.opts src",
+    "test:ng8": "npm run build && cp -R lib test/ng8/node_modules/yalento/lib && cd test/ng8 && npm run test-headless"
   },
   "repository": {
     "type": "git",
@@ -43,8 +44,8 @@
     "es6-shim": "^0.35.5",
     "firebase": "^7.2.1",
     "firesql": "^2.0.2",
+    "firestore": "^1.1.6",
     "guid-typescript": "^1.0.9",
-    "node-sql-parser": "^1.6.5",
     "reflect-metadata": "^0.1.13",
     "rxfire": "^3.8.6",
     "rxjs": "^6.5.3"

@@ -4,4 +4,6 @@ export interface IConnectorInterface<T> {
 
     select(sql: string): void;
 
+    disconnect(): void;
+
 }

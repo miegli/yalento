@@ -32,7 +32,7 @@ describe('QueryPaginatorTest', async () => {
         expect(select.getPageSize()).to.be.equal(0);
         expect(select.getPageIndex()).to.be.equal(0);
         expect(select.getPageSizeOptions()).to.be.lengthOf(0);
-        expect(select.getResults().getValue()).to.be.lengthOf(100);
+        expect(select.getResults()).to.be.lengthOf(100);
         expect(select.getLength()).to.be.equal(100);
 
 
@@ -51,7 +51,7 @@ describe('QueryPaginatorTest', async () => {
         });
 
 
-        expect(select.getResults().getValue()[99].age).to.be.equal(99);
+        expect(select.getResults()[99].age).to.be.equal(99);
 
 
     });
@@ -113,7 +113,7 @@ describe('QueryPaginatorTest', async () => {
             },
         });
 
-        expect(select.getResults().getValue()).to.be.lengthOf(1);
+        expect(select.getResults()).to.be.lengthOf(1);
         expect(select.getLength()).to.be.equal(100);
 
         select.setPageIndex(9999);
@@ -131,12 +131,12 @@ describe('QueryPaginatorTest', async () => {
             },
         });
 
-        expect(select.getResults().getValue()).to.be.lengthOf(1);
+        expect(select.getResults()).to.be.lengthOf(1);
         select.setPage({ pageSize: 2 });
-        expect(select.getResults().getValue()).to.be.lengthOf(2);
+        expect(select.getResults()).to.be.lengthOf(2);
 
         select.setPageSize(3);
-        expect(select.getResults().getValue()).to.be.lengthOf(3);
+        expect(select.getResults()).to.be.lengthOf(3);
 
 
     });
@@ -146,6 +146,9 @@ describe('QueryPaginatorTest', async () => {
         let counter = 0;
         const exec = async (): Promise<number> => new Promise<number>((resolve => {
             repository.select({}, (callback: QueryCallback<Contact>) => {
+                if (callback.getResults().length === 0) {
+                    counter++;
+                }
                 callback.paginator.setPage({ pageSize: 2 });
                 callback.paginator.setPage({ pageSize: 2 });
                 callback.paginator.setPage({ pageSize: 2 });
@@ -155,7 +158,7 @@ describe('QueryPaginatorTest', async () => {
 
             setTimeout(() => {
                 resolve(counter);
-            }, 1000);
+            }, 100);
         }));
 
         expect(await exec()).to.be.equal(2);
@@ -174,7 +177,7 @@ describe('QueryPaginatorTest', async () => {
         const contacts = repositorySelect.selectWithPaginator( { paginatorDefaults: { pageSize: 5}});
 
         for (let i = 0; i < 5; i++) {
-            contacts.toggleSelection(contacts.getResults().getValue()[i]);
+            contacts.toggleSelection(contacts.getResults()[i]);
         }
 
         expect(contacts.getSelected()).to.be.lengthOf(5);
@@ -191,17 +194,17 @@ describe('QueryPaginatorTest', async () => {
         expect(contacts.getSelectedCount().getValue()).to.be.equal(0);
 
         for (let i = 0; i < 5; i++) {
-            contacts.toggleSelection(contacts.getResults().getValue()[i]);
+            contacts.toggleSelection(contacts.getResults()[i]);
         }
 
         expect(contacts.getSelected()).to.be.lengthOf(5);
         expect(contacts.getSelectedCount().getValue()).to.be.equal(5);
 
-        contacts.toggleSelection(contacts.getResults().getValue()[0]);
-        expect(contacts.isSelected(contacts.getResults().getValue()[0])).to.be.false;
+        contacts.toggleSelection(contacts.getResults()[0]);
+        expect(contacts.isSelected(contacts.getResults()[0])).to.be.false;
 
-        contacts.toggleSelection(contacts.getResults().getValue()[0]);
-        expect(contacts.isSelected(contacts.getResults().getValue()[0])).to.be.true;
+        contacts.toggleSelection(contacts.getResults()[0]);
+        expect(contacts.isSelected(contacts.getResults()[0])).to.be.true;
 
 
     });

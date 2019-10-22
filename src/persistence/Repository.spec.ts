@@ -47,8 +47,6 @@ describe('RepositoryTest', async () => {
 
         repository.destroy();
 
-        expect(Object.keys(repository).length).to.be.equal(0);
-
     });
 
     it('construct new repository should instantiate with model with constructor parameters', async () => {
@@ -137,12 +135,12 @@ describe('RepositoryTest', async () => {
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         expect(repository.selectWithPaginator().getLength()).to.be.equal(0);
-        expect(repository.selectWithPaginator().getResults().getValue()).to.be.lengthOf(0);
+        expect(repository.selectWithPaginator().getResults()).to.be.lengthOf(0);
 
         repository.create();
 
         expect(repository.selectWithPaginator().getLength()).to.be.equal(1);
-        expect(repository.selectWithPaginator().getResults().getValue()).to.be.lengthOf(1);
+        expect(repository.selectWithPaginator().getResults()).to.be.lengthOf(1);
 
     });
 
@@ -157,15 +155,15 @@ describe('RepositoryTest', async () => {
 
         const select = repository.selectWithPaginator();
 
-        expect(select.getResults().getValue()).to.be.lengthOf(101);
+        expect(select.getResults()).to.be.lengthOf(101);
 
         select.setPageSort({active: 'age', direction: 'DESC'});
-        expect(select.getResults().getValue()[100].age).to.be.equal(0);
-        expect(select.getResults().getValue()[0].age).to.be.equal(100);
+        expect(select.getResults()[100].age).to.be.equal(0);
+        expect(select.getResults()[0].age).to.be.equal(100);
 
         select.setPageSort({active: 'age', direction: 'ASC'});
-        expect(select.getResults().getValue()[0].age).to.be.equal(0);
-        expect(select.getResults().getValue()[100].age).to.be.equal(100);
+        expect(select.getResults()[0].age).to.be.equal(0);
+        expect(select.getResults()[100].age).to.be.equal(100);
 
 
     });
@@ -180,7 +178,7 @@ describe('RepositoryTest', async () => {
         }
 
         const select = repository.selectWithPaginator();
-        const results = select.getResults().getValue() as any[];
+        const results = select.getResults() as any[];
         expect(results[100]['_uuid']).to.be.equal(100);
 
 

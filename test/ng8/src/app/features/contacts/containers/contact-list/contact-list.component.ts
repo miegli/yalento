@@ -1,20 +1,19 @@
-import {Component, OnInit} from '@angular/core';
-import {AngularFirestore} from '@angular/fire/firestore';
-import {MatDialog} from '@angular/material';
+import { Component } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/firestore';
+import { MatDialog } from '@angular/material';
+import { IPageEventSort, QueryPaginator, Repository } from '@yalento';
 
 import 'reflect-metadata';
-import {BehaviorSubject} from 'rxjs';
-import {Repository} from '../../../../../../../../src';
-import {IPageEventSort, QueryPaginator} from '../../../../../../../../src/persistence/query/QueryPaginator';
-import {Contact} from '../../models/contact';
-import {ContactDialogComponent} from '../contact-dialog/contact-dialog.component';
+import { BehaviorSubject } from 'rxjs';
+import { Contact } from '../../models/contact';
+import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
 
 @Component({
   selector: 'app-contact-list',
   templateUrl: './contact-list.component.html',
   styleUrls: ['./contact-list.component.css'],
 })
-export class ContactListComponent implements OnInit {
+export class ContactListComponent {
 
   contactRepository: Repository<Contact>;
   searchString$: BehaviorSubject<number>;
@@ -23,13 +22,11 @@ export class ContactListComponent implements OnInit {
 
   constructor(public dialog: MatDialog, db: AngularFirestore) {
     this.contactRepository = new Repository(Contact, 'test');
-    this.contactRepository.connectAngularFirestore(db);
-  }
 
-  ngOnInit(): void {
 
     this.searchString$ = new BehaviorSubject<number>(0);
 
+    this.contactRepository.connectFirestore(db);
     this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
         sql: {
           limit: 3,
@@ -42,6 +39,11 @@ export class ContactListComponent implements OnInit {
         },
       },
     );
+
+
+    this.contactsWithPaginator.results.subscribe((d: Contact[]) => {
+      console.log(d);
+    });
 
   }
 
@@ -58,10 +60,10 @@ export class ContactListComponent implements OnInit {
   add(count?: number): void {
 
     if (count === undefined) {
-      this.contactRepository.create({name: 'test1'});
+      this.contactRepository.create({ name: 'test1' });
     } else {
       this.contactRepository.createMany(Array(count).fill({
-        name: 'test'
+        name: 'test',
       }));
     }
 

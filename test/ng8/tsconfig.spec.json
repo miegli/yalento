@@ -2,9 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "allowSyntheticDefaultImports": false,
-    "paths": {
-      "@yalento": ["../../src"]
-    },
     "outDir": "./out-tsc/spec",
     "types": [
       "jasmine",

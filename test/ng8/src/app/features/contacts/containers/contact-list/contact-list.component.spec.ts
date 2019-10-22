@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { AngularFirestore } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
@@ -13,11 +14,11 @@ describe('ContactListComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ CoreModule, MaterialModule, FormsModule, CommonModule, RouterModule.forRoot([]), NoopAnimationsModule ],
-      declarations: [ ContactListComponent ],
-      providers: [ ]
+      imports: [CoreModule, MaterialModule, FormsModule, CommonModule, RouterModule.forRoot([]), NoopAnimationsModule],
+      declarations: [ContactListComponent],
+      providers: [AngularFirestore],
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {

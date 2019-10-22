@@ -18,7 +18,7 @@ describe('ContactDialogComponent', () => {
     close: jasmine.createSpy('close'),
   };
 
-  const contact$: BehaviorSubject<Contact> = new BehaviorSubject<Contact>(new Contact());
+  const contact$: BehaviorSubject<Contact> = new BehaviorSubject<Contact>(new Contact('test'));
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({

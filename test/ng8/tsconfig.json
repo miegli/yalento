@@ -1,7 +1,6 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
@@ -18,7 +17,10 @@
     ],
     "paths": {
       "@yalento": [
-        "../../src"
+        "../../src",
+        "../../src/entity",
+        "../../src/persistence",
+        "../../src/persistence/query"
       ]
     },
     "typeRoots": [

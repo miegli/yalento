@@ -1,13 +1,11 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
-import {FireSQL} from 'firesql';
+import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
-import {Repository} from "../Repository";
-import {AbstractConnector} from "./AbstractConnector";
-import {IConnectorInterface} from "./ConnectorInterface";
+import { Repository } from "../Repository";
+import { AbstractConnector } from "./AbstractConnector";
+import { IConnectorInterface } from "./ConnectorInterface";
 
 
-export class AngularFirestore {
+export class Firestore {
 
 }
 
@@ -18,16 +16,21 @@ export interface IConnectionAngularFirestore {
 
 export class AngularFirestoreConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T> {
 
-    private readonly db: AngularFirestore;
-    private firesSQL: FireSQL;
+    private readonly db: Firestore;
+    private firesSQL: any;
     private lastSql: string = '';
     private rxQuerySubscriber: any;
 
-    constructor(repository: Repository<T>, db: AngularFirestore, options?: IConnectionAngularFirestore) {
+    constructor(repository: Repository<T>, db: Firestore, options?: IConnectionAngularFirestore) {
         super(repository, options);
-        this.db = db;
-        firebase.initializeApp((db as any).firestore.app.options);
-        this.firesSQL = new FireSQL(firebase.firestore());
+
+        if (db.constructor.name !== 'AngularFirestore') {
+            this.db = (db as any).firestore();
+        } else {
+            this.db = (db as any).firestore;
+        }
+
+        this.firesSQL = new firesql.FireSQL(this.db);
 
     }
 
@@ -36,6 +39,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
         items.forEach((item: any) => {
             const data = item._toPlain();
             data['__uuid'] = item['_uuid'];
+
             (this.db as any).doc(this.getPath() + '/' + item._uuid).set(data).then().catch((e: any) => {
                 throw e;
             })
@@ -50,7 +54,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
             const data$ = this.firesSQL.rxQuery(sql);
 
             if (this.rxQuerySubscriber) {
-                this.rxQuerySubscriber.unsubscribe();
+               this.rxQuerySubscriber.unsubscribe();
             }
 
             this.rxQuerySubscriber = data$.subscribe((results: any) => {
@@ -61,6 +65,14 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
         }
 
         return;
+    }
+
+    public disconnect(): void {
+
+        if (this.rxQuerySubscriber) {
+            this.rxQuerySubscriber.unsubscribe();
+        }
+
     }
 
 }

@@ -1,4 +1,4 @@
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, Observer } from 'rxjs';
 import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
 
 export interface IQueryPaginatorDefaults {
@@ -25,8 +25,10 @@ export interface IPageEventSort {
 
 export class QueryPaginator<T> {
 
-    private length: number = 0;
+    public results: Observable<T[]>;
+
     private results$: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
+    private length: number = 0;
     private resultsAll: T[] = [];
     private pageSize: number = 0;
     private pageIndex: number = 0;
@@ -38,13 +40,16 @@ export class QueryPaginator<T> {
     private _isSelectedAll$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
     private _isSelectedCount$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
+
     /**
      *
      * @param querySubject
      */
     constructor(querySubject: QuerySubject<T>) {
+        let lastChanges: IQueryCallbackChanges = {};
         this._querySubject = querySubject;
         querySubject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
+            lastChanges = changes;
             if (changes.count !== undefined) {
                 this.setLength(changes.count);
             }
@@ -56,6 +61,14 @@ export class QueryPaginator<T> {
                 this._isSelectedCount$.next(this.countSelected());
             }
         });
+
+        this.results = new Observable<T[]>((observer: Observer<T[]>) => {
+            this.results$.subscribe((results: T[]) => {
+                if (lastChanges.resultsAll && lastChanges.resultsAll.length > 0) {
+                    observer.next(results);
+                }
+            });
+        })
 
     }
 
@@ -70,7 +83,7 @@ export class QueryPaginator<T> {
             return this.resultsAll;
         }
 
-        this.getResults().getValue().forEach((r: T) => {
+        this.getResults().forEach((r: T) => {
             // @ts-ignore
             if (this._selected[r['_uuid']]) {
                 selected.push(r);
@@ -224,8 +237,8 @@ export class QueryPaginator<T> {
     /**
      *
      */
-    public getResults(): BehaviorSubject<T[]> {
-        return this.results$;
+    public getResults(): T[] {
+        return this.results$.getValue();
     }
 
     /**
@@ -295,8 +308,8 @@ export class QueryPaginator<T> {
             }
         });
 
-
         this.results$.next(results);
+
     }
 
     private countSelected(): number {
@@ -307,7 +320,7 @@ export class QueryPaginator<T> {
             return this.resultsAll.length;
         } else {
 
-            this.getResults().getValue().forEach((r: T) => {
+            this.getResults().forEach((r: T) => {
                 if (r) {
                     // @ts-ignore
                     if (this._selected[r['_uuid']]) {
