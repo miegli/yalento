@@ -1,5 +1,5 @@
-import {Repository} from "../Repository";
-import {IConnectionAngularFirestore} from "./AngularFirestoreConnector";
+import { Repository } from "../Repository";
+import { IConnectionAngularFirestore } from "./AngularFirestoreConnector";
 
 export abstract class AbstractConnector<T> {
 
@@ -14,6 +14,5 @@ export abstract class AbstractConnector<T> {
     public getPath(): string {
         return !this.options || !this.options.path ? this.repository.getClassName() : this.options.path;
     }
-
 
 }

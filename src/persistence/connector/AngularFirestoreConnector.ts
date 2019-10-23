@@ -21,6 +21,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
     private lastSql: string = '';
     private rxQuerySubscriber: any;
 
+
     constructor(repository: Repository<T>, db: Firestore, options?: IConnectionAngularFirestore) {
         super(repository, options);
 
@@ -54,7 +55,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
             const data$ = this.firesSQL.rxQuery(sql);
 
             if (this.rxQuerySubscriber) {
-               this.rxQuerySubscriber.unsubscribe();
+                this.rxQuerySubscriber.unsubscribe();
             }
 
             this.rxQuerySubscriber = data$.subscribe((results: any) => {

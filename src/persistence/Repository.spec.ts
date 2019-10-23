@@ -1,8 +1,8 @@
-import {expect} from 'chai';
-import {serialize} from "class-transformer";
-import {describe, it} from 'mocha';
-import {Base, Repository} from '..';
-import {QueryCallback} from './query/QueryCallback';
+import { expect } from 'chai';
+import { serialize } from "class-transformer";
+import { describe, it } from 'mocha';
+import { Base, Repository } from '..';
+import { QueryCallback } from './query/QueryCallback';
 
 export class Contact extends Base {
 
@@ -60,7 +60,7 @@ describe('RepositoryTest', async () => {
     it('create should return serializable entity', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1, serialize);
-        const model = repository.create({street: 'testStreet'}) as any;
+        const model = repository.create({ street: 'testStreet' }) as any;
         expect(model.name).to.be.equal('test1');
         expect(model.lastName).to.be.equal('test2');
         expect(model.street).to.be.equal('testStreet');
@@ -82,7 +82,7 @@ describe('RepositoryTest', async () => {
     it('create should add entity reference to repository data', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        const model = repository.create({street: 'testStreet'});
+        const model = repository.create({ street: 'testStreet' });
         expect(repository.getTempData()[0]._ref).to.be.equal(model);
 
     });
@@ -91,7 +91,7 @@ describe('RepositoryTest', async () => {
     it('create many should add entity references to repository data', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        const models = repository.createMany([{street: 'testStreet1'}, {street: 'testStreet3'}, {street: 'testStreet3'}]);
+        const models = repository.createMany([{ street: 'testStreet1' }, { street: 'testStreet3' }, { street: 'testStreet3' }]);
         expect(repository.getTempData()[0]._ref).to.be.equal(models[0]);
         expect(repository.getTempData()[1]._ref).to.be.equal(models[1]);
         expect(repository.getTempData()[2]._ref).to.be.equal(models[2]);
@@ -125,7 +125,7 @@ describe('RepositoryTest', async () => {
 
         const result2: any = await exec();
         expect(result2.paginator.getLength()).to.be.equal(1);
-        expect(result2.getResults()).to.be.lengthOf(1);
+        expect(result2.results).to.be.lengthOf(1);
 
     });
 
@@ -150,18 +150,18 @@ describe('RepositoryTest', async () => {
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         for (let i = 0; i <= 100; i++) {
-            repository.create({name: 'name', lastName: 'lastName', age: i});
+            repository.create({ name: 'name', lastName: 'lastName', age: i });
         }
 
         const select = repository.selectWithPaginator();
 
         expect(select.getResults()).to.be.lengthOf(101);
 
-        select.setPageSort({active: 'age', direction: 'DESC'});
+        select.setPageSort({ active: 'age', direction: 'DESC' });
         expect(select.getResults()[100].age).to.be.equal(0);
         expect(select.getResults()[0].age).to.be.equal(100);
 
-        select.setPageSort({active: 'age', direction: 'ASC'});
+        select.setPageSort({ active: 'age', direction: 'ASC' });
         expect(select.getResults()[0].age).to.be.equal(0);
         expect(select.getResults()[100].age).to.be.equal(100);
 
@@ -174,7 +174,7 @@ describe('RepositoryTest', async () => {
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
         for (let i = 0; i <= 100; i++) {
-            repository.create({name: 'name', lastName: 'lastName', age: i}, i);
+            repository.create({ name: 'name', lastName: 'lastName', age: i }, i);
         }
 
         const select = repository.selectWithPaginator();

@@ -9,10 +9,8 @@
            (ngModelChange)="searchString$.next($event)">
   </mat-toolbar-row>
 </mat-toolbar>
-{{contactsWithPaginator.getResults().length}}
-{{contactsWithPaginator.results | async}}
 <table mat-table matSort (matSortChange)="sort({active: $event.active, direction: $event.direction})"
-       [dataSource]="contactsWithPaginator.results | async">
+       [dataSource]="contactsWithPaginator.getResultsObservable() | async">x
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">

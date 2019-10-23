@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { MatDialog } from '@angular/material';
 import { IPageEventSort, QueryPaginator, Repository } from '@yalento';
@@ -13,7 +13,7 @@ import { ContactDialogComponent } from '../contact-dialog/contact-dialog.compone
   templateUrl: './contact-list.component.html',
   styleUrls: ['./contact-list.component.css'],
 })
-export class ContactListComponent {
+export class ContactListComponent implements OnInit {
 
   contactRepository: Repository<Contact>;
   searchString$: BehaviorSubject<number>;
@@ -21,15 +21,17 @@ export class ContactListComponent {
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
   constructor(public dialog: MatDialog, db: AngularFirestore) {
-    this.contactRepository = new Repository(Contact, 'test');
-
-
+    this.contactRepository = new Repository<Contact>(Contact, 'test').connectFirestore(db);
     this.searchString$ = new BehaviorSubject<number>(0);
+  }
 
-    this.contactRepository.connectFirestore(db);
+
+  ngOnInit(): void {
+
+
     this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
         sql: {
-          limit: 3,
+          limit: 300,
           orderBy: 'name DESC',
           where: 'age = ?',
           params: [this.searchString$],
@@ -39,11 +41,6 @@ export class ContactListComponent {
         },
       },
     );
-
-
-    this.contactsWithPaginator.results.subscribe((d: Contact[]) => {
-      console.log(d);
-    });
 
   }
 

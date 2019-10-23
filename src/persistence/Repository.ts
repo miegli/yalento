@@ -11,7 +11,7 @@ import {
 import { IConnectorInterface } from "./connector/ConnectorInterface";
 import { QueryCallback } from './query/QueryCallback';
 import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
-import { IQueryCallbackChanges, IStatement, QuerySubject } from './QuerySubject';
+import { IStatement, QuerySubject } from './QuerySubject';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -92,9 +92,17 @@ export class Repository<T> {
     public connectFirestore(firestore: Firestore, options?: IConnectionAngularFirestore): Repository<T> {
 
         this._connections.angularFirestore = new AngularFirestoreConnector<T>(this, firestore, options);
-        this.reloadSubjects();
 
         return this;
+    }
+
+    /**
+     *
+     */
+    public loadQueryFromConnectors(query: string) {
+        (Object.keys(this._connections) as IConnectionsKeys).forEach((key: string) => {
+            this._connections[key].select(query);
+        });
     }
 
     /**
@@ -106,14 +114,6 @@ export class Repository<T> {
         const subject = new QuerySubject<T>(this, sql, callback);
         this._subjects.push(subject);
 
-        subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
-            if (changes.selectSqlStatement !== undefined) {
-                Object.keys(this._connections).forEach((key: string) => {
-                    this._connections[key].select(changes.selectSqlStatement as string);
-                });
-            }
-        });
-
         return subject.getBehaviourSubject();
     }
 
@@ -124,17 +124,6 @@ export class Repository<T> {
     public selectWithPaginator(options?: ISelectWithPaginator): QueryPaginator<T> {
         const subject = new QuerySubject<T>(this, options ? options.sql : {}, undefined, options ? options.paginatorDefaults : undefined);
         this._subjects.push(subject);
-
-        subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
-            if (changes.selectSqlStatement !== undefined) {
-                (Object.keys(this._connections) as IConnectionsKeys).forEach((key: string) => {
-                    this._connections[key].select(changes.selectSqlStatement as string)
-                });
-            }
-        });
-
-        this.reloadSubjects();
-
         return subject.getPaginator();
     }
 
@@ -142,10 +131,9 @@ export class Repository<T> {
      *
      * @param data
      * @param id
-     * @param skipChangeDetection
      * @param fromConnector
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number, skipChangeDetection?: boolean, fromConnector?: string): T {
+    public create(data?: IRepositoryDataCreate, id?: string | number, fromConnector?: string): T {
 
         const c = this.createClassInstance(id) as any;
 
@@ -167,14 +155,16 @@ export class Repository<T> {
             this._tempData.push({ _ref: c, _uuid: c._uuid });
         }
 
+        Object.keys(this._connections as any).forEach((key: string) => {
+            if (key !== fromConnector) {
+                this._connections[key].add([c]);
+            }
+        });
 
-        if (!skipChangeDetection) {
-            Object.keys(this._connections as any).forEach((key: string) => {
-                if (key !== fromConnector) {
-                    this._connections[key].add([c]);
-                }
+        if (!fromConnector) {
+            this._subjects.forEach((subject: QuerySubject<T>) => {
+                subject.updateQueryCallbackChanges({});
             });
-            this.updateSubjects({ dataAdded: true });
         }
 
         return c;
@@ -191,16 +181,12 @@ export class Repository<T> {
         const added: T[] = [];
 
         data.forEach(value => {
-            added.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], true, fromConnector));
+            added.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], fromConnector));
         });
 
-        Object.keys(this._connections).forEach((key: string) => {
-            if (key !== fromConnector) {
-                this._connections[key].add(added);
-            }
+        this._subjects.forEach((subject: QuerySubject<T>) => {
+            subject.updateQueryCallbackChanges({});
         });
-
-        this.updateSubjects({ dataAdded: true });
 
         return added;
 
@@ -256,18 +242,6 @@ export class Repository<T> {
 
     /**
      *
-     * @param changes
-     */
-    public updateSubjects(changes: IQueryCallbackChanges) {
-
-        this._subjects.forEach((subject: QuerySubject<any>) => {
-            subject.updateQueryCallbackChanges(changes);
-        })
-
-    }
-
-    /**
-     *
      * @param id
      */
     public createClassInstance(id?: string | number): T {
@@ -311,12 +285,6 @@ export class Repository<T> {
 
         alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
         alasql.tables[this.getTableName()].data = this._tempData;
-    }
-
-    private reloadSubjects() {
-        this._subjects.forEach((sub: QuerySubject<T>) => {
-            sub.updateQueryCallbackChanges({ selectSqlStatement: sub.getLastExecStatement() });
-        });
     }
 
 

@@ -25,9 +25,9 @@ export interface IPageEventSort {
 
 export class QueryPaginator<T> {
 
-    public results: Observable<T[]>;
-
+    public results: T[] = [];
     private results$: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
+    private readonly resultsObservable: Observable<T[]>;
     private length: number = 0;
     private resultsAll: T[] = [];
     private pageSize: number = 0;
@@ -46,10 +46,8 @@ export class QueryPaginator<T> {
      * @param querySubject
      */
     constructor(querySubject: QuerySubject<T>) {
-        let lastChanges: IQueryCallbackChanges = {};
         this._querySubject = querySubject;
         querySubject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
-            lastChanges = changes;
             if (changes.count !== undefined) {
                 this.setLength(changes.count);
             }
@@ -62,11 +60,9 @@ export class QueryPaginator<T> {
             }
         });
 
-        this.results = new Observable<T[]>((observer: Observer<T[]>) => {
+        this.resultsObservable = new Observable<T[]>((observer: Observer<T[]>) => {
             this.results$.subscribe((results: T[]) => {
-                if (lastChanges.resultsAll && lastChanges.resultsAll.length > 0) {
-                    observer.next(results);
-                }
+                observer.next(results);
             });
         })
 
@@ -83,7 +79,7 @@ export class QueryPaginator<T> {
             return this.resultsAll;
         }
 
-        this.getResults().forEach((r: T) => {
+        this.results.forEach((r: T) => {
             // @ts-ignore
             if (this._selected[r['_uuid']]) {
                 selected.push(r);
@@ -237,8 +233,12 @@ export class QueryPaginator<T> {
     /**
      *
      */
+    public getResultsObservable(): Observable<T[]> {
+        return this.resultsObservable;
+    }
+
     public getResults(): T[] {
-        return this.results$.getValue();
+        return this.results;
     }
 
     /**
@@ -307,8 +307,9 @@ export class QueryPaginator<T> {
                 this._selected[result['_uuid']] = selectedAll;
             }
         });
+        this.results = results;
+        this.results$.next(this.results);
 
-        this.results$.next(results);
 
     }
 
@@ -320,7 +321,7 @@ export class QueryPaginator<T> {
             return this.resultsAll.length;
         } else {
 
-            this.getResults().forEach((r: T) => {
+            this.results.forEach((r: T) => {
                 if (r) {
                     // @ts-ignore
                     if (this._selected[r['_uuid']]) {
