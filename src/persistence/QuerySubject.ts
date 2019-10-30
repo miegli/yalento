@@ -1,7 +1,6 @@
-import { BehaviorSubject } from 'rxjs';
-import { ICallback, IClassProperty, IRepositoryData, Repository } from '..';
-import { QueryCallback } from './query/QueryCallback';
-import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
+import {BehaviorSubject} from 'rxjs';
+import {IClassProperty, IRepositoryData, Repository} from '../persistence/Repository';
+import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -23,7 +22,7 @@ export interface IQueryCallbackChanges {
     pageIndex?: number;
     pageSort?: IPageEventSort;
     dataAdded?: boolean;
-    selectSqlStatement?: string;
+    selectSqlStatement?: boolean;
 }
 
 /**
@@ -31,52 +30,55 @@ export interface IQueryCallbackChanges {
  */
 export class QuerySubject<T> {
 
-    private queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges> = new BehaviorSubject<IQueryCallbackChanges>({});
-    private readonly behaviorSubject$: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
-    private readonly queryCallback: QueryCallback<T>;
+    private readonly paginator: QueryPaginator<T>;
+    private readonly queryCallbackChanges$: BehaviorSubject<IQueryCallbackChanges>;
+    private readonly _sql: IStatement | undefined;
+    private readonly _paginatorDefaults: IQueryPaginatorDefaults | undefined;
     private _lastExecStatement: string = '';
+    private _isInitialized: boolean = false;
+    private _queryCallbackChangesTimeoutExecStatement: any;
 
     /**
      *
      * @param repository
      * @param sql
-     * @param callback
      * @param paginatorDefaults
      */
-    constructor(private repository: Repository<T>, sql?: IStatement, callback?: ICallback<T>, paginatorDefaults?: IQueryPaginatorDefaults) {
-        this.queryCallback = new QueryCallback<T>(this);
-        this.setPaginatorDefaults(paginatorDefaults, sql);
-        this.observeStatement(sql, callback);
-        this.observeChanges(sql, callback);
+    constructor(private repository: Repository<T>, sql?: IStatement, paginatorDefaults?: IQueryPaginatorDefaults) {
+        this.queryCallbackChanges$ = new BehaviorSubject<IQueryCallbackChanges>({});
+        this.paginator = new QueryPaginator<T>(this);
 
-        this.execStatement(sql);
-
-        if (callback) {
-            this.behaviorSubject$.subscribe(() => {
-                callback(this.queryCallback);
-            })
+        if (sql) {
+            this._sql = sql;
         }
+
+        if (paginatorDefaults) {
+            this._paginatorDefaults = paginatorDefaults;
+        }
+
+        this.init();
+
     }
 
-    /**
-     *
-     */
-    public getLastExecStatement(): string {
-        return this._lastExecStatement;
-    }
+    public init() {
 
-    /**
-     * get behaviour subject
-     */
-    public getBehaviourSubject(): BehaviorSubject<T[]> {
-        return this.behaviorSubject$;
+        if (this._isInitialized) {
+            return;
+        }
+
+        this.setPaginatorDefaults(this._paginatorDefaults, this._sql);
+        this.observeStatement(this._sql);
+        this.observeQueryCallbackChanges(this._sql);
+
+        this._isInitialized = true;
+
     }
 
     /**
      * get behaviour subject
      */
     public getPaginator(): QueryPaginator<T> {
-        return this.queryCallback.paginator;
+        return this.paginator;
     }
 
     /**
@@ -92,6 +94,7 @@ export class QuerySubject<T> {
     public getQueryCallbackChanges(): BehaviorSubject<IQueryCallbackChanges> {
         return this.queryCallbackChanges$;
     }
+
 
     /**
      *
@@ -117,24 +120,19 @@ export class QuerySubject<T> {
             this.getPaginator().setPageSize(sql.limit, true);
         }
 
-
     }
 
     /**
      * observe and re-execute statement on any changes
      * @param sql
-     * @param callback
      */
-    private observeStatement(sql?: IStatement, callback?: ICallback<T>) {
+    private observeStatement(sql?: IStatement) {
 
         if (sql && sql.params) {
             sql.params.forEach((param: any) => {
                 if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
                     param.asObservable().subscribe(() => {
-                        this.behaviorSubject$.next(this.execStatement(sql));
-                        if (callback) {
-                            callback(this.queryCallback);
-                        }
+                        this.updateQueryCallbackChanges({selectSqlStatement: true})
                     });
                 }
             })
@@ -145,24 +143,22 @@ export class QuerySubject<T> {
     }
 
     /**
-     * observe and re-execute statement on any changes
-     * @param sql
-     * @param callback
+     * observe queryCallbackChanges$
      */
-    private observeChanges(sql?: IStatement, callback?: ICallback<T>) {
+    private async observeQueryCallbackChanges(sql?: IStatement) {
 
-        this.queryCallbackChanges$.subscribe((changes: IQueryCallbackChanges) => {
-            if (changes.results === undefined) {
-                this.execStatement(sql);
-            } else {
-                this.behaviorSubject$.next(changes.results);
-            }
-            if (callback) {
-                callback(this.queryCallback);
-            }
-        });
+        this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
 
-        return;
+            if (changes.dataAdded || changes.pageSize !== undefined || changes.pageIndex !== undefined || changes.pageSort !== undefined || changes.selectSqlStatement !== undefined) {
+                if (this._queryCallbackChangesTimeoutExecStatement) {
+                    clearTimeout(this._queryCallbackChangesTimeoutExecStatement);
+                }
+                await setTimeout(() => {
+                    this.execStatement(sql);
+                }, 1);
+
+            }
+        })
 
     }
 
@@ -185,87 +181,93 @@ export class QuerySubject<T> {
      *
      * @param sql
      */
-    private execStatement(sql?: IStatement): T[] {
+    private execStatement(sql?: IStatement): Promise<T[]> {
 
-        let statement = '';
-        let params = sql && sql.params !== undefined ? sql.params : null;
-        if (!sql) {
-            sql = {};
-        }
+        return new Promise<T[]>((resolve => {
 
-        if (params) {
-            const tmpParams: any = [];
-            params.forEach((param: any) => {
-                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
-                    tmpParams.push(param.getValue());
-                } else {
-                    tmpParams.push(param);
+
+            let statement = '';
+            let params = sql && sql.params !== undefined ? sql.params : null;
+            if (!sql) {
+                sql = {};
+            }
+
+            if (params) {
+                const tmpParams: any = [];
+                params.forEach((param: any) => {
+                    if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
+                        tmpParams.push(param.getValue());
+                    } else {
+                        tmpParams.push(param);
+                    }
+                });
+                params = tmpParams;
+            }
+
+            if (sql.where) {
+                statement += ' WHERE ' + sql.where;
+            }
+
+            let selectSqlStatement = alasql.parse('SELECT * FROM ' + this.repository.getClassName() + ' ' + statement, params).toString();
+            if (params) {
+                params.forEach((value: string, index: number) => {
+                    selectSqlStatement = selectSqlStatement.replace('$' + index, value);
+                })
+            }
+
+            if (sql.groupBy) {
+                statement += ' GROUP BY ' + sql.groupBy;
+            }
+
+            if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
+                statement += ' ORDER BY ' + this.getPaginator().getPageSortProperty() + ' ' + this.getPaginator().getPageSortDirection();
+            } else if (sql.orderBy) {
+                statement += ' ORDER BY ' + sql.orderBy;
+            }
+
+            statement = this.replaceStatement(statement);
+            const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+            const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
+
+            if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
+                statement += ' LIMIT ' + sql.limit;
+            } else if (this.getPaginator().getPageSize()) {
+                statement += ' LIMIT ' + this.getPaginator().getPageSize();
+            }
+
+            if (sql.offset) {
+                if (sql.limit === undefined) {
+                    statement += ' LIMIT 1';
                 }
+                statement += ' OFFSET ' + sql.offset;
+            } else {
+                if (count && this.getPaginator().getPageIndex() * this.getPaginator().getPageSize() > count) {
+                    this.getPaginator().setPageIndex(Math.floor(count / this.getPaginator().getPageSize()));
+                }
+                if (this.getPaginator().getPageIndex() * this.getPaginator().getPageSize()) {
+                    statement += ' OFFSET ' + this.getPaginator().getPageIndex() * this.getPaginator().getPageSize();
+                }
+            }
+
+            const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+
+            if (this._lastExecStatement !== selectSqlStatement) {
+                this.repository.loadQueryFromConnectors(selectSqlStatement);
+            }
+
+            this._lastExecStatement = selectSqlStatement;
+
+            this.updateQueryCallbackChanges({
+                resultsAll: resultsAll,
+                results: results,
+                count: count,
             });
-            params = tmpParams;
-        }
 
-        if (sql.where) {
-            statement += ' WHERE ' + sql.where;
-        }
+            resolve(results);
 
-        let selectSqlStatement = alasql.parse('SELECT * FROM ' + this.repository.getClassName() + ' ' + statement, params).toString();
-        if (params) {
-            params.forEach((value: string, index: number) => {
-                selectSqlStatement = selectSqlStatement.replace('$' + index, value);
-            })
-        }
-
-        if (sql.groupBy) {
-            statement += ' GROUP BY ' + sql.groupBy;
-        }
-
-        if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
-            statement += ' ORDER BY ' + this.getPaginator().getPageSortProperty() + ' ' + this.getPaginator().getPageSortDirection();
-        } else if (sql.orderBy) {
-            statement += ' ORDER BY ' + sql.orderBy;
-        }
-
-        statement = this.replaceStatement(statement);
-        const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-        const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
-
-        if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
-            statement += ' LIMIT ' + sql.limit;
-        } else if (this.getPaginator().getPageSize()) {
-            statement += ' LIMIT ' + this.getPaginator().getPageSize();
-        }
-
-        if (sql.offset) {
-            if (sql.limit === undefined) {
-                statement += ' LIMIT 1';
-            }
-            statement += ' OFFSET ' + sql.offset;
-        } else {
-            if (count && this.getPaginator().getPageIndex() * this.getPaginator().getPageSize() > count) {
-                this.getPaginator().setPageIndex(Math.floor(count / this.getPaginator().getPageSize()));
-            }
-            if (this.getPaginator().getPageIndex() * this.getPaginator().getPageSize()) {
-                statement += ' OFFSET ' + this.getPaginator().getPageIndex() * this.getPaginator().getPageSize();
-            }
-        }
-
-        const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-
-        if (this._lastExecStatement !== selectSqlStatement) {
-            this.repository.loadQueryFromConnectors(selectSqlStatement);
-        }
-
-        this._lastExecStatement = selectSqlStatement;
-
-        this.updateQueryCallbackChanges({
-            resultsAll: resultsAll,
-            results: results,
-            count: count,
-        });
-
-
-        return results;
+        }))
 
     }
+
+
 }

@@ -1,5 +1,5 @@
-import { BehaviorSubject, Observable, Observer } from 'rxjs';
-import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
+import {BehaviorSubject, Observable, Observer} from 'rxjs';
+import {IQueryCallbackChanges, QuerySubject} from '../QuerySubject';
 
 export interface IQueryPaginatorDefaults {
     pageSizeOptions?: number[];
@@ -33,7 +33,7 @@ export class QueryPaginator<T> {
     private pageSize: number = 0;
     private pageIndex: number = 0;
     private pageSizeOptions: number[] = [];
-    private pageSort: IPageEventSort = { direction: 'ASC', active: '' };
+    private pageSort: IPageEventSort = {direction: 'ASC', active: ''};
     private _querySubject: QuerySubject<T>;
     private _hasPageSizeChanges: boolean = false;
     private _selected: { [key: string]: boolean } = {};
@@ -182,7 +182,7 @@ export class QueryPaginator<T> {
     public setPageIndex(pageIndex: number, skipChangeDetection?: boolean) {
         this.pageIndex = pageIndex;
         if (skipChangeDetection !== true) {
-            this._querySubject.updateQueryCallbackChanges({ pageIndex: pageIndex });
+            this._querySubject.updateQueryCallbackChanges({pageIndex: pageIndex});
         }
     }
 
@@ -192,7 +192,7 @@ export class QueryPaginator<T> {
      */
     public setPageSort(pageSort: IPageEventSort) {
         this.pageSort = pageSort;
-        this._querySubject.updateQueryCallbackChanges({ pageSort: pageSort });
+        this._querySubject.updateQueryCallbackChanges({pageSort: pageSort});
     }
 
     /**
@@ -226,15 +226,8 @@ export class QueryPaginator<T> {
         this.pageSize = size;
         if (skipChangeDetection !== true) {
             this._hasPageSizeChanges = true;
-            this._querySubject.updateQueryCallbackChanges({ pageSize: size });
+            this._querySubject.updateQueryCallbackChanges({pageSize: size});
         }
-    }
-
-    /**
-     *
-     */
-    public getResultsObservable(): Observable<T[]> {
-        return this.resultsObservable;
     }
 
     public getResults(): T[] {

@@ -1,10 +1,10 @@
-import { expect } from 'chai';
+import {expect} from 'chai';
 import * as firebase from 'firebase/app';
 import 'firebase/firestore';
 
-import { Guid } from "guid-typescript";
-import { describe, it } from 'mocha';
-import { Repository } from '../Repository';
+import {Guid} from "guid-typescript";
+import {describe, it} from 'mocha';
+import {Repository} from '../Repository';
 
 export class Contact {
 
@@ -32,15 +32,8 @@ describe('AngularFirestoreConnectorTest', async () => {
         }, 'test' + Guid.create());
 
         repo.connectFirestore(fb);
-        repo.create();
 
-        expect(await repo.select().getValue()).to.be.deep.equal([{ name: '', lastName: '', street: '', age: 1 }]);
-        expect(await repo.select({ where: 'age = 1' }).getValue()).to.be.deep.equal([{
-            name: '',
-            lastName: '',
-            street: '',
-            age: 1,
-        }]);
+        expect(await repo.create()).to.be.deep.equal({name: '', lastName: '', street: '', age: 1});
 
         repo.destroy();
 

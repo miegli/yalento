@@ -1,12 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { MatDialog } from '@angular/material';
-import { IPageEventSort, QueryPaginator, Repository } from '@yalento';
+import {Component, OnInit} from '@angular/core';
+import {AngularFirestore} from '@angular/fire/firestore';
+import {MatDialog} from '@angular/material';
+import {IPageEventSort, Select, Repository} from '@yalento';
 
 import 'reflect-metadata';
-import { BehaviorSubject } from 'rxjs';
-import { Contact } from '../../models/contact';
-import { ContactDialogComponent } from '../contact-dialog/contact-dialog.component';
+import {BehaviorSubject} from 'rxjs';
+import {Contact} from '../../models/contact';
+import {ContactDialogComponent} from '../contact-dialog/contact-dialog.component';
 
 @Component({
   selector: 'app-contact-list',
@@ -17,7 +17,7 @@ export class ContactListComponent implements OnInit {
 
   contactRepository: Repository<Contact>;
   searchString$: BehaviorSubject<number>;
-  contactsWithPaginator: QueryPaginator<Contact>;
+  contacts: Select<Contact>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
   constructor(public dialog: MatDialog, db: AngularFirestore) {
@@ -28,19 +28,17 @@ export class ContactListComponent implements OnInit {
 
   ngOnInit(): void {
 
-
-    this.contactsWithPaginator = this.contactRepository.selectWithPaginator({
-        sql: {
-          limit: 300,
-          orderBy: 'name DESC',
-          where: 'age = ?',
-          params: [this.searchString$],
-        },
-        paginatorDefaults: {
-          pageSizeOptions: [1, 5, 10, 100],
-        },
+    this.contacts = this.contactRepository.select({
+        limit: 5,
+        orderBy: 'name DESC',
+        where: 'age = ?',
+        params: [this.searchString$]
       },
-    );
+      {
+        pageSizeOptions: [1, 5, 10, 100],
+      });
+
+    this.contactRepository.create();
 
   }
 
@@ -57,7 +55,7 @@ export class ContactListComponent implements OnInit {
   add(count?: number): void {
 
     if (count === undefined) {
-      this.contactRepository.create({ name: 'test1' });
+      this.contactRepository.create({name: 'test1'});
     } else {
       this.contactRepository.createMany(Array(count).fill({
         name: 'test',
@@ -68,15 +66,15 @@ export class ContactListComponent implements OnInit {
   }
 
   sort(e: IPageEventSort) {
-    this.contactsWithPaginator.setPageSort(e);
+    this.contacts.getPaginator().setPageSort(e);
   }
 
   toggleSelection(item: Contact) {
-    this.contactsWithPaginator.toggleSelection(item);
+    this.contacts.getPaginator().toggleSelection(item);
   }
 
   getSelected() {
-    console.log(this.contactsWithPaginator.getSelected());
+    console.log(this.contacts.getPaginator().getSelected());
   }
 
 }

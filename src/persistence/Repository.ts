@@ -1,22 +1,21 @@
-import { classToPlain, serialize } from "class-transformer";
+import {classToPlain, serialize} from "class-transformer";
 import "es6-shim";
-import { Guid } from "guid-typescript";
+import {Guid} from "guid-typescript";
 import "reflect-metadata";
-import { BehaviorSubject } from 'rxjs';
+import {take} from "rxjs/operators";
 import {
     AngularFirestoreConnector,
     Firestore,
     IConnectionAngularFirestore,
 } from "./connector/AngularFirestoreConnector";
-import { IConnectorInterface } from "./connector/ConnectorInterface";
-import { QueryCallback } from './query/QueryCallback';
-import { IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
-import { IStatement, QuerySubject } from './QuerySubject';
+import {IConnectorInterface} from "./connector/ConnectorInterface";
+import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
+import {IStatement, QuerySubject} from './QuerySubject';
+import {Select} from "./select/select";
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
 
-export type ICallback<T> = (callback: QueryCallback<T>) => void;
 
 export interface IRepositoryData {
     _ref: any;
@@ -106,25 +105,13 @@ export class Repository<T> {
     }
 
     /**
-     * performs sql statement and return behaviour subject as observable results
+     * performs sql statement
      * @param sql
-     * @param callback
      */
-    public select(sql?: IStatement, callback?: ICallback<T>): BehaviorSubject<T[]> {
-        const subject = new QuerySubject<T>(this, sql, callback);
+    public select(sql?: IStatement, paginatorDefaults?: IQueryPaginatorDefaults): Select<T> {
+        const subject = new QuerySubject<T>(this, sql, paginatorDefaults);
         this._subjects.push(subject);
-
-        return subject.getBehaviourSubject();
-    }
-
-    /**
-     * perform sql statement and return behaviour subject as observable results
-     * @param options
-     */
-    public selectWithPaginator(options?: ISelectWithPaginator): QueryPaginator<T> {
-        const subject = new QuerySubject<T>(this, options ? options.sql : {}, undefined, options ? options.paginatorDefaults : undefined);
-        this._subjects.push(subject);
-        return subject.getPaginator();
+        return new Select<T>(subject);
     }
 
     /**
@@ -133,41 +120,47 @@ export class Repository<T> {
      * @param id
      * @param fromConnector
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number, fromConnector?: string): T {
+    public create(data?: IRepositoryDataCreate, id?: string | number, fromConnector?: string, skipChanges?: boolean): Promise<T> {
 
-        const c = this.createClassInstance(id) as any;
+        return new Promise<T>((resolve => {
 
-        if (data) {
-            Object.keys(data).forEach((key: string) => {
-                c[key] = data[key];
-            });
-        }
+            const c = this.createClassInstance(id) as any;
 
-        const existingItem = this._tempData.filter((item: IRepositoryData) => {
-            return item._uuid === c['__uuid'];
-        });
-
-        if (existingItem.length) {
-            existingItem.forEach((item: IRepositoryData) => {
-                item._ref = c;
-            })
-        } else {
-            this._tempData.push({ _ref: c, _uuid: c._uuid });
-        }
-
-        Object.keys(this._connections as any).forEach((key: string) => {
-            if (key !== fromConnector) {
-                this._connections[key].add([c]);
+            if (data) {
+                Object.keys(data).forEach((key: string) => {
+                    c[key] = data[key];
+                });
             }
-        });
 
-        if (!fromConnector) {
-            this._subjects.forEach((subject: QuerySubject<T>) => {
-                subject.updateQueryCallbackChanges({});
+            const existingItem = this._tempData.filter((item: IRepositoryData) => {
+                return item._uuid === c['__uuid'];
             });
-        }
 
-        return c;
+            if (existingItem.length) {
+                existingItem.forEach((item: IRepositoryData) => {
+                    item._ref = c;
+                })
+            } else {
+                this._tempData.push({_ref: c, _uuid: c._uuid});
+            }
+
+            Object.keys(this._connections as any).forEach((key: string) => {
+                if (key !== fromConnector) {
+                    this._connections[key].add([c]);
+                }
+            });
+
+            if (!skipChanges) {
+                this._subjects.forEach((subject: QuerySubject<T>) => {
+                    subject.updateQueryCallbackChanges({dataAdded: true});
+                });
+            }
+
+
+            resolve(c);
+
+
+        }));
 
     }
 
@@ -176,19 +169,25 @@ export class Repository<T> {
      * @param data
      * @param fromConnector
      */
-    public createMany(data: IRepositoryDataCreate[], fromConnector?: string): T[] {
+    public async createMany(data: IRepositoryDataCreate[], fromConnector?: string): Promise<T[]> {
 
-        const added: T[] = [];
+        const promises: any = [];
 
         data.forEach(value => {
-            added.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], fromConnector));
+            promises.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], fromConnector, true));
         });
 
         this._subjects.forEach((subject: QuerySubject<T>) => {
-            subject.updateQueryCallbackChanges({});
+            subject.updateQueryCallbackChanges({dataAdded: true});
         });
 
-        return added;
+        return new Promise<T[]>((resolve => {
+            Promise.all(promises).then((c: any) => {
+                resolve(c);
+            }).catch(() => {
+                resolve([]);
+            })
+        }));
 
     }
 
@@ -218,7 +217,7 @@ export class Repository<T> {
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class;
 
         Object.keys(c).forEach((property: string) => {
-            this._classProperties.push({ name: property });
+            this._classProperties.push({name: property});
         });
 
         return this._classProperties;
@@ -261,7 +260,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: () => {
-                return serialize(c, { excludePrefixes: this._excludeSerializeProperties })
+                return serialize(c, {excludePrefixes: this._excludeSerializeProperties})
             },
         });
 
@@ -270,7 +269,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: () => {
-                return classToPlain(c, { excludePrefixes: this._excludeSerializeProperties })
+                return classToPlain(c, {excludePrefixes: this._excludeSerializeProperties})
             },
         });
 
@@ -283,6 +282,7 @@ export class Repository<T> {
      */
     private createDatabase() {
 
+        this._tempData = [];
         alasql('CREATE TABLE IF NOT EXISTS ' + this.getTableName());
         alasql.tables[this.getTableName()].data = this._tempData;
     }

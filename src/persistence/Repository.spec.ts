@@ -1,18 +1,16 @@
 import { expect } from 'chai';
 import { serialize } from "class-transformer";
 import { describe, it } from 'mocha';
-import { Base, Repository } from '..';
-import { QueryCallback } from './query/QueryCallback';
+import { Repository } from '..';
 
-export class Contact extends Base {
+export class Contact {
 
     public name: string;
     public lastName: string;
     public street: string = '';
     public age: number;
 
-    constructor(name: string, lastName: string, age: number, private unserializableServices: any) {
-        super();
+    constructor(name: string, lastName: string, age: number) {
         this.name = name;
         this.lastName = lastName;
         this.age = age;
@@ -21,7 +19,7 @@ export class Contact extends Base {
 }
 
 
-export class ContactWithoutConstructor extends Base {
+export class ContactWithoutConstructor {
 
     public name: string = '';
     public lastName: string = '';
@@ -102,30 +100,7 @@ describe('RepositoryTest', async () => {
     it('select with empty repository should return empty array', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-        expect(repository.select().getValue()).to.be.lengthOf(0);
-
-    });
-
-
-    it('select with callback should return callback interface', async () => {
-
-        const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
-
-        const exec = async (): Promise<QueryCallback<Contact>> => new Promise<QueryCallback<Contact>>((resolve => {
-            repository.select({}, (callback: QueryCallback<Contact>) => {
-                resolve(callback);
-            });
-        }));
-
-        const result1: QueryCallback<Contact> = await exec();
-        expect(result1.paginator.getLength()).to.be.equal(0);
-        expect(result1.getResults()).to.be.lengthOf(0);
-
-        repository.create();
-
-        const result2: any = await exec();
-        expect(result2.paginator.getLength()).to.be.equal(1);
-        expect(result2.results).to.be.lengthOf(1);
+        expect(repository.select().getResults()).to.be.lengthOf(0);
 
     });
 
@@ -134,13 +109,13 @@ describe('RepositoryTest', async () => {
 
         const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
 
-        expect(repository.selectWithPaginator().getLength()).to.be.equal(0);
-        expect(repository.selectWithPaginator().getResults()).to.be.lengthOf(0);
+        expect(repository.select().getPaginator().getLength()).to.be.equal(0);
+        expect(repository.select().getPaginator().getResults()).to.be.lengthOf(0);
 
         repository.create();
 
-        expect(repository.selectWithPaginator().getLength()).to.be.equal(1);
-        expect(repository.selectWithPaginator().getResults()).to.be.lengthOf(1);
+        expect(repository.select().getPaginator().getLength()).to.be.equal(1);
+        expect(repository.select().getPaginator().getResults()).to.be.lengthOf(1);
 
     });
 
@@ -153,7 +128,7 @@ describe('RepositoryTest', async () => {
             repository.create({ name: 'name', lastName: 'lastName', age: i });
         }
 
-        const select = repository.selectWithPaginator();
+        const select = repository.select().getPaginator();
 
         expect(select.getResults()).to.be.lengthOf(101);
 
@@ -177,7 +152,7 @@ describe('RepositoryTest', async () => {
             repository.create({ name: 'name', lastName: 'lastName', age: i }, i);
         }
 
-        const select = repository.selectWithPaginator();
+        const select = repository.select().getPaginator();
         const results = select.getResults() as any[];
         expect(results[100]['_uuid']).to.be.equal(100);
 

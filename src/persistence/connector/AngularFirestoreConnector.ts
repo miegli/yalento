@@ -1,8 +1,8 @@
 import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
-import { Repository } from "../Repository";
-import { AbstractConnector } from "./AbstractConnector";
-import { IConnectorInterface } from "./ConnectorInterface";
+import {Repository} from "../Repository";
+import {AbstractConnector} from "./AbstractConnector";
+import {IConnectorInterface} from "./ConnectorInterface";
 
 
 export class Firestore {
@@ -59,7 +59,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
             }
 
             this.rxQuerySubscriber = data$.subscribe((results: any) => {
-                this.repository.createMany(results, 'angularFirestore');
+                this.repository.createMany(results, 'angularFirestore').then().catch();
             });
 
             this.lastSql = sql;

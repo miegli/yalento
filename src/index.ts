@@ -1,3 +1,3 @@
-export * from './entity/Base';
-export * from './persistence/Repository'
-export * from './persistence/query/QueryPaginator';
+export {Select} from './persistence/select/select';
+export { Repository } from './persistence/Repository';
+export { IPageEventSort } from './persistence/query/QueryPaginator';

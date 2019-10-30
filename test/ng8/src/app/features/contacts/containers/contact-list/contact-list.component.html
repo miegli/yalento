@@ -10,21 +10,21 @@
   </mat-toolbar-row>
 </mat-toolbar>
 <table mat-table matSort (matSortChange)="sort({active: $event.active, direction: $event.direction})"
-       [dataSource]="contactsWithPaginator.getResultsObservable() | async">x
+       [dataSource]="contacts.getResults()">
 
   <!-- Checkbox Column -->
   <ng-container matColumnDef="select">
     <th mat-header-cell *matHeaderCellDef>
-      <mat-checkbox [checked]="contactsWithPaginator.isSelectedAll() | async"
-                    (change)="contactsWithPaginator.toggleSelection()">
+      <mat-checkbox [checked]="contacts.getPaginator().isSelectedAll() | async"
+                    (change)="contacts.getPaginator().toggleSelection()">
       </mat-checkbox>
       <span mat-basic-chip (click)="getSelected()">
-        {{contactsWithPaginator.getSelectedCount() | async}}
+        {{contacts.getPaginator().getSelectedCount() | async}}
       </span>
     </th>
     <td mat-cell *matCellDef="let Contact">
       <mat-checkbox (click)="$event.stopPropagation()" (change)="toggleSelection(Contact)"
-                    [checked]="contactsWithPaginator.isSelected(Contact)">
+                    [checked]="contacts.getPaginator().isSelected(Contact)">
       </mat-checkbox>
     </td>
   </ng-container>
@@ -63,9 +63,9 @@
 
 </table>
 
-<mat-paginator [length]="contactsWithPaginator.getLength()"
-               [pageSize]="contactsWithPaginator.getPageSize()"
-               [pageSizeOptions]="contactsWithPaginator.getPageSizeOptions()"
-               (page)="contactsWithPaginator.setPage($event)"
-               [pageIndex]="contactsWithPaginator.getPageIndex()">
+<mat-paginator [length]="contacts.getPaginator().getLength()"
+               [pageSize]="contacts.getPaginator().getPageSize()"
+               [pageSizeOptions]="contacts.getPaginator().getPageSizeOptions()"
+               (page)="contacts.getPaginator().setPage($event)"
+               [pageIndex]="contacts.getPaginator().getPageIndex()">
 </mat-paginator>
