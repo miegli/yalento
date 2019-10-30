@@ -119,6 +119,7 @@ export class Repository<T> {
      * @param data
      * @param id
      * @param fromConnector
+     * @param skipChanges
      */
     public create(data?: IRepositoryDataCreate, id?: string | number, fromConnector?: string, skipChanges?: boolean): Promise<T> {
 

@@ -56,23 +56,104 @@ export class QuerySubject<T> {
             this._paginatorDefaults = paginatorDefaults;
         }
 
-        this.init();
-
-    }
-
-    public init() {
-
-        if (this._isInitialized) {
-            return;
-        }
-
         this.setPaginatorDefaults(this._paginatorDefaults, this._sql);
         this.observeStatement(this._sql);
-        this.observeQueryCallbackChanges(this._sql);
-
-        this._isInitialized = true;
+        this.observeQueryCallbackChanges(this._sql).then().catch();
 
     }
+
+    public getSql(): IStatement | undefined {
+        return this._sql;
+    }
+
+    /**
+     *
+     * @param sql
+     */
+    public execStatement(sql?: IStatement): T[] {
+
+
+        let statement = '';
+        let params = sql && sql.params !== undefined ? sql.params : null;
+        if (!sql) {
+            sql = {};
+        }
+
+        if (params) {
+            const tmpParams: any = [];
+            params.forEach((param: any) => {
+                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
+                    tmpParams.push(param.getValue());
+                } else {
+                    tmpParams.push(param);
+                }
+            });
+            params = tmpParams;
+        }
+
+        if (sql.where) {
+            statement += ' WHERE ' + sql.where;
+        }
+
+        let selectSqlStatement = alasql.parse('SELECT * FROM ' + this.repository.getClassName() + ' ' + statement, params).toString();
+        if (params) {
+            params.forEach((value: string, index: number) => {
+                selectSqlStatement = selectSqlStatement.replace('$' + index, value);
+            })
+        }
+
+        if (sql.groupBy) {
+            statement += ' GROUP BY ' + sql.groupBy;
+        }
+
+        if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
+            statement += ' ORDER BY ' + this.getPaginator().getPageSortProperty() + ' ' + this.getPaginator().getPageSortDirection();
+        } else if (sql.orderBy) {
+            statement += ' ORDER BY ' + sql.orderBy;
+        }
+
+        statement = this.replaceStatement(statement);
+        const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+        const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
+
+        if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
+            statement += ' LIMIT ' + sql.limit;
+        } else if (this.getPaginator().getPageSize()) {
+            statement += ' LIMIT ' + this.getPaginator().getPageSize();
+        }
+
+        if (sql.offset) {
+            if (sql.limit === undefined) {
+                statement += ' LIMIT 1';
+            }
+            statement += ' OFFSET ' + sql.offset;
+        } else {
+            if (count && this.getPaginator().getPageIndex() * this.getPaginator().getPageSize() > count) {
+                this.getPaginator().setPageIndex(Math.floor(count / this.getPaginator().getPageSize()));
+            }
+            if (this.getPaginator().getPageIndex() * this.getPaginator().getPageSize()) {
+                statement += ' OFFSET ' + this.getPaginator().getPageIndex() * this.getPaginator().getPageSize();
+            }
+        }
+
+        const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+
+        if (this._lastExecStatement !== selectSqlStatement) {
+            this.repository.loadQueryFromConnectors(selectSqlStatement);
+        }
+
+        this._lastExecStatement = selectSqlStatement;
+
+        this.updateQueryCallbackChanges({
+            resultsAll: resultsAll,
+            results: results,
+            count: count,
+        });
+
+        return results;
+
+    }
+
 
     /**
      * get behaviour subject
@@ -145,20 +226,28 @@ export class QuerySubject<T> {
     /**
      * observe queryCallbackChanges$
      */
-    private async observeQueryCallbackChanges(sql?: IStatement) {
+    private observeQueryCallbackChanges(sql?: IStatement): Promise<void> {
 
-        this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
+        return new Promise((resolve => {
 
-            if (changes.dataAdded || changes.pageSize !== undefined || changes.pageIndex !== undefined || changes.pageSort !== undefined || changes.selectSqlStatement !== undefined) {
-                if (this._queryCallbackChangesTimeoutExecStatement) {
-                    clearTimeout(this._queryCallbackChangesTimeoutExecStatement);
+            this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
+
+                if (changes.dataAdded || changes.pageSize !== undefined || changes.pageIndex !== undefined || changes.pageSort !== undefined || changes.selectSqlStatement !== undefined) {
+                    if (this._queryCallbackChangesTimeoutExecStatement) {
+                        clearTimeout(this._queryCallbackChangesTimeoutExecStatement);
+                    }
+                    await setTimeout(() => {
+                        this.execStatement(sql);
+                    }, 1);
+
                 }
-                await setTimeout(() => {
-                    this.execStatement(sql);
-                }, 1);
+            });
 
-            }
-        })
+            setTimeout(() => {
+                this.execStatement(sql);
+            }, 1);
+
+        }))
 
     }
 
@@ -174,99 +263,6 @@ export class QuerySubject<T> {
         });
 
         return statement;
-    }
-
-
-    /**
-     *
-     * @param sql
-     */
-    private execStatement(sql?: IStatement): Promise<T[]> {
-
-        return new Promise<T[]>((resolve => {
-
-
-            let statement = '';
-            let params = sql && sql.params !== undefined ? sql.params : null;
-            if (!sql) {
-                sql = {};
-            }
-
-            if (params) {
-                const tmpParams: any = [];
-                params.forEach((param: any) => {
-                    if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
-                        tmpParams.push(param.getValue());
-                    } else {
-                        tmpParams.push(param);
-                    }
-                });
-                params = tmpParams;
-            }
-
-            if (sql.where) {
-                statement += ' WHERE ' + sql.where;
-            }
-
-            let selectSqlStatement = alasql.parse('SELECT * FROM ' + this.repository.getClassName() + ' ' + statement, params).toString();
-            if (params) {
-                params.forEach((value: string, index: number) => {
-                    selectSqlStatement = selectSqlStatement.replace('$' + index, value);
-                })
-            }
-
-            if (sql.groupBy) {
-                statement += ' GROUP BY ' + sql.groupBy;
-            }
-
-            if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
-                statement += ' ORDER BY ' + this.getPaginator().getPageSortProperty() + ' ' + this.getPaginator().getPageSortDirection();
-            } else if (sql.orderBy) {
-                statement += ' ORDER BY ' + sql.orderBy;
-            }
-
-            statement = this.replaceStatement(statement);
-            const resultsAll = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-            const count = alasql('SELECT COUNT(*) as c FROM ' + this.repository.getTableName() + ' ' + statement, params)[0]['c'];
-
-            if (sql.limit && !this.getPaginator().hasPageSizeChanges()) {
-                statement += ' LIMIT ' + sql.limit;
-            } else if (this.getPaginator().getPageSize()) {
-                statement += ' LIMIT ' + this.getPaginator().getPageSize();
-            }
-
-            if (sql.offset) {
-                if (sql.limit === undefined) {
-                    statement += ' LIMIT 1';
-                }
-                statement += ' OFFSET ' + sql.offset;
-            } else {
-                if (count && this.getPaginator().getPageIndex() * this.getPaginator().getPageSize() > count) {
-                    this.getPaginator().setPageIndex(Math.floor(count / this.getPaginator().getPageSize()));
-                }
-                if (this.getPaginator().getPageIndex() * this.getPaginator().getPageSize()) {
-                    statement += ' OFFSET ' + this.getPaginator().getPageIndex() * this.getPaginator().getPageSize();
-                }
-            }
-
-            const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
-
-            if (this._lastExecStatement !== selectSqlStatement) {
-                this.repository.loadQueryFromConnectors(selectSqlStatement);
-            }
-
-            this._lastExecStatement = selectSqlStatement;
-
-            this.updateQueryCallbackChanges({
-                resultsAll: resultsAll,
-                results: results,
-                count: count,
-            });
-
-            resolve(results);
-
-        }))
-
     }
 
 

@@ -230,6 +230,7 @@ export class QueryPaginator<T> {
         }
     }
 
+
     public getResults(): T[] {
         return this.results;
     }
