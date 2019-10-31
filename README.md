@@ -1,97 +1,56 @@
-[![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)
 
-# Yalento
+[![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
-An awesome Angular and Node.js integration of Google Firebase for easy using all features from realtime databases, functions and more cloud services.  
-  
-## Prerequisites
+# Yalento  
+An awesome framework that combines the best benefits from [AlaSQL](http://alasql.org) and [Google Cloud Firestore](https://firebase.google.com/docs/firestore) written in typescript for best using in Angular and Node.js projects:
 
-- [ ] [Google firebase project](https://firebase.google.com/) (spark plan for free)
-- [ ] Google firebase [Admin SDK](https://firebase.google.com/docs/admin/setup) (for node.js) 
-- [ ] [JavaScript SDK](https://firebase.google.com/docs/web/setup) (for Angular)  
-  
-### Example setup for node.js  
-  
-Install dependencies:
+- Write normal SQL-Queries and get observable results.
+- Native integration of most common features like pagination or selection.
+- CRUD operations for any, even complex, javascript objects
+- Full offline support und high performance guaranteed.
+- Test coverage of 100%.
 
-    npm i firebase-admin
-    npm i yalento
-    
-Create simple node typescript file to start with Yalento and then add the code that is explained here:
+## Example for node.js / angular
 
-***index.ts:***
+The yalento repository supports even complex javascript objects where you can do search, orderBy and many other operations. However in practice you work with simple model classes like the following one:
 
-*Import AbstractModel and AbstractRepository from yalento and admin from firebase-admin package.*
-
-    import { AbstractModel, AbstractRepository } from 'yalento';
-    const admin = require('firebase-admin');
-    
-*Initialize firebase app with your credentials provided by your env variable GOOGLE_APPLICATION_CREDENTIALS=service-account.json*
-
-    admin.initializeApp({  
-        credential: admin.credential.applicationDefault(),  
-    });
-
-*Now you can create your own models and repositories by extending the abstract ones. You are ending with a contact model and a contact repository where you can perform CRUD operations.*
-
-    export class Contact extends AbstractModel {  
-        name: string;  
-        lastName: string;  
+    export class Contact {  
+      public name: string = '';  
+      public lastName: string = '';
+      public street: string = '';
+      public age: number = 0;
     }
-    
-    export class ContactRepository extends AbstractRepository {  
-        model = Contact;  
-    }
-    
-*Don't forget to initialize your repository by connecting it to the firebase app. Now you have support from awesome firebase features like realtime database updates or offline support.*
 
-    const repo = new ContactRepository(admin.firestore());
-Try it by your self by creating your first contact record.
+Your model must not extend from any yalento classes - just write your classes how you like it. Only if you work with objects in a repository, then you need a yalento class:
 
-    repo.add({ name: 'Diego', lastName: 'Trump' }, 'testId').then();
-Retrieving data is as easy as it looks.
+    const repository: Repository<Contact> = new Repository(Contact);
 
-    repo.find().toPromise().then((contacts: Contact[]) => {  
-    console.log(contacts.map((contact: Contact) => contact.name + contact.lastName));
+Now we are ready. Let's create two new contacts from repository:
+
+    const contact1: Contact = await repository.create({ name: 'Bob', age: 10});
+    const contact2: Contact = await repository.create({ name: 'Jan', age: 28});
+
+And what about querying? Nothing easier than this.
+
+    const kids: Contact[] = repository.select({ where: 'age >= 18'}).getResults();
+
+Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
+
+The observables are really useful if you connect your repository to "Google Cloud Firestore" or to any other database with realtime updates support:
+
+    const fb = firebase.initializeApp({  
+	    apiKey: '***',
+	    ...
     });
+    
+    repo.connectFirestore(fb);
+    
+Now, you have successfully connected your repository to realtime database of cloud firestore. This has the consequence that:
 
-Start now the script by using something like `tsc && node index` and you are ending with a console output that stands for simplicity working with Yalento:
- [ 'DiegoTrump' ]
+ - repository.select({ where: 'age >= 18'}) automatically fetches matching contacts from remote database
+ - repository.create({ name: 'Bob', age: 10}) puts new contact to remote database
 
-> It's recommended to use a **tsconfig.json** like the following one:
 
-     {  
-      "compilerOptions": {  
-      "target" : "es5",  
-      "lib": ["es5", "es2017", "dom"]  
-       } 
-     }
+## Documentation
 
-  
-### Example setup for Angular  
-
-Add yalento and firebase dependencies to your angular project
-
-    npm add firebase
-    npm add yalento
-    npm add @angular/fire
- 
- Add your firebase web app credentials to **environment.ts**
-
-    export const environment = {  
-	    firebase: {  
-		    apiKey: "***",
-		    authDomain: "*.firebaseapp.com",
-		    databaseURL: "https://*.firebaseio.com",
-		    projectId: "*",
-		    storageBucket: "*.appspot.com",
-		    messagingSenderId: "***",
-		    appId: "*:*:web:*"
-	     }
-	   };
-
-Add some imports to your ***app.module.ts***:
-
-    import  { AngularFireModule }  from  '@angular/fire';
-    import  { AngularFirestoreModule }  from '@angular/fire/firestore';
-    import  { environment }  from  '../../environments/environment';
+We are working on it.

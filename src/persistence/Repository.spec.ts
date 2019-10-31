@@ -26,7 +26,6 @@ export class ContactWithoutConstructor {
     public street: string = '';
     public age: number = 0;
 
-
 }
 
 describe('RepositoryTest', async () => {
@@ -66,7 +65,7 @@ describe('RepositoryTest', async () => {
         expect((await repository.create()).street).to.be.equal('street');
         expect((await repository.create({street: 'test'})).street).to.be.equal('test');
         expect((await repository.create({}, 1))['_uuid']).to.be.equal(1);
-
+repository.select({ where: 'age >= 18 '}).getResultsAsObservable()
     });
 
     it('create items with same identifier should create only once', async () => {
