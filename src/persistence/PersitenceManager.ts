@@ -1,6 +1,4 @@
 /**
  * INTERNAL USE ONLY
  */
-export class PersistenceManager {
-    
-}
+export class PersistenceManager {}

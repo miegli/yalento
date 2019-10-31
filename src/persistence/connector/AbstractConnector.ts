@@ -1,18 +1,16 @@
-import { Repository } from "../Repository";
-import { IConnectionAngularFirestore } from "./AngularFirestoreConnector";
+import { Repository } from '../Repository';
+import { IConnectionAngularFirestore } from './AngularFirestoreConnector';
 
 export abstract class AbstractConnector<T> {
+  public repository: Repository<T>;
+  public readonly options?: IConnectionAngularFirestore;
 
-    public repository: Repository<T>;
-    public readonly options?: IConnectionAngularFirestore;
+  protected constructor(repository: Repository<T>, options?: IConnectionAngularFirestore) {
+    this.repository = repository;
+    this.options = options;
+  }
 
-    protected constructor(repository: Repository<T>, options?: IConnectionAngularFirestore) {
-        this.repository = repository;
-        this.options = options;
-    }
-
-    public getPath(): string {
-        return !this.options || !this.options.path ? this.repository.getClassName() : this.options.path;
-    }
-
+  public getPath(): string {
+    return !this.options || !this.options.path ? this.repository.getClassName() : this.options.path;
+  }
 }
