@@ -115,7 +115,7 @@ export class Repository<T> {
      * @param id
      * @param readDefaultsFromSelectStatement
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
+    public create(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string, skipConnector?: string): Promise<T> {
 
         return new Promise<T>((resolve => {
 
@@ -148,7 +148,9 @@ export class Repository<T> {
 
 
             Object.keys(this._connections as any).forEach((key: string) => {
-                this._connections[key].add([c]);
+                if (skipConnector !== key) {
+                    this._connections[key].add([c]);
+                }
             });
 
             this._subjects.forEach((subject: QuerySubject<T>) => {
@@ -167,7 +169,7 @@ export class Repository<T> {
      * @param data
      * @param readDefaultsFromSelectStatement
      */
-    public async createMany(data: IRepositoryDataCreate[], readDefaultsFromSelectStatement?: string): Promise<T[]> {
+    public async createMany(data: IRepositoryDataCreate[], readDefaultsFromSelectStatement?: string, skipConnector?: string): Promise<T[]> {
 
         const promises: any = [];
 
@@ -182,7 +184,9 @@ export class Repository<T> {
         return new Promise<T[]>((resolve => {
             Promise.all(promises).then((c: any) => {
                 Object.keys(this._connections as any).forEach((key: string) => {
-                    this._connections[key].add(c);
+                    if (skipConnector !== key) {
+                        this._connections[key].add(c);
+                    }
                 });
                 resolve(c);
             });
@@ -246,15 +250,6 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: uuid,
-        });
-
-        Object.defineProperty(c, '_toJson', {
-            enumerable: false,
-            configurable: false,
-            writable: false,
-            value: () => {
-                return serialize(c, {excludePrefixes: this._excludeSerializeProperties})
-            },
         });
 
         Object.defineProperty(c, '_toPlain', {
@@ -328,6 +323,10 @@ export class Repository<T> {
      * @param readDefaultsFromSelectStatement
      */
     private getDataFromSelectStatement(readDefaultsFromSelectStatement: string): { [key: string]: any } {
+
+        if (readDefaultsFromSelectStatement.length === 0) {
+            return {};
+        }
 
         let where: string = readDefaultsFromSelectStatement;
         const and: string[] = [];

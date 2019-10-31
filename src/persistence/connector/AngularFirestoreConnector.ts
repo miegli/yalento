@@ -62,7 +62,7 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
             }
 
             this.rxQuerySubscriber = data$.subscribe((results: any) => {
-                this.repository.createMany(results).then().catch();
+                this.repository.createMany(results, '', 'angularFirestore').then().catch();
             });
 
             this.lastSql = finalSql;

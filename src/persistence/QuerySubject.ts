@@ -185,13 +185,6 @@ export class QuerySubject<T> {
 
     /**
      *
-     */
-    public getLastSelectSql(): string {
-        return this._lastExecStatement;
-    }
-
-    /**
-     *
      * @param sql
      */
     private getEvaluatedSqlParams(sql?: IStatement): any {

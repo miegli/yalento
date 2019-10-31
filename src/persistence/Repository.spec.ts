@@ -145,6 +145,7 @@ describe('RepositoryTest', async () => {
         expect(await repository.select({limit: 1}).getResultsAsPromise()).to.be.lengthOf(1);
         expect(await repository.select({offset: 1}).getResultsAsPromise()).to.be.lengthOf(1);
         expect(await repository.select({offset: 9}).getResultsAsPromise()).to.be.lengthOf(0);
+        expect(await repository.select({limit: 1, offset: 1}).getResultsAsPromise()).to.be.lengthOf(1);
         expect((await repository.select({orderBy: 'age DESC'}).getResultsAsPromise())[0].age).to.be.equal(6);
         expect((await repository.select({orderBy: 'age ASC'}).getResultsAsPromise())[0].age).to.be.equal(1);
 
@@ -199,6 +200,12 @@ describe('RepositoryTest', async () => {
 
         contacts.getPaginator().setPageIndex(100);
         expect(await contacts.getResultsAsPromise()).to.be.lengthOf(3);
+
+        expect(repository.select({}, {
+            pageSize: 5,
+            pageSizeOptions: [5, 10],
+            pageSort: {active: 'age', direction: 'ASC'}
+        }).getPaginator().getPageSizeOptions()).to.be.lengthOf(2);
 
 
     });
