@@ -23,7 +23,9 @@ The yalento repository supports even complex javascript objects where you can do
 
 Your model must not extend from any yalento classes - just write your classes how you like it. Only if you work with objects in a repository, then you need a yalento class:
 
+    import { Repository } from 'yalento';
     const repository: Repository<Contact> = new Repository(Contact);
+   
 
 Now we are ready. Let's create two new contacts from repository:
 
@@ -32,7 +34,7 @@ Now we are ready. Let's create two new contacts from repository:
 
 And what about querying? Nothing easier than this.
 
-    const kids: Contact[] = repository.select({ where: 'age >= 18'}).getResults();
+    const kids: Contact[] = repository.select({ where: 'age < 18'}).getResults();
 
 Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
 
