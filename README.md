@@ -45,7 +45,7 @@ The observables are really useful if you connect your repository to "Google Clou
 	    ...
     });
     
-    repo.connectFirestore(fb);
+    repository.connectFirestore(fb);
     
 Now, you have successfully connected your repository to realtime database of cloud firestore. This has the consequence that:
 
