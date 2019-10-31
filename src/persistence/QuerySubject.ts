@@ -8,7 +8,6 @@ const alasql = require('alasql');
 export interface IStatement {
     where?: string;
     orderBy?: string;
-    groupBy?: string;
     limit?: number;
     offset?: number;
     params?: any[];
@@ -35,7 +34,6 @@ export class QuerySubject<T> {
     private readonly _sql: IStatement | undefined;
     private readonly _paginatorDefaults: IQueryPaginatorDefaults | undefined;
     private _lastExecStatement: string = '';
-    private _queryCallbackChangesTimeoutExecStatement: any;
 
     /**
      *
@@ -65,29 +63,13 @@ export class QuerySubject<T> {
         return this._sql;
     }
 
-    /**
-     *
-     * @param sql
-     */
-    public execStatement(sql?: IStatement): T[] {
-
+    public getSqlSelectParsed(sql?: IStatement): string {
 
         let statement = '';
-        let params = sql && sql.params !== undefined ? sql.params : null;
+        const params = this.getEvaluatedSqlParams(sql);
+
         if (!sql) {
             sql = {};
-        }
-
-        if (params) {
-            const tmpParams: any = [];
-            params.forEach((param: any) => {
-                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
-                    tmpParams.push(param.getValue());
-                } else {
-                    tmpParams.push(param);
-                }
-            });
-            params = tmpParams;
         }
 
         if (sql.where) {
@@ -101,8 +83,26 @@ export class QuerySubject<T> {
             })
         }
 
-        if (sql.groupBy) {
-            statement += ' GROUP BY ' + sql.groupBy;
+        return selectSqlStatement;
+    }
+
+
+    /**
+     *
+     * @param sql
+     */
+    public execStatement(sql?: IStatement): T[] {
+
+        let statement = '';
+        const selectSqlStatement = this.getSqlSelectParsed(sql);
+        const params = this.getEvaluatedSqlParams(sql);
+
+        if (!sql) {
+            sql = {};
+        }
+
+        if (sql.where) {
+            statement += ' WHERE ' + sql.where;
         }
 
         if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
@@ -135,7 +135,8 @@ export class QuerySubject<T> {
             }
         }
 
-        const results = alasql('SELECT * FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
+
+        const results = alasql('SELECT _ref FROM ' + this.repository.getTableName() + ' ' + statement, params).map((d: IRepositoryData) => d._ref);
 
         if (this._lastExecStatement !== selectSqlStatement) {
             this.repository.loadQueryFromConnectors(selectSqlStatement);
@@ -187,6 +188,30 @@ export class QuerySubject<T> {
      */
     public getLastSelectSql(): string {
         return this._lastExecStatement;
+    }
+
+    /**
+     *
+     * @param sql
+     */
+    private getEvaluatedSqlParams(sql?: IStatement): any {
+
+        let params = sql && sql.params !== undefined ? sql.params : null;
+
+        if (params) {
+            const tmpParams: any = [];
+            params.forEach((param: any) => {
+                if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function' && typeof param.getValue === 'function') {
+                    tmpParams.push(param.getValue());
+                } else {
+                    tmpParams.push(param);
+                }
+            });
+            params = tmpParams;
+        }
+
+        return params;
+
     }
 
     /**
@@ -245,9 +270,6 @@ export class QuerySubject<T> {
             this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
 
                 if (changes.dataAdded || changes.pageSize !== undefined || changes.pageIndex !== undefined || changes.pageSort !== undefined || changes.selectSqlStatement !== undefined) {
-                    if (this._queryCallbackChangesTimeoutExecStatement) {
-                        clearTimeout(this._queryCallbackChangesTimeoutExecStatement);
-                    }
                     await setTimeout(() => {
                         this.execStatement(sql);
                     }, 1);

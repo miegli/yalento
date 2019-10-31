@@ -1,3 +1,4 @@
+import {rejects} from "assert";
 import {classToPlain, serialize} from "class-transformer";
 import "es6-shim";
 import {Guid} from "guid-typescript";
@@ -112,6 +113,7 @@ export class Repository<T> {
      *
      * @param data
      * @param id
+     * @param readDefaultsFromSelectStatement
      */
     public create(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
 
@@ -133,7 +135,7 @@ export class Repository<T> {
             }
 
             const existingItem = this._tempData.filter((item: IRepositoryData) => {
-                return item._uuid === c['__uuid'];
+                return item._uuid === c['_uuid'];
             });
 
             if (existingItem.length) {
@@ -146,9 +148,9 @@ export class Repository<T> {
 
 
             Object.keys(this._connections as any).forEach((key: string) => {
-
                 this._connections[key].add([c]);
             });
+
             this._subjects.forEach((subject: QuerySubject<T>) => {
                 subject.updateQueryCallbackChanges({dataAdded: true});
             });
@@ -163,13 +165,14 @@ export class Repository<T> {
     /**
      *
      * @param data
+     * @param readDefaultsFromSelectStatement
      */
     public async createMany(data: IRepositoryDataCreate[], readDefaultsFromSelectStatement?: string): Promise<T[]> {
 
         const promises: any = [];
 
         data.forEach(value => {
-            promises.push(this.createOneFromMany(value, value['__uuid'] === undefined ? undefined : value['__uuid']));
+            promises.push(this.createOneFromMany(value, value['__uuid'] === undefined ? undefined : value['__uuid'], readDefaultsFromSelectStatement));
         });
 
         this._subjects.forEach((subject: QuerySubject<T>) => {
@@ -178,25 +181,15 @@ export class Repository<T> {
 
         return new Promise<T[]>((resolve => {
             Promise.all(promises).then((c: any) => {
-
                 Object.keys(this._connections as any).forEach((key: string) => {
                     this._connections[key].add(c);
                 });
-
                 resolve(c);
-            }).catch(() => {
-                resolve([]);
-            })
+            });
         }));
 
     }
 
-    /**
-     * INTERNAL USE ONLY: return temp repository data
-     */
-    public getTempData(): IRepositoryData[] {
-        return this._tempData;
-    }
 
     /**
      * INTERNAL USE ONLY: return temporary identifier
@@ -282,17 +275,15 @@ export class Repository<T> {
      * @param data
      * @param id
      */
-    private createOneFromMany(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
+    private createOneFromMany(data: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
 
         return new Promise<T>((resolve => {
 
             const c = this.createClassInstance(id) as any;
 
-            if (data) {
-                Object.keys(data).forEach((key: string) => {
-                    c[key] = data[key];
-                });
-            }
+            Object.keys(data).forEach((key: string) => {
+                c[key] = data[key];
+            });
 
             if (readDefaultsFromSelectStatement) {
                 const additionalData = this.getDataFromSelectStatement(readDefaultsFromSelectStatement);
@@ -344,9 +335,14 @@ export class Repository<T> {
         const splitsLeft = [' WHERE '];
         const splitsRight = [' ORDER BY ', ' HAVING ', ' GROUP BY ', ' LIMIT '];
 
+
         splitsLeft.forEach((s: string) => {
             where = where.split(s)[1];
         });
+
+        if (!where) {
+            return {};
+        }
 
         splitsRight.forEach((s: string) => {
             where = where.split(s)[0];
@@ -363,7 +359,7 @@ export class Repository<T> {
         });
 
         and.forEach((s: string) => {
-            const match = s.match(/^([a-z]*) (=|LIKE) (.*)/);
+            const match = s.match(/^([A-z]*) (=|LIKE) (.*)/);
             if (match && match[3] !== undefined) {
                 data[match[1]] = match[3].indexOf('"') === 0 || match[3].indexOf("'") === 0 ? match[3].substr(1, match[3].length - 2) : parseFloat(match[3]);
             }

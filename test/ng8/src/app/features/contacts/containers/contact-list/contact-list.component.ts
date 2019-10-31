@@ -32,7 +32,7 @@ export class ContactListComponent implements OnInit {
         limit: 5,
         orderBy: 'name DESC',
         where: 'age = ?',
-        params: [this.searchString$]
+        params: [this.searchString$],
       },
       {
         pageSizeOptions: [1, 5, 10, 100],
