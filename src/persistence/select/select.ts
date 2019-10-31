@@ -1,5 +1,6 @@
 import {QueryPaginator} from "../query/QueryPaginator";
 import {QuerySubject} from "../QuerySubject";
+import {IRepositoryDataCreate} from "../Repository";
 
 export class Select<T> {
 
@@ -17,6 +18,12 @@ export class Select<T> {
 
     public getResults(): T[] {
         return this.paginator.getResults();
+    }
+
+    public create(data?: IRepositoryDataCreate, id?: string | number): Promise<T> {
+
+        return this.subject.getRepository().create(data, id, this.subject.getLastSelectSql());
+
     }
 
 }

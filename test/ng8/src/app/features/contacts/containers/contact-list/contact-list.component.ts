@@ -38,7 +38,6 @@ export class ContactListComponent implements OnInit {
         pageSizeOptions: [1, 5, 10, 100],
       });
 
-    this.contactRepository.create();
 
   }
 
@@ -55,11 +54,11 @@ export class ContactListComponent implements OnInit {
   add(count?: number): void {
 
     if (count === undefined) {
-      this.contactRepository.create({name: 'test1'});
+      this.contacts.create().then();
     } else {
       this.contactRepository.createMany(Array(count).fill({
         name: 'test',
-      }));
+      })).then().catch();
     }
 
 

@@ -23,18 +23,12 @@ export interface IRepositoryData {
 }
 
 export interface IRepositoryDataCreate {
-    [key: string]: any
+    [key: string]: any;
 }
 
 export interface IClassProperty {
     name: string;
 }
-
-export interface ISelectWithPaginator {
-    sql?: IStatement;
-    paginatorDefaults?: IQueryPaginatorDefaults;
-}
-
 
 export interface IConnections<T> {
     [key: string]: IConnectorInterface<T>;
@@ -118,10 +112,8 @@ export class Repository<T> {
      *
      * @param data
      * @param id
-     * @param fromConnector
-     * @param skipChanges
      */
-    public create(data?: IRepositoryDataCreate, id?: string | number, fromConnector?: string, skipChanges?: boolean): Promise<T> {
+    public create(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
 
         return new Promise<T>((resolve => {
 
@@ -130,6 +122,13 @@ export class Repository<T> {
             if (data) {
                 Object.keys(data).forEach((key: string) => {
                     c[key] = data[key];
+                });
+            }
+
+            if (readDefaultsFromSelectStatement) {
+                const additionalData = this.getDataFromSelectStatement(readDefaultsFromSelectStatement);
+                Object.keys(additionalData).forEach((key: string) => {
+                    c[key] = additionalData[key];
                 });
             }
 
@@ -145,18 +144,14 @@ export class Repository<T> {
                 this._tempData.push({_ref: c, _uuid: c._uuid});
             }
 
+
             Object.keys(this._connections as any).forEach((key: string) => {
-                if (key !== fromConnector) {
-                    this._connections[key].add([c]);
-                }
+
+                this._connections[key].add([c]);
             });
-
-            if (!skipChanges) {
-                this._subjects.forEach((subject: QuerySubject<T>) => {
-                    subject.updateQueryCallbackChanges({dataAdded: true});
-                });
-            }
-
+            this._subjects.forEach((subject: QuerySubject<T>) => {
+                subject.updateQueryCallbackChanges({dataAdded: true});
+            });
 
             resolve(c);
 
@@ -168,14 +163,13 @@ export class Repository<T> {
     /**
      *
      * @param data
-     * @param fromConnector
      */
-    public async createMany(data: IRepositoryDataCreate[], fromConnector?: string): Promise<T[]> {
+    public async createMany(data: IRepositoryDataCreate[], readDefaultsFromSelectStatement?: string): Promise<T[]> {
 
         const promises: any = [];
 
         data.forEach(value => {
-            promises.push(this.create(value, value['__uuid'] === undefined ? undefined : value['__uuid'], fromConnector, true));
+            promises.push(this.createOneFromMany(value, value['__uuid'] === undefined ? undefined : value['__uuid']));
         });
 
         this._subjects.forEach((subject: QuerySubject<T>) => {
@@ -184,6 +178,11 @@ export class Repository<T> {
 
         return new Promise<T[]>((resolve => {
             Promise.all(promises).then((c: any) => {
+
+                Object.keys(this._connections as any).forEach((key: string) => {
+                    this._connections[key].add(c);
+                });
+
                 resolve(c);
             }).catch(() => {
                 resolve([]);
@@ -279,6 +278,51 @@ export class Repository<T> {
     }
 
     /**
+     *
+     * @param data
+     * @param id
+     */
+    private createOneFromMany(data?: IRepositoryDataCreate, id?: string | number, readDefaultsFromSelectStatement?: string): Promise<T> {
+
+        return new Promise<T>((resolve => {
+
+            const c = this.createClassInstance(id) as any;
+
+            if (data) {
+                Object.keys(data).forEach((key: string) => {
+                    c[key] = data[key];
+                });
+            }
+
+            if (readDefaultsFromSelectStatement) {
+                const additionalData = this.getDataFromSelectStatement(readDefaultsFromSelectStatement);
+                Object.keys(additionalData).forEach((key: string) => {
+                    c[key] = additionalData[key];
+                });
+            }
+
+            const existingItem = this._tempData.filter((item: IRepositoryData) => {
+                return item._uuid === c['__uuid'];
+            });
+
+            if (existingItem.length) {
+                existingItem.forEach((item: IRepositoryData) => {
+                    item._ref = c;
+                })
+            } else {
+                this._tempData.push({_ref: c, _uuid: c._uuid});
+            }
+
+
+            resolve(c);
+
+
+        }));
+
+    }
+
+
+    /**
      * create temporary database if not exists
      */
     private createDatabase() {
@@ -288,6 +332,45 @@ export class Repository<T> {
         alasql.tables[this.getTableName()].data = this._tempData;
     }
 
+    /**
+     *
+     * @param readDefaultsFromSelectStatement
+     */
+    private getDataFromSelectStatement(readDefaultsFromSelectStatement: string): { [key: string]: any } {
+
+        let where: string = readDefaultsFromSelectStatement;
+        const and: string[] = [];
+        const data: { [key: string]: any } = {};
+        const splitsLeft = [' WHERE '];
+        const splitsRight = [' ORDER BY ', ' HAVING ', ' GROUP BY ', ' LIMIT '];
+
+        splitsLeft.forEach((s: string) => {
+            where = where.split(s)[1];
+        });
+
+        splitsRight.forEach((s: string) => {
+            where = where.split(s)[0];
+        });
+
+        where.split(' AND ').forEach((s: string) => {
+            if (s.indexOf(' OR ') === -1) {
+                const segment = s.replace(/(\))*$/, '').replace(/^(\()*/, '');
+                if (and.filter((value: string) => value === segment).length === 0) {
+                    and.push(segment);
+                }
+
+            }
+        });
+
+        and.forEach((s: string) => {
+            const match = s.match(/^([a-z]*) (=|LIKE) (.*)/);
+            if (match && match[3] !== undefined) {
+                data[match[1]] = match[3].indexOf('"') === 0 || match[3].indexOf("'") === 0 ? match[3].substr(1, match[3].length - 2) : parseFloat(match[3]);
+            }
+        });
+
+        return data;
+    }
 
     /**
      * check properties that can to be serialized

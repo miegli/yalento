@@ -11,6 +11,7 @@ export class Firestore {
 
 export interface IConnectionAngularFirestore {
     path?: string;
+    sql?: string;
 }
 
 
@@ -51,18 +52,20 @@ export class AngularFirestoreConnector<T> extends AbstractConnector<T> implement
 
     public select(sql: string) {
 
-        if (this.lastSql !== sql) {
-            const data$ = this.firesSQL.rxQuery(sql);
+        const finalSql = !this.options || !this.options.sql ? sql : this.options.sql;
+
+        if (this.lastSql !== finalSql) {
+            const data$ = this.firesSQL.rxQuery(finalSql);
 
             if (this.rxQuerySubscriber) {
                 this.rxQuerySubscriber.unsubscribe();
             }
 
             this.rxQuerySubscriber = data$.subscribe((results: any) => {
-                this.repository.createMany(results, 'angularFirestore').then().catch();
+                this.repository.createMany(results).then().catch();
             });
 
-            this.lastSql = sql;
+            this.lastSql = finalSql;
         }
 
         return;

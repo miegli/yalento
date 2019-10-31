@@ -35,7 +35,6 @@ export class QuerySubject<T> {
     private readonly _sql: IStatement | undefined;
     private readonly _paginatorDefaults: IQueryPaginatorDefaults | undefined;
     private _lastExecStatement: string = '';
-    private _isInitialized: boolean = false;
     private _queryCallbackChangesTimeoutExecStatement: any;
 
     /**
@@ -176,6 +175,19 @@ export class QuerySubject<T> {
         return this.queryCallbackChanges$;
     }
 
+    /**
+     *
+     */
+    public getRepository(): Repository<T> {
+        return this.repository;
+    }
+
+    /**
+     *
+     */
+    public getLastSelectSql(): string {
+        return this._lastExecStatement;
+    }
 
     /**
      *
