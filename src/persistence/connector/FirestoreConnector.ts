@@ -10,7 +10,6 @@ export class Firestore {
 export interface IConnectionFirestore {
     path?: string;
     sql?: string;
-    ngZone?: any;
 }
 
 export class FirestoreConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T> {

@@ -43,7 +43,6 @@ export class Select<T> {
             this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
                 if (changes.results !== undefined) {
                     this.subject.getRepository()._zone.run(() => {
-
                         observer.next(this.getResults());
                     });
                 }

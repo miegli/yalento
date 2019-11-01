@@ -6,7 +6,7 @@ import {Observable} from "rxjs";
 import {IConnectorInterface} from './connector/ConnectorInterface';
 import {Firestore, FirestoreConnector, IConnectionFirestore} from './connector/FirestoreConnector';
 import {IQueryPaginatorDefaults} from './query/QueryPaginator';
-import {IStatement, QuerySubject} from './QuerySubject';
+import {IStatement, IStatementOne, QuerySubject} from './QuerySubject';
 import {Select} from './select/select';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
@@ -85,11 +85,17 @@ export class Repository<T> {
      */
     public connectFirestore(firestore: Firestore, options?: IConnectionFirestore): Repository<T> {
 
-        if (options && options.ngZone) {
-            this._zone = options.ngZone;
-        }
         this._connections.firestore = new FirestoreConnector<T>(this, firestore, options);
 
+        return this;
+    }
+
+    /**
+     * set ngZone
+     * @param ngZone
+     */
+    public setNgZone(ngZone: any) {
+        this._zone = ngZone;
         return this;
     }
 
@@ -116,13 +122,14 @@ export class Repository<T> {
      * select one
      * @param sql
      */
-    public selectOne(sql?: IStatement): Observable<T> {
+    public selectOne(sql?: IStatementOne): Observable<T | undefined> {
 
         return new Observable<T>((observer) => {
 
-            const sqlOne = sql ? sql : {};
-            sqlOne.limit = 1;
-            sqlOne.offset = 0;
+            let sqlOne: IStatement = {limit: 1, offset: 0};
+            if (sql) {
+                sqlOne = {...sql};
+            }
 
             const subject = new QuerySubject<T>(this, sqlOne);
             const select = new Select<T>(subject);
