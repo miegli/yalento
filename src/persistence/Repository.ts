@@ -3,8 +3,8 @@ import 'es6-shim';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
 import {
-    FirestoreConnector,
     Firestore,
+    FirestoreConnector,
     IConnectionFirestore,
 } from './connector/FirestoreConnector';
 import {IConnectorInterface} from './connector/ConnectorInterface';
