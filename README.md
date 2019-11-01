@@ -59,10 +59,10 @@ Now, you have successfully connected your repository to realtime database of clo
 Using the native pagination makes most sense, if you are in the context of an angular app. Let's see how easy yalento works with the google material component:
 
     <mat-paginator [length]="kids.getPaginator().getLength()"  
-	    [pageSize]="kids.getPaginator().getPageSize(
+	    [pageSize]="kids.getPaginator().getPageSize()"
 	    [pageSizeOptions]="kids.getPaginator().getPageSizeOptions()"  
-	    (page)="kids.getPaginator().setPage($event)"  
-		[pageIndex]="kids.getPaginator().getPageIndex()">
+	    (page)="kids.getPaginator().setPage($event)"
+        [pageIndex]="kids.getPaginator().getPageIndex()">
 	</mat-paginator>
 
 Nothing to configure - you've already implemented all the pagination component features. Unless you also want to implement one of the many requirements: select, select all, invert selection.
