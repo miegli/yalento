@@ -2,13 +2,13 @@ import {classToPlain} from 'class-transformer';
 import 'es6-shim';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
+import {IConnectorInterface} from './connector/ConnectorInterface';
 import {
     Firestore,
     FirestoreConnector,
     IConnectionFirestore,
 } from './connector/FirestoreConnector';
-import {IConnectorInterface} from './connector/ConnectorInterface';
-import {IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
+import {IQueryPaginatorDefaults } from './query/QueryPaginator';
 import {IStatement, QuerySubject} from './QuerySubject';
 import {Select} from './select/select';
 /// <reference path="alasql.d.ts" />
