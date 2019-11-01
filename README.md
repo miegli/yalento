@@ -1,4 +1,5 @@
 
+
 [![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
 # Yalento  
@@ -12,6 +13,7 @@ An awesome framework that combines the best benefits from [AlaSQL](http://alasql
 
 ## Example for node.js / angular
 
+### Repository of anything
 The yalento repository supports even complex javascript objects where you can do search, orderBy and many other operations. However in practice you work with simple model classes like the following one:
 
     export class Contact {  
@@ -26,7 +28,6 @@ Your model must not extend from any yalento classes - just write your classes ho
     import { Repository } from 'yalento';
     const repository: Repository<Contact> = new Repository(Contact);
    
-
 Now we are ready. Let's create two new contacts from repository:
 
     const contact1: Contact = await repository.create({ name: 'Bob', age: 10});
@@ -38,6 +39,7 @@ And what about querying? Nothing easier than this.
 
 Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
 
+### Observable realtime changes
 The observables are really useful if you connect your repository to "Google Cloud Firestore" or to any other database with realtime updates support:
 
     const fb = firebase.initializeApp({  
@@ -52,6 +54,27 @@ Now, you have successfully connected your repository to realtime database of clo
  - repository.select({ where: 'age >= 18'}) automatically fetches matching contacts from remote database
  - repository.create({ name: 'Bob', age: 10}) puts new contact to remote database
 
+### Paginator
+
+Using the native pagination makes most sense, if you are in the context of an angular app. Let's see how easy yalento works with the google material component:
+
+    <mat-paginator [length]="kids.getPaginator().getLength()"  
+	    [pageSize]="kids.getPaginator().getPageSize(
+	    [pageSizeOptions]="kids.getPaginator().getPageSizeOptions()"  
+	    (page)="kids.getPaginator().setPage($event)"  
+		[pageIndex]="kids.getPaginator().getPageIndex()">
+	</mat-paginator>
+
+Nothing to configure - you've already implemented all the pagination component features. Unless you also want to implement one of the many requirements: select, select all, invert selection.
+
+    # toogle all (all kids get selected)
+    kids.getPaginator().toggleSelection();
+
+    # toogle one (first kid get selected in this case)
+    kids.getPaginator().toggleSelection(kids.getResults()[0]);
+
+    # get all selected kids
+    const yourKids: Contact[] = kids.getPaginator().getSelected();
 
 ## Documentation
 
