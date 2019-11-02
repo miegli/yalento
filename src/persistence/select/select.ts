@@ -40,7 +40,9 @@ export class Select<T> {
 
     public getResultsAsObservable(): Observable<T[]> {
         return new Observable<T[]>((observer: Subscriber<T[]>) => {
+
             this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
+
                 if (changes.results !== undefined) {
                     this.subject.getRepository()._zone.run(() => {
                         observer.next(this.getResults());

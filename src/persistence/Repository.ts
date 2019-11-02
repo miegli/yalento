@@ -113,8 +113,10 @@ export class Repository<T> {
      * @param sql
      */
     public select(sql?: IStatement, paginatorDefaults?: IQueryPaginatorDefaults): Select<T> {
+
         const subject = new QuerySubject<T>(this, sql, paginatorDefaults);
         this._subjects.push(subject);
+        subject.execStatement(subject.getSql());
         return new Select<T>(subject);
     }
 

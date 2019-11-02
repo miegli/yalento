@@ -233,6 +233,9 @@ export class QuerySubject<T> {
     private setPaginatorDefaults(paginatorDefaults?: IQueryPaginatorDefaults, sql?: IStatement) {
         if (paginatorDefaults && paginatorDefaults.pageSizeOptions) {
             this.getPaginator().setPageSizeOptions(paginatorDefaults.pageSizeOptions);
+            if (paginatorDefaults.pageSize === undefined) {
+                this.getPaginator().setPageSize(paginatorDefaults.pageSizeOptions[0]);
+            }
         }
 
         if (paginatorDefaults && paginatorDefaults.pageSort) {

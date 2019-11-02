@@ -21,7 +21,7 @@ export class ContactListComponent implements OnInit {
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
   constructor(public dialog: MatDialog, db: AngularFirestore) {
-    this.contactRepository = new Repository<Contact>(Contact, 'test').connectFirestore(db);
+    this.contactRepository = new Repository<Contact>(Contact, 'test').connectFirestore(db, {dataMode: 'DEFAULT'});
     this.searchString$ = new BehaviorSubject<number>(0);
   }
 

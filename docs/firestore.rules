@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+
+    match /databases/{database}/documents {
+
+    match /User/{userId} {
+        allow read: if request.auth.uid == resource.data.__uuid;
+        allow write: if request.auth.uid == userId;
+    }
+
+      match /{document=**}/{id} {
+        allow read: if (resource.data.__public == 1 || request.auth.uid == resource.data.__owner);
+        allow write: if (request.auth != null && (resource == null || request.auth.uid == resource.data.__owner));
+    }
+
+}
+}
