@@ -71,6 +71,7 @@ node_modules/
 
 # node modules
 node_modules
+./firebase/firestore/rules/node_modules
 
 # compiled
 /lib
@@ -78,3 +79,4 @@ node_modules
 
 # env
 .env
+

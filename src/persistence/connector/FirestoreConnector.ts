@@ -16,7 +16,7 @@ export declare class User {
     public isAuthenticated(): boolean;
 }
 
-export type ConnectionFirestoreDataMode = 'PRIVATE_ONLY' | 'PUBLIC_ONLY' | 'DEFAULT';
+export type ConnectionFirestoreDataMode = 'PRIVATE' | 'ALL';
 
 export interface IConnectionFirestore {
     path?: string;
@@ -30,7 +30,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
     private firesSQL: any;
     private lastSql: string = '';
     private rxQuerySubscriber: any;
-    private dataMode: ConnectionFirestoreDataMode = 'DEFAULT';
+    private dataMode: ConnectionFirestoreDataMode = 'ALL';
 
     constructor(repository: Repository<T>, db: Firestore, options?: IConnectionFirestore) {
         super(repository, options);
@@ -56,8 +56,16 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
 
             const data = item._toPlain();
             data['__uuid'] = item['_uuid'];
-            data['__public'] = this.dataMode === 'PRIVATE_ONLY' ? 0 : 1;
-            data['__owner'] = this.currentUser.uid ? this.currentUser.uid : 'null';
+            data['__owner'] = {};
+
+            if (this.currentUser.uid) {
+                data['__owner'][this.currentUser.uid] = true;
+            }
+
+            if (this.dataMode !== 'PRIVATE') {
+                data['__owner']['EVERYBODY'] = true;
+            }
+
 
             (this.db as any)
                 .doc(this.getPath() + '/' + item._uuid)
@@ -73,17 +81,10 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         let finalSqlCondition = (finalSql.substr(('SELECT * FROM ' + this.repository.getClassName()).length)).trim();
         let finalSqlConditionUser = '';
 
-        switch (this.dataMode) {
-
-            case "DEFAULT":
-                finalSqlConditionUser = '(__public = 1 OR __owner = "' + this.currentUser.uid + '")';
-                break;
-            case "PRIVATE_ONLY":
-                finalSqlConditionUser = '__owner = "' + this.currentUser.uid + '"';
-                break;
-            case "PUBLIC_ONLY":
-                finalSqlConditionUser = '__public = 1';
-                break;
+        if (this.dataMode === 'PRIVATE') {
+            finalSqlConditionUser = '`__owner.' + this.currentUser.uid + '` = true ';
+        } else {
+            finalSqlConditionUser = '`__owner.EVERYBODY` = true OR `__owner.' + this.currentUser.uid + '` = true ';
         }
 
         if (finalSqlCondition.length > 0 && finalSqlCondition.substr(0, 5) === 'WHERE') {
@@ -93,7 +94,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         const where = finalSqlConditionUser.length || finalSqlCondition.length ? ' WHERE ' : '';
 
         finalSql = 'SELECT * FROM ' + this.getPath() + where + finalSqlConditionUser + finalSqlCondition;
-
+        console.log(finalSqlConditionUser, finalSql);
         if (this.lastSql !== finalSql) {
 
             const data$ = this.firesSQL.rxQuery(finalSql);

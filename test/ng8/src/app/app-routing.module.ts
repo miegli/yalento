@@ -5,6 +5,7 @@ import { ContactsModule } from './features/contacts/contacts.module';
 import { ContactListComponent } from './features/contacts/containers/contact-list/contact-list.component';
 
 const routes: Routes = [
+  { path: '', component: ContactListComponent },
   { path: 'contacts', component: ContactListComponent }
 ];
 
