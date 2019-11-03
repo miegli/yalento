@@ -196,4 +196,15 @@ class MyApp {
         expect((await account.get()).docs).to.be.lengthOf(1);
     }
 
+    @test
+    async "should deny users list accounts without owner query"() {
+
+        await createMock("Account", {}, {__owner: {EVERYBODY: true}, __uuid: 'test', username: 'test'});
+
+        const db = authedApp({uid: "test"});
+        const account = db.collection('Account/data/accounts');
+        await firebase.assertFails(account.get());
+
+    }
+
 }

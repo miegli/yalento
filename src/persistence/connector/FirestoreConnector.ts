@@ -58,7 +58,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
             data['__uuid'] = item['_uuid'];
             data['__owner'] = {};
 
-            if (this.currentUser.uid) {
+            if (this.currentUser.uid && this.currentUser.uid !== 'null') {
                 data['__owner'][this.currentUser.uid] = true;
             }
 
@@ -84,7 +84,10 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         if (this.dataMode === 'PRIVATE') {
             finalSqlConditionUser = '`__owner.' + this.currentUser.uid + '` = true ';
         } else {
-            finalSqlConditionUser = '`__owner.EVERYBODY` = true OR `__owner.' + this.currentUser.uid + '` = true ';
+            finalSqlConditionUser = '`__owner.EVERYBODY` = true ';
+            if (this.currentUser.uid && this.currentUser.uid !== 'null') {
+                finalSqlCondition += ' OR `__owner.' + this.currentUser.uid + '` = true ';
+            }
         }
 
         if (finalSqlCondition.length > 0 && finalSqlCondition.substr(0, 5) === 'WHERE') {
@@ -94,7 +97,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         const where = finalSqlConditionUser.length || finalSqlCondition.length ? ' WHERE ' : '';
 
         finalSql = 'SELECT * FROM ' + this.getPath() + where + finalSqlConditionUser + finalSqlCondition;
-        console.log(finalSqlConditionUser, finalSql);
+
         if (this.lastSql !== finalSql) {
 
             const data$ = this.firesSQL.rxQuery(finalSql);
