@@ -1,6 +1,8 @@
 /// <reference path='../node_modules/mocha-typescript/globals.d.ts' />
 import * as firebase from "@firebase/testing";
+import {expect} from 'chai';
 import * as fs from "fs";
+
 
 /*
  * ============
@@ -23,7 +25,7 @@ function authedApp(auth) {
         .firestore();
 }
 
-async function createMock(model: string, permissionRules: any) {
+async function createMock(model: string, permissionRules: any, data?: any) {
 
     await firebase.clearFirestoreData({projectId});
 
@@ -34,6 +36,11 @@ async function createMock(model: string, permissionRules: any) {
     const db = authedApp(null);
     const permissions = db.collection(model).doc("permissions");
     await permissions.set(permissionRules);
+
+    if (data) {
+        const entityData = db.doc(model + '/data/' + model.toLowerCase() + 's/test');
+        await entityData.set(data);
+    }
 
     rules = fs.readFileSync("firestore.rules", "utf8");
     await firebase.loadFirestoreRules({projectId, rules});
@@ -147,7 +154,7 @@ class MyApp {
     }
 
     @test
-    async "allow guest users to read an account without defined permissions"() {
+    async "should allow guest users to read an account without defined permissions"() {
 
         await createMock("Account", {});
 
@@ -157,13 +164,36 @@ class MyApp {
     }
 
     @test
-    async "allow users to read an account without defined permissions"() {
+    async "should allow users list accounts data with self owenership"() {
 
-        await createMock("Account", {});
+        await createMock("Account", {}, {__owner: {test: true}, __uuid: 'test', username: 'test'});
 
         const db = authedApp({uid: "test"});
-        const account = db.collection("Account/data/accounts").doc("testaccount");
+        const account = db.collection('Account/data/accounts').where('__owner.test', "==", true);
         await firebase.assertSucceeds(account.get());
+        expect((await account.get()).docs).to.be.lengthOf(1);
+    }
+
+    @test
+    async "should not allow users list accounts data without self owenership"() {
+
+        await createMock("Account", {}, {__owner: {test2: true}, __uuid: 'test', username: 'test'});
+
+        const db = authedApp({uid: "test"});
+        const account = db.collection('Account/data/accounts').where('__owner.test', "==", true);
+        await firebase.assertSucceeds(account.get());
+        expect((await account.get()).docs).to.be.lengthOf(0);
+    }
+
+    @test
+    async "should allow users list accounts data made for everybody"() {
+
+        await createMock("Account", {}, {__owner: {EVERYBODY: true}, __uuid: 'test', username: 'test'});
+
+        const db = authedApp({uid: "test"});
+        const account = db.collection('Account/data/accounts').where('__owner.EVERYBODY', "==", true);
+        await firebase.assertSucceeds(account.get());
+        expect((await account.get()).docs).to.be.lengthOf(1);
     }
 
 }

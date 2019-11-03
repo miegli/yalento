@@ -15,7 +15,7 @@ service cloud.firestore {
 
 
      function evaluateDocumentPermissions() {
-              return resource == null || (resource.data.__owner.get('EVERYBODY', false) == true || resource.data.__owner.get(request.auth.uid, false) == true)
+              return resource == null ||  ( resource.data.__owner.get('EVERYBODY', false) == true || resource.data.__owner.get(request.auth.uid, false) == true)
            }
 
 
