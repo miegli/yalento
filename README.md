@@ -9,6 +9,7 @@ An awesome framework that combines the best benefits from [AlaSQL](http://alasql
 - Native integration of most common features like pagination or selection.
 - CRUD operations for any, even complex, javascript objects
 - Full offline support und high performance guaranteed.
+- User and role based **security framework** (global, collection and entities)
 - Test coverage of 100%.
 
 ## Example for node.js / angular
