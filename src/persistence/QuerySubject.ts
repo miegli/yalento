@@ -1,6 +1,7 @@
 import {BehaviorSubject} from 'rxjs';
 import {IClassProperty, IRepositoryData, Repository} from '../persistence/Repository';
 import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
+import {Select} from "./select/select";
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
@@ -38,6 +39,7 @@ export class QuerySubject<T> {
     private readonly _sql: IStatement | undefined;
     private readonly _paginatorDefaults: IQueryPaginatorDefaults | undefined;
     private _lastExecStatement: string = '';
+    private _subscriptions: any[] = [];
 
     /**
      *
@@ -63,6 +65,13 @@ export class QuerySubject<T> {
             .then()
             .catch();
     }
+
+    public unsubscribe() {
+        this._subscriptions.forEach((sub: any) => {
+            sub.unsubscribe();
+        })
+    }
+
 
     public getSql(): IStatement | undefined {
         return this._sql;
@@ -264,9 +273,9 @@ export class QuerySubject<T> {
         if (sql && sql.params) {
             sql.params.forEach((param: any) => {
                 if (typeof param === 'object' && param.asObservable !== undefined && typeof param.asObservable === 'function') {
-                    param.asObservable().subscribe(() => {
+                    this._subscriptions.push(param.asObservable().subscribe(() => {
                         this.updateQueryCallbackChanges({selectSqlStatement: true});
-                    });
+                    }));
                 }
             });
         }
@@ -279,7 +288,7 @@ export class QuerySubject<T> {
      */
     private observeQueryCallbackChanges(sql?: IStatement): Promise<void> {
         return new Promise(resolve => {
-            this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
+            this._subscriptions.push(this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
                 if (
                     changes.dataAdded ||
                     changes.pageSize !== undefined ||
@@ -291,7 +300,7 @@ export class QuerySubject<T> {
                         this.execStatement(sql);
                     }, 1);
                 }
-            });
+            }));
         });
     }
 
@@ -307,4 +316,5 @@ export class QuerySubject<T> {
 
         return statement;
     }
+
 }

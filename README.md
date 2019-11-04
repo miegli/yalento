@@ -1,6 +1,4 @@
 
-
-
 [![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
 # Yalento  
@@ -55,6 +53,15 @@ Now, you have successfully connected your repository to realtime database of clo
 
  - repository.select({ where: 'age >= 18'}) automatically fetches matching contacts from remote database
  - repository.create({ name: 'Bob', age: 10}) puts new contact to remote database
+ 
+ Don't forget to unsubscribe from all observers to avoid memory leaks:
+ 
+ *Example to unsubscribe from all subscribers after leaving an angular component.*
+
+    ngOnDestroy(): void {
+          this.contactRepository.destroy();
+    }
+
 
 ### Paginator
 

@@ -49,6 +49,8 @@ export class Repository<T> {
     private readonly _classProperties: IClassProperty[] = [];
     private readonly _constructorArguments: any;
     private readonly _subjects: Array<QuerySubject<T>> = [];
+    private readonly _selects: Array<Select<T>> = [];
+    private _subscriptions: any[] = [];
     private _tempData: IRepositoryData[] = [];
     private _excludeSerializeProperties: string[] = [];
     private _connections: IConnections<T> = {};
@@ -76,6 +78,18 @@ export class Repository<T> {
         Object.keys(this._connections).forEach((connectionId: string) => {
             this._connections[connectionId].disconnect();
         });
+        this._subjects.forEach((subject: QuerySubject<T>) => {
+            subject.unsubscribe();
+        });
+        this._selects.forEach((select: Select<T>) => {
+            select.unsubscribe();
+        });
+    }
+
+    public unsubscribe() {
+        this._subscriptions.forEach((sub: any) => {
+            sub.unsubscribe();
+        })
     }
 
     /**
@@ -117,7 +131,9 @@ export class Repository<T> {
         const subject = new QuerySubject<T>(this, sql, paginatorDefaults);
         this._subjects.push(subject);
         subject.execStatement(subject.getSql());
-        return new Select<T>(subject);
+        const select = new Select<T>(subject);
+        this._selects.push(select);
+        return select;
     }
 
     /**
@@ -135,15 +151,16 @@ export class Repository<T> {
 
             const subject = new QuerySubject<T>(this, sqlOne);
             const select = new Select<T>(subject);
+            this._selects.push(select);
             this._subjects.push(subject);
 
-            select.getResultsAsObservable().subscribe((results: T[]) => {
+            this._subscriptions.push(select.getResultsAsObservable().subscribe((results: T[]) => {
                 if (results.length) {
                     this._zone.run(() => {
                         observer.next(results[0]);
                     });
                 }
-            });
+            }));
 
             subject.execStatement(subject.getSql());
         });

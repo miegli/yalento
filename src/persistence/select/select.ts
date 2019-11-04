@@ -7,6 +7,7 @@ import {IRepositoryDataCreate} from '../Repository';
 export class Select<T> {
     private readonly subject: QuerySubject<T>;
     private readonly paginator: QueryPaginator<T>;
+    private _subscriptions: any[] = [];
 
     constructor(subject: QuerySubject<T>) {
         this.subject = subject;
@@ -41,14 +42,13 @@ export class Select<T> {
     public getResultsAsObservable(): Observable<T[]> {
         return new Observable<T[]>((observer: Subscriber<T[]>) => {
 
-            this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
-
+            this._subscriptions.push(this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
                 if (changes.results !== undefined) {
                     this.subject.getRepository()._zone.run(() => {
                         observer.next(this.getResults());
                     });
                 }
-            });
+            }));
         });
     }
 
@@ -69,4 +69,11 @@ export class Select<T> {
                 });
         });
     }
+
+    public unsubscribe() {
+        this._subscriptions.forEach((sub: any) => {
+            sub.unsubscribe();
+        })
+    }
+
 }

@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {AngularFirestore} from '@angular/fire/firestore';
 import {MatDialog} from '@angular/material';
 import {IPageEventSort, Select, Repository} from '@yalento';
@@ -13,16 +13,18 @@ import {ContactDialogComponent} from '../contact-dialog/contact-dialog.component
   templateUrl: './contact-list.component.html',
   styleUrls: ['./contact-list.component.css'],
 })
-export class ContactListComponent implements OnInit {
+export class ContactListComponent implements OnInit, OnDestroy {
 
   contactRepository: Repository<Contact>;
   searchString$: BehaviorSubject<number>;
   contacts: Select<Contact>;
   displayedColumns: string[] = ['select', 'name', 'lastName', 'age', 'action'];
 
-  constructor(public dialog: MatDialog, db: AngularFirestore) {
+  constructor(public dialog: MatDialog, db: AngularFirestore, ngZone: NgZone) {
     this.contactRepository = new Repository<Contact>(Contact, 'test').connectFirestore(db);
+    this.contactRepository.setNgZone(ngZone);
     this.searchString$ = new BehaviorSubject<number>(0);
+
   }
 
 
@@ -38,6 +40,18 @@ export class ContactListComponent implements OnInit {
         pageSizeOptions: [1, 5, 10, 100],
       });
 
+    this.contacts.getResultsAsObservable()
+      .subscribe((e) => {
+        console.log(e);
+      });
+
+
+  }
+
+
+  ngOnDestroy(): void {
+
+    this.contactRepository.destroy();
 
   }
 
@@ -62,6 +76,11 @@ export class ContactListComponent implements OnInit {
     }
 
 
+  }
+
+
+  disconnect() {
+    this.contactRepository.destroy();
   }
 
   sort(e: IPageEventSort) {
