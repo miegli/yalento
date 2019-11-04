@@ -70,7 +70,10 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
             (this.db as any)
                 .doc(this.getPath() + '/' + item._uuid)
                 .set(data, {merge: true})
-                .then();
+                .then()
+                .catch((e) => {
+                    console.error('error while creating firestore document "' + this.getPath() + '/' + item._uuid + '": ' + e.message);
+                })
         });
 
         return;
@@ -80,6 +83,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         let finalSql = !this.options || !this.options.sql ? sql : this.options.sql;
         let finalSqlCondition = (finalSql.substr(('SELECT * FROM ' + this.repository.getClassName()).length)).trim();
         let finalSqlConditionUser = '';
+
 
         if (this.dataMode === 'PRIVATE') {
             finalSqlConditionUser = '`__owner.' + this.currentUser.uid + '` = true ';
@@ -112,6 +116,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
                     .then()
                     .catch();
             });
+
 
             this.lastSql = finalSql;
         }

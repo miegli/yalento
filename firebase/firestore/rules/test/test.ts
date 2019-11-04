@@ -64,15 +64,6 @@ after(async () => {
 
 @suite
 class MyApp {
-    @test
-    async "require users to log in before creating an account"() {
-
-        await createMock("Account", {});
-
-        const db = authedApp(null);
-        const account = db.collection("Account/data/accounts").doc("testaccount");
-        await firebase.assertFails(account.set({name: "name"}));
-    }
 
     @test
     async "should let anyone create an account"() {
@@ -154,6 +145,22 @@ class MyApp {
     }
 
     @test
+    async "should let update an account by any authenticated users"() {
+
+        await createMock("Account", {
+            create: {AUTHENTICATED: true},
+        });
+        const db = authedApp({uid: "testuserid"});
+        const account = db.collection("Account/data/accounts").doc("testaccount");
+        await firebase.assertSucceeds(
+            account.set({
+                name: "name"
+            })
+        );
+
+    }
+
+    @test
     async "should allow guest users to read an account without defined permissions"() {
 
         await createMock("Account", {});
@@ -185,6 +192,7 @@ class MyApp {
         expect((await account.get()).docs).to.be.lengthOf(0);
     }
 
+
     @test
     async "should allow users list accounts data made for everybody"() {
 
@@ -194,6 +202,12 @@ class MyApp {
         const account = db.collection('Account/data/accounts').where('__owner.EVERYBODY', "==", true);
         await firebase.assertSucceeds(account.get());
         expect((await account.get()).docs).to.be.lengthOf(1);
+
+
+        const db1 = authedApp(null);
+        const account1 = db1.collection('Account/data/accounts').where('__owner.EVERYBODY', "==", true);
+        await firebase.assertSucceeds(account1.get());
+        expect((await account1.get()).docs).to.be.lengthOf(1);
     }
 
     @test
@@ -204,6 +218,21 @@ class MyApp {
         const db = authedApp({uid: "test"});
         const account = db.collection('Account/data/accounts');
         await firebase.assertFails(account.get());
+
+    }
+
+    @test
+    async "should allow users list empty collections"() {
+
+        await createMock("Account", {});
+
+        const db = authedApp({uid: "test"});
+        const account = db.collection('Account/data/accounts').where('__owner.EVERYBODY', "==", true);
+        await firebase.assertSucceeds(account.get());
+
+        const db1 = authedApp(null);
+        const account1 = db1.collection('Account/data/accounts').where('__owner.EVERYBODY', "==", true);
+        await firebase.assertSucceeds(account1.get());
 
     }
 
