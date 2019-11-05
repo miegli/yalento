@@ -1,5 +1,5 @@
 import {Observable, Subscriber} from 'rxjs';
-import {map, take, takeUntil, takeWhile} from 'rxjs/operators';
+import {take, takeWhile} from 'rxjs/operators';
 import {QueryPaginator} from '../query/QueryPaginator';
 import {IQueryCallbackChanges, QuerySubject} from '../QuerySubject';
 import {IRepositoryDataCreate} from '../Repository';

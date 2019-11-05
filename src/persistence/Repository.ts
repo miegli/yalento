@@ -61,7 +61,7 @@ export class Repository<T> {
      * @param constructor
      * @param constructorArguments
      */
-    constructor(private constructor: any, ...constructorArguments: any[]) {
+    constructor(public constructor:  any, ...constructorArguments: any[]) {
         this._class = constructor;
         this._constructorArguments = constructorArguments;
         this._instanceIdentifier = Guid.create()

@@ -1,7 +1,6 @@
 import {BehaviorSubject} from 'rxjs';
 import {IClassProperty, IRepositoryData, Repository} from '../persistence/Repository';
 import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
-import {Select} from "./select/select";
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');

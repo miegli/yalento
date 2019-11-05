@@ -5,7 +5,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 firebase-debug.log*
-.DS_Store
 
 # Firebase cache
 .firebase/
@@ -16,7 +15,6 @@ firebase-debug.log*
 # For a team working on the same Firebase project(s), it is recommended to leave
 # it commented so all members can deploy to the same project(s) in .firebaserc.
 # .firebaserc
-service-account.json
 
 # Runtime data
 pids
@@ -65,20 +63,3 @@ node_modules/
 
 # dotenv environment variables file
 .env
-
-# idea
-.idea
-
-# node modules
-node_modules
-./firebase/firestore/rules/node_modules
-
-# compiled
-/lib
-/test/node/node_modules/
-
-# env
-.env
-
-/firebase/functions/firestore-service-account.json
-/firebase/functions

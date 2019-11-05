@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, Observer } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
 
