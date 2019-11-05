@@ -8,5 +8,4 @@ export interface IConnectorInterface<T> {
   getUserUuid(): string;
 
   isPrivateMode(): boolean;
-
 }
