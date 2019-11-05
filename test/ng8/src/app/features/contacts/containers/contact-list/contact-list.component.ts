@@ -100,7 +100,8 @@ export class ContactListComponent implements OnInit, OnDestroy {
   }
 
   getSelected() {
-    console.log(this.contacts.getPaginator().getSelected());
+    console.log(this.contacts.getPaginator().getSelected())
+    this.contactRepository.removeMultiple(this.contacts.getPaginator().getSelected());
   }
 
 }

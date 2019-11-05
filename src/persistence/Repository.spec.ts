@@ -247,4 +247,15 @@ describe('RepositoryTest', async () => {
     await repository.createMany([{ age: 1 }, { age: 2 }]);
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(3);
   });
+
+
+  it('removing model after repository querying should update results', async () => {
+    const repository: Repository<Contact> = new Repository(Contact);
+    const contacts = repository.select();
+    const contact = await contacts.create();
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
+    await repository.remove(contact);
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
+  });
+
 });
