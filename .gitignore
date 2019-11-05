@@ -81,3 +81,4 @@ node_modules
 .env
 
 /firebase/functions/node_modules
+/firebase/service-account.json

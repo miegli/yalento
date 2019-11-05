@@ -100,11 +100,11 @@ export class QuerySubject<T> {
 
     let ownerWhere = '';
     if (this.getRepository().isPrivateMode()) {
-      ownerWhere += '`__owner.' + this.getRepository().getUserUuid() + '` = true ';
+      ownerWhere += '`__owner.' + this.getUserUuid() + '` = true ';
     } else {
       ownerWhere += '`__owner.EVERYBODY` = true ';
-      if (this.getRepository().getUserUuid() !== 'null') {
-        statement += ' OR `__owner.' + this.getRepository().getUserUuid() + '` = true ';
+      if (this.getUserUuid() !== 'null') {
+        statement += ' OR `__owner.' + this.getUserUuid() + '` = true ';
       }
     }
 
@@ -142,11 +142,11 @@ export class QuerySubject<T> {
     statement += ' WHERE ( ';
 
     if (this.getRepository().isPrivateMode()) {
-      statement += '"' + this.getRepository().getUserUuid() + '" IN __owners ';
+      statement += '"' + this.getUserUuid() + '" IN __owners ';
     } else {
       statement += '"EVERYBODY" IN __owners ';
-      if (this.getRepository().getUserUuid() !== 'null') {
-        statement += ' OR "' + this.getRepository().getUserUuid() + '" IN __owners ';
+      if (this.getUserUuid() !== 'null') {
+        statement += ' OR "' + this.getUserUuid() + '" IN __owners ';
       }
     }
 
@@ -233,6 +233,13 @@ export class QuerySubject<T> {
    */
   public getRepository(): Repository<T> {
     return this.repository;
+  }
+
+  /**
+   *
+   */
+  private getUserUuid(): string {
+    return this.getRepository().getUserUuid();
   }
 
   /**

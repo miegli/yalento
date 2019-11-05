@@ -9,7 +9,7 @@ export class Contact {
 
 const fb = firebase.initializeApp();
 const repo = new Repository<Contact>(Contact);
-const select = repo.connectFirestore(fb, {realtimeMode: false}).select({where: 'age > 0'});
+const select = repo.connectFirestore(fb, {realtimeMode: false}).select({where: 'age > 0', orderBy: 'age DESC'});
 repo.create({age: new Date().getTime()}).then().catch();
 
 export const helloWorld = functions.region('europe-west2').https.onRequest((request, response) => {

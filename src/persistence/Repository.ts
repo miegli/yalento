@@ -367,6 +367,8 @@ export class Repository<T> {
       });
     }
 
+    console.log(c);
+
     return c;
   }
 
