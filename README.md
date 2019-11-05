@@ -109,7 +109,7 @@ Let's look at an example for a serverless function:
             response.send(e.message);
             })  
         });
-The output of the example is a JSON array of Contacts, if you call the 'helloWorl' HTTP endpoint.
+The output of the example is a JSON array of Contacts, if you call the 'helloWorld' HTTPS endpoint.
 
 
 ## Documentation

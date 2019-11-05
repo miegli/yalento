@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "yalento-test"
+    "default": "yalento-test2",
+    "test2": "yalento-test2"
   }
 }

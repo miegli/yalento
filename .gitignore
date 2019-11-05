@@ -80,6 +80,4 @@ node_modules
 # env
 .env
 
-/firebase/functions/firestore-service-account.json
-/firebase/functions
-/firebase/service-account.json
+/firebase/functions/node_modules
