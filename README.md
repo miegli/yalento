@@ -1,4 +1,5 @@
 
+
 [![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
 # Yalento  
@@ -6,6 +7,7 @@ An awesome framework that combines the best benefits from [AlaSQL](http://alasql
 
 - Write normal SQL-Queries and get observable **realtime** result changes.
 - Native integration of most common features like pagination or selection.
+- **Made for serverless** (google cloud functions, aws lambda, etc).
 - CRUD operations for any, even complex, javascript objects
 - Full **offline support** und high performance guaranteed.
 - User and role based **security framework** (global, collection and entities)
@@ -84,6 +86,31 @@ Nothing to configure - you've already implemented all the pagination component f
 
     # get all selected kids
     const yourKids: Contact[] = kids.getPaginator().getSelected();
+
+## Example serverless
+### google cloud functions
+
+The yalento repository is optimized for running serverless applications. You can easily query, e.g. create cloud functions and return the results as json. You benefit from the fact that the repository retains all data in the working memory and monitors changes to the source databases in real time. This leads to extremely high reaction times (<5ms).
+
+Let's look at an example for a serverless function:
+
+    import * as functions from 'firebase-functions';  
+    import * as firebase from 'firebase-admin';  
+    import {Repository} from "yalento";
+    
+    const fb = firebase.initializeApp();  
+    const repo = new Repository<Contact>(Contact);  
+    const select = repo.connectFirestore(fb).select({where: 'age > 0'});  
+      
+      export const helloWorld = functions.https.onRequest((request, response) => {
+        select.toJson().then((json: string) => {  
+            response.send(json);
+            }).catch((e) => {  
+            response.send(e.message);
+            })  
+        });
+The output of the example is a JSON array of Contacts, if you call the 'helloWorl' HTTP endpoint.
+
 
 ## Documentation
 
