@@ -82,3 +82,4 @@ node_modules
 
 /firebase/functions/firestore-service-account.json
 /firebase/functions
+/firebase/service-account.json
