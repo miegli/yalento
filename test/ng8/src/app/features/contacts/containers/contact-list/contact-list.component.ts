@@ -79,6 +79,14 @@ export class ContactListComponent implements OnInit, OnDestroy {
   }
 
 
+  toJson() {
+    this.contacts.toJson().then((r: string) => {
+      console.log(r);
+    }).catch((e) => {
+      console.log(e);
+    });
+  }
+
   disconnect() {
     this.contactRepository.destroy();
   }
