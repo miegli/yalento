@@ -1,5 +1,6 @@
 import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
+import {throwError} from "rxjs";
 import {Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
 import {IConnectorInterface} from './ConnectorInterface';
@@ -72,7 +73,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
                 .set(data, {merge: true})
                 .then()
                 .catch((e) => {
-                    console.error('error while creating firestore document "' + this.getPath() + '/' + item._uuid + '": ' + e.message);
+                    throwError('error while creating firestore document "' + this.getPath() + '/' + item._uuid + '": ' + e.message);
                 })
         });
 
