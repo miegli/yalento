@@ -1,18 +1,11 @@
 <form *ngIf="contact" (ngSubmit)="submit()">
   <mat-form-field class="full-width">
-    <input matInput placeholder="lastName" name="lastName" [(ngModel)]="contact.lastName"
-           (ngModelChange)="contact.setChanges()">
+    <input matInput placeholder="lastName" name="lastName" [(ngModel)]="contact.lastName">
   </mat-form-field>
 
   <mat-form-field class="full-width">
-    <input matInput placeholder="Name" name="name" [(ngModel)]="contact.name" (ngModelChange)="contact.setChanges()">
+    <input matInput placeholder="Name" name="name" [(ngModel)]="contact.name">
   </mat-form-field>
-
-  <mat-form-field class="full-width">
-    <input matInput placeholder="street" name="street" [(ngModel)]="contact.street"
-           (ngModelChange)="contact.setChanges()">
-  </mat-form-field>
-
 
   <button type="submit" hidden="true">Submit</button>
 </form>

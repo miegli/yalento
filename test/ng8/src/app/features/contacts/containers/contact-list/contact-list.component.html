@@ -1,13 +1,12 @@
 <div>
   <button mat-raised-button (click)="add();">Add</button>
-  <button mat-raised-button (click)="add(1000);">Add 1000 entries</button>
-  <button mat-raised-button (click)="disconnect();">disconnect</button>
-  <button mat-raised-button (click)="toJson();">json</button>
+  <button mat-raised-button (click)="removeSelected();">Remove selected</button>
+  <button mat-raised-button (click)="toJson();">toJson</button>
 </div>
 
 <mat-toolbar>
   <mat-toolbar-row>
-    <input [autofocus]="true" matInput placeholder="search" type="number" [ngModel]="searchString$ | async"
+    <input [autofocus]="true" matInput placeholder="search by age" type="number" [ngModel]="searchString$ | async"
            (ngModelChange)="searchString$.next($event)">
   </mat-toolbar-row>
 </mat-toolbar>
@@ -20,7 +19,7 @@
       <mat-checkbox [checked]="contacts.getPaginator().isSelectedAll() | async"
                     (change)="contacts.getPaginator().toggleSelection()">
       </mat-checkbox>
-      <span mat-basic-chip (click)="getSelected()">
+      <span mat-basic-chip>
         {{contacts.getPaginator().getSelectedCount() | async}}
       </span>
     </th>
@@ -35,7 +34,8 @@
   <ng-container matColumnDef="name">
     <th mat-sort-header="name" mat-header-cell *matHeaderCellDef> First name</th>
     <td mat-cell *matCellDef="let contact">
-      {{ contact.name }}
+      <input matInput placeholder="name" [ngModel]="contact.name"
+             (ngModelChange)="contact.setProperty('name', $event).save()">
   </ng-container>
 
   <!-- LastName Column -->
@@ -49,7 +49,7 @@
   <ng-container matColumnDef="age">
     <th mat-sort-header="age" mat-header-cell *matHeaderCellDef> Age</th>
     <td mat-cell *matCellDef="let contact">
-      <input matInput placeholder="search" type="number" [ngModel]="contact.age"
+      <input matInput placeholder="age" type="number" [ngModel]="contact.age"
              (ngModelChange)="contact.setProperty('age', $event).save()">
   </ng-container>
 

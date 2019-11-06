@@ -1,7 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { BehaviorSubject } from 'rxjs';
-import { Contact } from '../../models/contact';
+import {Component, Inject, OnInit} from '@angular/core';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {IEntity} from "@yalento";
+import {Contact} from '../../models/contact';
 
 @Component({
   selector: 'app-contact-dialog',
@@ -12,22 +12,18 @@ export class ContactDialogComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<ContactDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public contact$: BehaviorSubject<Contact>) {
+    @Inject(MAT_DIALOG_DATA) public contact: Contact) {
   }
 
   ngOnInit(): void {
 
-    this.contact$.subscribe((contact: Contact) => {
-      if (!contact) {
-        this.dialogRef.close();
-      }
-    });
   }
 
-  save(contact: Contact) {
-
-
+  save(item: IEntity<Contact>) {
+    console.log(item.age);
+    console.log(item.save);
   }
+
 
   close() {
     this.dialogRef.close();

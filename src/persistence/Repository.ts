@@ -3,6 +3,7 @@ import 'es6-shim';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
 import {Observable} from 'rxjs';
+import {AbstractConnector} from "./connector/AbstractConnector";
 import {IConnectorInterface} from './connector/ConnectorInterface';
 import {Firebase, Firestore, FirestoreConnector, IConnectionFirestore} from './connector/FirestoreConnector';
 import {IQueryPaginatorDefaults} from './query/QueryPaginator';
@@ -30,6 +31,9 @@ export interface IClassProperty {
 export interface IConnections<T> {
     [key: string]: IConnectorInterface<T>;
 }
+
+
+export type IEntity<T> = T & { save(): void } & { setProperty(property: string, value: any): void }
 
 export type IConnectionsKeys = ['firestore'];
 
@@ -454,6 +458,17 @@ export class Repository<T> {
             },
         });
 
+        Object.defineProperty(c, 'save', {
+            enumerable: false,
+            configurable: false,
+            writable: true,
+            value: (): void => {
+                this.update(c).then(() => {
+                    c['_lockedProperties'] = {};
+                }).catch();
+            },
+        });
+
         Object.defineProperty(c, 'setProperty', {
             enumerable: false,
             configurable: false,
@@ -470,7 +485,7 @@ export class Repository<T> {
                     this._subjects.forEach((subject: QuerySubject<T>) => {
                         subject.updateQueryCallbackChanges({dataUpdated: true});
                     });
-                }, 2000);
+                }, 500);
 
                 return {
                     save: (): void => {
@@ -481,7 +496,7 @@ export class Repository<T> {
                             this.update(c).then(() => {
                                 c['_lockedProperties'][property] = false;
                             }).catch();
-                        }, 2000);
+                        }, 1000);
                     }
                 };
             },

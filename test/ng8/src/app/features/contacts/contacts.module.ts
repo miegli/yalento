@@ -8,13 +8,12 @@ import { MaterialModule } from '../../material/material.module';
 import { ContactsRoutingModule } from './contacts-routing.module';
 import { ContactListComponent } from './containers/contact-list/contact-list.component';
 import { ContactComponent } from './components/contact/contact.component';
-import { ContactDetailComponent } from './containers/contact-detail/contact-detail.component';
 import { ContactDialogComponent } from './containers/contact-dialog/contact-dialog.component';
 
 
 
 @NgModule({
-  declarations: [ContactListComponent, ContactComponent, ContactDetailComponent, ContactDialogComponent],
+  declarations: [ContactListComponent, ContactComponent, ContactDialogComponent],
   entryComponents: [ ContactDialogComponent ],
   imports: [
     ContactsRoutingModule,

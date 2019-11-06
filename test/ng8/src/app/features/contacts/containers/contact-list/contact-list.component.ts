@@ -56,7 +56,7 @@ export class ContactListComponent implements OnInit, OnDestroy {
   }
 
   edit(contact: Contact): void {
-    return;
+
     if (!this.dialog.getDialogById('ContactListComponent')) {
       this.dialog.open(ContactDialogComponent, {
         id: 'ContactListComponent',
@@ -91,9 +91,6 @@ export class ContactListComponent implements OnInit, OnDestroy {
     });
   }
 
-  disconnect() {
-    this.contactRepository.destroy();
-  }
 
   sort(e: IPageEventSort) {
     this.contacts.getPaginator().setPageSort(e);
@@ -103,9 +100,8 @@ export class ContactListComponent implements OnInit, OnDestroy {
     this.contacts.getPaginator().toggleSelection(item);
   }
 
-  getSelected() {
-    console.log(this.contacts.getPaginator().getSelected())
-    this.contactRepository.removeMultiple(this.contacts.getPaginator().getSelected());
+  removeSelected() {
+    this.contactRepository.removeMultiple(this.contacts.getPaginator().getSelected()).then();
   }
 
 }
