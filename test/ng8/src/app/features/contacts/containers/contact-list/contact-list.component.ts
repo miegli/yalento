@@ -78,6 +78,10 @@ export class ContactListComponent implements OnInit, OnDestroy {
 
   }
 
+  update(item: any) {
+
+    console.log(item);
+  }
 
   toJson() {
     this.contacts.toJson().then((r: string) => {

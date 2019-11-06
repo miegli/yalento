@@ -1,5 +1,4 @@
 
-
 [![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
 # Yalento  
@@ -11,7 +10,6 @@ An awesome framework that combines the best benefits from [AlaSQL](http://alasql
 - CRUD operations for any, even complex, javascript objects
 - Full **offline support** und high performance guaranteed.
 - User and role based **security framework** (global, collection and entities)
-- Test coverage of 100%.
 
 ## Example for node.js / angular
 
@@ -40,6 +38,33 @@ And what about querying? Nothing easier than this.
     const kids: Contact[] = repository.select({ where: 'age < 18'}).getResults();
 
 Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
+
+### CRUD
+
+Once you have selected your data (read), maybe you go to work on it.
+
+*Example: Create new contact with default values from current selection. Contact3 will have age of 17 automatically, because its part of the kids selection! (create)*
+
+    const contact3: Contact = await kids.create({ name: 'Mia'});
+    
+*Example: Two way binding for an angular component (auto-update)*
+
+    <input [ngModel]="contact.name" (ngModelChange)="contact.setProperty('lastName', $event).save()">
+
+*Example: Update one or multiple contacts (update on demand)*
+
+    await repository.update(contact3);
+    await repository.updateMultiple([contact1, contact2]);
+
+*Example: Delete one or multiple contacts (delete)*
+
+    await repository.remove(contact3);
+    await repository.removeMultiple(contact3);
+
+*Example: Delete all selected contacts. For paginator see corresponding examples bellow (delete)*
+
+    await repository.removeMultiple(kids.getPaginator().getSelected());
+
 
 ### Observable realtime changes
 The observables are really useful if you connect your repository to "Google Cloud Firestore" or to any other database with realtime updates support:
@@ -90,7 +115,7 @@ Nothing to configure - you've already implemented all the pagination component f
 ## Example serverless
 ### google cloud functions
 
-The yalento repository is optimized for running serverless applications. You can easily query, e.g. create cloud functions and return the results as json. You benefit from the fact that the repository retains all data in the working memory and monitors changes to the source databases in real time. This leads to extremely high reaction times (<5ms).
+The yalento repository is optimized for running serverless applications. You can easily query, e.g. create cloud functions and return the results as json. You benefit from the fact that the repository retains all data in the memory and monitors changes to the source databases in real time. This leads to extremely high reaction times (<5ms).
 
 Let's look at an example for a serverless function:
 

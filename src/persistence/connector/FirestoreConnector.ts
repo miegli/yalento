@@ -76,6 +76,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
 
     public add(items: T[]) {
         items.forEach((item: any) => {
+
             const data = item._toPlain();
 
             data['__uuid'] = item['_uuid'];
@@ -99,6 +100,13 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
                     );
                 });
         });
+
+        return;
+    }
+
+    public update(items: T[]) {
+
+        this.add(items);
 
         return;
     }

@@ -240,6 +240,58 @@ export class Repository<T> {
 
     /**
      *
+     * @param data
+     * @param skipConnector
+     */
+    public update(
+        data: T,
+        skipConnector?: string,
+    ): Promise<T> {
+        return new Promise<T>(resolve => {
+
+            Object.keys(this._connections as any).forEach((k: string) => {
+                /* istanbul ignore next */
+                if (skipConnector !== k) {
+                    this._connections[k].update([data]);
+                }
+            });
+
+            this._subjects.forEach((subject: QuerySubject<T>) => {
+                subject.updateQueryCallbackChanges({dataUpdated: true});
+            });
+
+            resolve(data);
+        });
+    }
+
+    /**
+     *
+     * @param data
+     * @param skipConnector
+     */
+    public updateMultiple(
+        data: T[],
+        skipConnector?: string,
+    ): Promise<T[]> {
+        return new Promise<T[]>(resolve => {
+
+            Object.keys(this._connections as any).forEach((k: string) => {
+                /* istanbul ignore next */
+                if (skipConnector !== k) {
+                    this._connections[k].update(data);
+                }
+            });
+
+            this._subjects.forEach((subject: QuerySubject<T>) => {
+                subject.updateQueryCallbackChanges({dataUpdated: true});
+            });
+
+            resolve(data);
+        });
+    }
+
+    /**
+     *
      * @param data[]
      * @param skipConnector
      */
@@ -372,12 +424,66 @@ export class Repository<T> {
             value: uuid,
         });
 
+        Object.defineProperty(c, '_timeoutSave', {
+            enumerable: false,
+            configurable: false,
+            writable: true,
+            value: {},
+        });
+
+        Object.defineProperty(c, '_lockedProperties', {
+            enumerable: false,
+            configurable: false,
+            writable: true,
+            value: {},
+        });
+
+        Object.defineProperty(c, '_timeoutSetProperty', {
+            enumerable: false,
+            configurable: false,
+            writable: true,
+            value: {},
+        });
+
         Object.defineProperty(c, '_toPlain', {
             enumerable: false,
             configurable: false,
             writable: false,
             value: () => {
                 return classToPlain(c, {excludePrefixes: this._excludeSerializeProperties});
+            },
+        });
+
+        Object.defineProperty(c, 'setProperty', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: (property: string, value: any) => {
+
+                c['_lockedProperties'][property] = true;
+
+                if (c['_timeoutSetProperty'][property] !== undefined) {
+                    clearTimeout(c['_timeoutSetProperty'][property]);
+                }
+                c['_timeoutSetProperty'][property] = setTimeout(() => {
+                    c[property] = value;
+                    this._subjects.forEach((subject: QuerySubject<T>) => {
+                        subject.updateQueryCallbackChanges({dataUpdated: true});
+                    });
+                }, 2000);
+
+                return {
+                    save: (): void => {
+                        if (c['_timeoutSave'][property] !== undefined) {
+                            clearTimeout(c['_timeoutSave'][property]);
+                        }
+                        c['_timeoutSave'][property] = setTimeout(() => {
+                            this.update(c).then(() => {
+                                c['_lockedProperties'][property] = false;
+                            }).catch();
+                        }, 2000);
+                    }
+                };
             },
         });
 
@@ -389,11 +495,20 @@ export class Repository<T> {
         id?: string | number,
         readDefaultsFromSelectStatement?: string,
     ) {
-        const c = this.createClassInstance(id) as any;
+
+        const exdistingId = id ? id : (data && data['__uuid'] ? data['__uuid'] : null);
+        const existingItem = this._tempData.filter((item: IRepositoryData) => {
+            return item._uuid === exdistingId;
+        });
+
+        const c = existingItem.length ? existingItem[0]._ref : this.createClassInstance(id) as any;
 
         if (data) {
+
             Object.keys(data).forEach((k: string) => {
-                c[k] = data[k];
+                if (!c['_lockedProperties'][k]) {
+                    c[k] = data[k];
+                }
             });
         }
 
@@ -416,10 +531,6 @@ export class Repository<T> {
                 c[k] = additionalData[k];
             });
         }
-
-        const existingItem = this._tempData.filter((item: IRepositoryData) => {
-            return item._uuid === c['_uuid'];
-        });
 
         if (existingItem.length) {
             existingItem.forEach((item: IRepositoryData) => {

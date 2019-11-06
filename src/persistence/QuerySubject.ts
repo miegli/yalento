@@ -27,6 +27,7 @@ export interface IQueryCallbackChanges {
     pageSort?: IPageEventSort;
     dataAdded?: boolean;
     dataRemoved?: boolean;
+    dataUpdated?: boolean;
     selectSqlStatement?: boolean;
 }
 
@@ -335,6 +336,7 @@ export class QuerySubject<T> {
                     if (
                         changes.dataAdded ||
                         changes.dataRemoved ||
+                        changes.dataUpdated ||
                         changes.pageSize !== undefined ||
                         changes.pageIndex !== undefined ||
                         changes.pageSort !== undefined ||

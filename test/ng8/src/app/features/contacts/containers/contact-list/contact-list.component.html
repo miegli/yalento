@@ -42,14 +42,15 @@
   <ng-container matColumnDef="lastName">
     <th mat-sort-header="lastName" mat-header-cell *matHeaderCellDef> Name</th>
     <td mat-cell *matCellDef="let contact">
-      {{ contact.lastName }}
+      <input matInput [ngModel]="contact.lastName" (ngModelChange)="contact.setProperty('lastName', $event).save()">
   </ng-container>
 
   <!-- age Column -->
   <ng-container matColumnDef="age">
     <th mat-sort-header="age" mat-header-cell *matHeaderCellDef> Age</th>
     <td mat-cell *matCellDef="let contact">
-      {{ contact.age }}
+      <input matInput placeholder="search" type="number" [ngModel]="contact.age"
+             (ngModelChange)="contact.setProperty('age', $event).save()">
   </ng-container>
 
   <!-- action Column -->

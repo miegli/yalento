@@ -258,4 +258,15 @@ describe('RepositoryTest', async () => {
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
   });
 
+
+  it('updating model after repository querying should update results', async () => {
+    const repository: Repository<Contact> = new Repository(Contact);
+    const contacts = repository.select({ where: 'age = 0'});
+    const contact = await contacts.create();
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
+    contact.age = 1;
+    await repository.update(contact);
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
+  });
+
 });

@@ -3,6 +3,8 @@ export interface IConnectorInterface<T> {
 
   remove(items: T[]): void;
 
+  update(items: T[]): void;
+
   select(sql: string): void;
 
   disconnect(): void;
