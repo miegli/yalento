@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {IEntity} from '@yalento';
 import { Contact } from '../../models/contact';
 
 @Component({
@@ -8,8 +9,8 @@ import { Contact } from '../../models/contact';
 })
 export class ContactComponent implements OnInit {
 
-  @Input() contact: Contact;
-  @Output() submitted: EventEmitter<Contact> = new EventEmitter<Contact>();
+  @Input() contact: IEntity<Contact>;
+  @Output() submitted: EventEmitter<IEntity<Contact>> = new EventEmitter<IEntity<Contact>>();
 
   constructor() { }
 

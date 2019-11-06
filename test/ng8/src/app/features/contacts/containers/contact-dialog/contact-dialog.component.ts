@@ -1,6 +1,6 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {IEntity} from "@yalento";
+import {IEntity} from '@yalento';
 import {Contact} from '../../models/contact';
 
 @Component({
@@ -21,6 +21,7 @@ export class ContactDialogComponent implements OnInit {
 
   save(item: IEntity<Contact>) {
     item.save();
+    this.close();
   }
 
 

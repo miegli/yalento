@@ -57,11 +57,11 @@
   <ng-container matColumnDef="action">
     <th mat-header-cell *matHeaderCellDef> Action</th>
     <td mat-cell *matCellDef="let contact">
-      <button mat-raised-button [routerLink]="['/contact']">Details</button>
+      <button mat-raised-button (click)="edit(contact)">Edit</button>
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr mat-row *matRowDef="let Contact; columns: displayedColumns;" (click)="edit(Contact)">>
+  <tr mat-row *matRowDef="let Contact; columns: displayedColumns;">
   </tr>
 
 </table>

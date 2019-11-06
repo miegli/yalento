@@ -38,7 +38,11 @@ interface IBaseEntityInner {
 
 class BaseEntity {
 
-    public save(): any {
+    public save(): void {
+        return;
+    };
+
+    public remove(): void {
         return;
     };
 
@@ -490,6 +494,16 @@ export class Repository<T> {
             value: (): void => {
                 this.update(c).then(() => {
                     c['_lockedProperties'] = {};
+                }).catch();
+            },
+        });
+
+        Object.defineProperty(c, 'remove', {
+            enumerable: false,
+            configurable: false,
+            writable: true,
+            value: (): void => {
+                this.remove(c).then(() => {
                 }).catch();
             },
         });

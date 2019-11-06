@@ -23,19 +23,19 @@ The yalento repository supports even complex javascript objects where you can do
       public age: number = 0;
     }
 
-Your model must not extend from any yalento classes - just write your classes how you like it. Only if you work with objects in a repository, then you need a yalento class:
+Your model must not extend from any yalento classes - just write your classes how you like it. Only if you work with objects in a repository, then you need the yalento class and IEntity type:
 
-    import { Repository } from 'yalento';
+    import { Repository, IEntity } from 'yalento';
     const repository: Repository<Contact> = new Repository(Contact);
    
 Now we are ready. Let's create two new contacts from repository:
 
-    const contact1: Contact = await repository.create({ name: 'Bob', age: 10});
-    const contact2: Contact = await repository.create({ name: 'Jan', age: 28});
+    const contact1: IEntity<Contact> = await repository.create({ name: 'Bob', age: 10});
+    const contact2: IEntity<Contact> = await repository.create({ name: 'Jan', age: 28});
 
 And what about querying? Nothing easier than this.
 
-    const kids: Contact[] = repository.select({ where: 'age < 18'}).getResults();
+    const kids: Array<IEntity<Contact>> = repository.select({ where: 'age < 18'}).getResults();
 
 Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
 
@@ -45,20 +45,26 @@ Once you have selected your data (read), maybe you go to work on it.
 
 *Example: Create new contact with default values from current selection. Contact3 will have age of 17 automatically, because its part of the kids selection! (create)*
 
-    const contact3: Contact = await kids.create({ name: 'Mia'});
+    const contact3: IEntity<Contact> = await kids.create({ name: 'Mia'});
     
 *Example: Two way binding for an angular component (auto-update)*
 
     <input [ngModel]="contact.name" (ngModelChange)="contact.setProperty('lastName', $event).save()">
-
+    
 *Example: Update one or multiple contacts (update on demand)*
 
-    await repository.update(contact3);
-    await repository.updateMultiple([contact1, contact2]);
+     html:
+        <input [(ngModel)]="contact1.name">
+        <input [(ngModel)]="contact2.name">
+        <input [(ngModel)]="contact3.name">
+        
+     ts:
+        contact3.save();  ||  await repository.update(contact3);
+	    await repository.updateMultiple([contact1, contact2]);
 
 *Example: Delete one or multiple contacts (delete)*
 
-    await repository.remove(contact3);
+    contact3.remove();  ||  await repository.remove(contact3);
     await repository.removeMultiple(contact3);
 
 *Example: Delete all selected contacts. For paginator see corresponding examples bellow (delete)*
