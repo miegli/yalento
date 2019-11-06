@@ -36,7 +36,7 @@ interface IBaseEntityInner {
     save(): void;
 }
 
-class BaseEntity {
+class BaseEntity<T> {
 
     public save(): void {
         return;
@@ -46,7 +46,7 @@ class BaseEntity {
         return;
     };
 
-    public setProperty(property: string, value: any): IBaseEntityInner {
+    public setProperty(property: keyof T, value: any): IBaseEntityInner {
         return {
             save: (): void => {
                 return;
@@ -55,7 +55,7 @@ class BaseEntity {
     }
 }
 
-export type IEntity<T> = BaseEntity & {
+export type IEntity<T> = BaseEntity<T> & {
     [P in keyof T]?: T[P];
 };
 
