@@ -1,6 +1,6 @@
 import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
-import {Repository} from '../Repository';
+import {IEntity, Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
 import {IConnectorInterface} from './ConnectorInterface';
 
@@ -26,7 +26,7 @@ export interface IConnectionFirestore {
     realtimeMode?: boolean;
 }
 
-export class FirestoreConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T> {
+export class FirestoreConnector<T> extends AbstractConnector<T> implements IConnectorInterface<IEntity<T>> {
     private readonly db: Firestore;
     private readonly currentUser: User;
     private readonly dataMode: ConnectionFirestoreDataMode = 'ALL';
@@ -74,7 +74,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         return this.dataMode === 'PRIVATE';
     }
 
-    public add(items: T[]) {
+    public add(items: Array<IEntity<T>>) {
         items.forEach((item: any) => {
 
             const data = item._toPlain();
@@ -104,14 +104,14 @@ export class FirestoreConnector<T> extends AbstractConnector<T> implements IConn
         return;
     }
 
-    public update(items: T[]) {
+    public update(items: Array<IEntity<T>>) {
 
         this.add(items);
 
         return;
     }
 
-    public remove(items: T[]) {
+    public remove(items: Array<IEntity<T>>) {
         items.forEach((item: any) => {
             (this.db as any)
                 .doc(this.getPath() + '/' + item._uuid)

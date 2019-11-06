@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { BehaviorSubject } from 'rxjs';
 import { skipWhile, takeUntil, takeWhile } from 'rxjs/operators';
-import { Repository } from '..';
+import {IEntity, Repository} from '..';
 import { IQueryCallbackChanges } from './QuerySubject';
 
 export class Contact {
@@ -168,7 +168,7 @@ describe('RepositoryTest', async () => {
         contacts
           .getResultsAsObservable()
           .pipe(
-            takeWhile((results: Contact[]) => {
+            takeWhile((results: Array<IEntity<Contact>>) => {
               counter.push(results.length);
               return results.length !== 3;
             }),

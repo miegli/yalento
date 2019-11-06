@@ -1,6 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
+import {IEntity} from "../Repository";
 
 export interface IQueryPaginatorDefaults {
   pageSizeOptions?: number[];
@@ -25,10 +26,10 @@ export interface IPageEventSort {
 }
 
 export class QueryPaginator<T> {
-  public results: T[] = [];
-  private results$: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([]);
+  public results: Array<IEntity<T>> = [];
+  private results$: BehaviorSubject<Array<IEntity<T>>> = new BehaviorSubject<Array<IEntity<T>>>([]);
   private length: number = 0;
-  private resultsAll: T[] = [];
+  private resultsAll: Array<IEntity<T>> = [];
   private pageSize: number = 0;
   private pageIndex: number = 0;
   private pageSizeOptions: number[] = [];
@@ -63,14 +64,14 @@ export class QueryPaginator<T> {
   /**
    *
    */
-  public getSelected(): T[] {
-    const selected: T[] = [];
+  public getSelected(): Array<IEntity<T>> {
+    const selected: Array<IEntity<T>> = [];
 
     if (this.isSelectedAll().getValue()) {
       return this.resultsAll;
     }
 
-    this.results.forEach((r: T) => {
+    this.results.forEach((r: IEntity<T>) => {
       // @ts-ignore
       if (this._selected[r['_uuid']]) {
         selected.push(r);
@@ -96,7 +97,7 @@ export class QueryPaginator<T> {
    *
    * @param item
    */
-  public toggleSelection(item?: T) {
+  public toggleSelection(item?: IEntity<T>) {
     if (item) {
       // @ts-ignore
       const uuid = item['_uuid'];
@@ -127,7 +128,7 @@ export class QueryPaginator<T> {
   /**
    *
    */
-  public isSelected(item: T | any): boolean {
+  public isSelected(item: IEntity<T> | any): boolean {
     return this._selected[item['_uuid']] === true;
   }
 
@@ -242,7 +243,7 @@ export class QueryPaginator<T> {
     });
   }
 
-  public getResults(): T[] {
+  public getResults(): Array<IEntity<T>> {
     return this.results;
   }
 
@@ -303,7 +304,7 @@ export class QueryPaginator<T> {
    *
    * @param results
    */
-  private setResults(results: T[]) {
+  private setResults(results: Array<IEntity<T>>) {
     const selectedAll = this.isSelectedAll().getValue();
     results.forEach((result: any) => {
       if (result && this._selected[result['_uuid']] === undefined) {
@@ -320,7 +321,7 @@ export class QueryPaginator<T> {
     if (this.isSelectedAll().getValue()) {
       return this.resultsAll.length;
     } else {
-      this.results.forEach((r: T) => {
+      this.results.forEach((r: IEntity<T>) => {
         // @ts-ignore
         if (this._selected[r['_uuid']]) {
           count++;

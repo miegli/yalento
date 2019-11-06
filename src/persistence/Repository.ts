@@ -3,7 +3,6 @@ import 'es6-shim';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
 import {Observable} from 'rxjs';
-import {AbstractConnector} from "./connector/AbstractConnector";
 import {IConnectorInterface} from './connector/ConnectorInterface';
 import {Firebase, Firestore, FirestoreConnector, IConnectionFirestore} from './connector/FirestoreConnector';
 import {IQueryPaginatorDefaults} from './query/QueryPaginator';
@@ -20,6 +19,11 @@ export interface IRepositoryData {
     __owners: string[];
 }
 
+export interface IConnections<T> {
+    [key: string]: IConnectorInterface<T>;
+}
+
+
 export interface IRepositoryDataCreate {
     [key: string]: any;
 }
@@ -28,12 +32,29 @@ export interface IClassProperty {
     name: string;
 }
 
-export interface IConnections<T> {
-    [key: string]: IConnectorInterface<T>;
+interface IBaseEntityInner {
+    save(): void;
 }
 
+class BaseEntity {
 
-export type IEntity<T> = T & { save(): void } & { setProperty(property: string, value: any): void }
+    public save(): any {
+        return;
+    };
+
+    public setProperty(property: string, value: any): IBaseEntityInner {
+        return {
+            save: (): void => {
+                return;
+            }
+        }
+    }
+}
+
+export type IEntity<T> = BaseEntity & {
+    [P in keyof T]?: T[P];
+};
+
 
 export type IConnectionsKeys = ['firestore'];
 
@@ -58,7 +79,7 @@ export class Repository<T> {
     private _subscriptions: any[] = [];
     private _tempData: IRepositoryData[] = [];
     private _excludeSerializeProperties: string[] = ['__owner', '__uuid'];
-    private _connections: IConnections<T> = {};
+    private _connections: IConnections<IEntity<T>> = {};
     private _className: string = '';
     private userUuid: string = '';
     private privateMode: boolean = false;
@@ -155,8 +176,8 @@ export class Repository<T> {
      * select one
      * @param sql
      */
-    public selectOne(sql?: IStatementOne): Observable<T | undefined> {
-        return new Observable<T>(observer => {
+    public selectOne(sql?: IStatementOne): Observable<IEntity<T> | undefined> {
+        return new Observable<IEntity<T>>(observer => {
             let sqlOne: IStatement = {limit: 1, offset: 0};
             if (sql) {
                 sqlOne = {...sql};
@@ -168,7 +189,7 @@ export class Repository<T> {
             this._subjects.push(subject);
 
             this._subscriptions.push(
-                select.getResultsAsObservable().subscribe((results: T[]) => {
+                select.getResultsAsObservable().subscribe((results: Array<IEntity<T>>) => {
                     if (results.length) {
                         this._zone.run(() => {
                             observer.next(results[0]);
@@ -193,8 +214,8 @@ export class Repository<T> {
         id?: string | number,
         readDefaultsFromSelectStatement?: string,
         skipConnector?: string,
-    ): Promise<T> {
-        return new Promise<T>(resolve => {
+    ): Promise<IEntity<T>> {
+        return new Promise<IEntity<T>>(resolve => {
             const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement);
 
             Object.keys(this._connections as any).forEach((k: string) => {
@@ -218,10 +239,10 @@ export class Repository<T> {
      * @param skipConnector
      */
     public remove(
-        data: T,
+        data: IEntity<T>,
         skipConnector?: string,
-    ): Promise<T> {
-        return new Promise<T>(resolve => {
+    ): Promise<IEntity<T>> {
+        return new Promise<IEntity<T>>(resolve => {
 
             this._tempData.filter((value: any) => value['_uuid'] === data['_uuid']).forEach((remove: any) => {
                 remove['__removed'] = true;
@@ -230,6 +251,7 @@ export class Repository<T> {
             Object.keys(this._connections as any).forEach((k: string) => {
                 /* istanbul ignore next */
                 if (skipConnector !== k) {
+                    // @ts-ignore
                     this._connections[k].remove([data]);
                 }
             });
@@ -248,14 +270,15 @@ export class Repository<T> {
      * @param skipConnector
      */
     public update(
-        data: T,
+        data: IEntity<T>,
         skipConnector?: string,
-    ): Promise<T> {
-        return new Promise<T>(resolve => {
+    ): Promise<IEntity<T>> {
+        return new Promise<IEntity<T>>(resolve => {
 
             Object.keys(this._connections as any).forEach((k: string) => {
                 /* istanbul ignore next */
                 if (skipConnector !== k) {
+                    // @ts-ignore
                     this._connections[k].update([data]);
                 }
             });
@@ -274,14 +297,15 @@ export class Repository<T> {
      * @param skipConnector
      */
     public updateMultiple(
-        data: T[],
+        data: Array<IEntity<T>>,
         skipConnector?: string,
-    ): Promise<T[]> {
-        return new Promise<T[]>(resolve => {
+    ): Promise<Array<IEntity<T>>> {
+        return new Promise<Array<IEntity<T>>>(resolve => {
 
             Object.keys(this._connections as any).forEach((k: string) => {
                 /* istanbul ignore next */
                 if (skipConnector !== k) {
+                    // @ts-ignore
                     this._connections[k].update(data);
                 }
             });
@@ -300,10 +324,10 @@ export class Repository<T> {
      * @param skipConnector
      */
     public removeMultiple(
-        data: T[],
+        data: Array<IEntity<T>>,
         skipConnector?: string,
-    ): Promise<T[]> {
-        return new Promise<T[]>(resolve => {
+    ): Promise<Array<IEntity<T>>> {
+        return new Promise<Array<IEntity<T>>>(resolve => {
 
             data.forEach((value: any) => {
                 value['__removed'] = true;
@@ -317,6 +341,7 @@ export class Repository<T> {
             Object.keys(this._connections as any).forEach((k: string) => {
                 /* istanbul ignore next */
                 if (skipConnector !== k) {
+                    // @ts-ignore
                     this._connections[k].remove(data);
                 }
             });
@@ -339,7 +364,7 @@ export class Repository<T> {
         data: IRepositoryDataCreate[],
         readDefaultsFromSelectStatement?: string,
         skipConnector?: string,
-    ): Promise<T[]> {
+    ): Promise<Array<IEntity<T>>> {
         const promises: any = [];
 
         data.forEach(value => {
@@ -356,7 +381,7 @@ export class Repository<T> {
             subject.updateQueryCallbackChanges({dataAdded: true});
         });
 
-        return new Promise<T[]>(resolve => {
+        return new Promise<Array<IEntity<T>>>(resolve => {
             Promise.all(promises).then((c: any) => {
                 Object.keys(this._connections as any).forEach((key: string) => {
                     if (skipConnector !== key) {
@@ -417,7 +442,7 @@ export class Repository<T> {
      *
      * @param id
      */
-    public createClassInstance(id?: string | number): T {
+    public createClassInstance(id?: string | number): IEntity<T> {
         const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
         const uuid = id === undefined ? Guid.create().toString() : id;
 
@@ -571,8 +596,8 @@ export class Repository<T> {
         data: IRepositoryDataCreate,
         id?: string | number,
         readDefaultsFromSelectStatement?: string,
-    ): Promise<T> {
-        return new Promise<T>(resolve => {
+    ): Promise<IEntity<T>> {
+        return new Promise<IEntity<T>>(resolve => {
             resolve(this.createObjectFromClass(data, id, readDefaultsFromSelectStatement));
         });
     }

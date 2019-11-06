@@ -2,7 +2,7 @@ import { Observable, Subscriber } from 'rxjs';
 import { take, takeWhile } from 'rxjs/operators';
 import { QueryPaginator } from '../query/QueryPaginator';
 import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
-import { IRepositoryDataCreate } from '../Repository';
+import {IEntity, IRepositoryDataCreate} from '../Repository';
 
 export class Select<T> {
   private readonly subject: QuerySubject<T>;
@@ -18,12 +18,12 @@ export class Select<T> {
     return this.paginator;
   }
 
-  public getResults(): T[] {
+  public getResults(): Array<IEntity<T>> {
     return this.paginator.getResults();
   }
 
-  public getResultsAsPromise(): Promise<T[]> {
-    return new Promise<T[]>(resolve => {
+  public getResultsAsPromise(): Promise<Array<IEntity<T>>> {
+    return new Promise<Array<IEntity<T>>>(resolve => {
       this.subject
         .getQueryCallbackChanges()
         .pipe(
@@ -51,7 +51,7 @@ export class Select<T> {
         .toPromise()
         .then(() => {
           const results: any[] = [];
-          this.getResults().forEach((r: T) => {
+          this.getResults().forEach((r: IEntity<T>) => {
             results.push((r as any)._toPlain());
           });
           resolve(JSON.stringify(results));
@@ -60,8 +60,8 @@ export class Select<T> {
     });
   }
 
-  public getResultsAsObservable(): Observable<T[]> {
-    return new Observable<T[]>((observer: Subscriber<T[]>) => {
+  public getResultsAsObservable(): Observable<Array<IEntity<T>>> {
+    return new Observable<Array<IEntity<T>>>((observer: Subscriber<Array<IEntity<T>>>) => {
       this._subscriptions.push(
         this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
           if (changes.results !== undefined) {
@@ -74,12 +74,12 @@ export class Select<T> {
     });
   }
 
-  public create(data?: IRepositoryDataCreate, id?: string | number): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
+  public create(data?: IRepositoryDataCreate, id?: string | number): Promise<IEntity<T>> {
+    return new Promise<IEntity<T>>((resolve, reject) => {
       this.subject
         .getRepository()
         .create(data, id, this.subject.getSqlSelectParsed(this.subject.getSql()))
-        .then((c: T) => {
+        .then((c: IEntity<T>) => {
           this.subject
             .getQueryCallbackChanges()
             .pipe(take(1))

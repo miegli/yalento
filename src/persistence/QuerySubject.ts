@@ -1,5 +1,5 @@
 import {BehaviorSubject} from 'rxjs';
-import {IClassProperty, IRepositoryData, Repository} from '../persistence/Repository';
+import {IClassProperty, IEntity, IRepositoryData, Repository} from '../persistence/Repository';
 import {IPageEventSort, IQueryPaginatorDefaults, QueryPaginator} from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
@@ -125,7 +125,7 @@ export class QuerySubject<T> {
      *
      * @param sql
      */
-    public execStatement(sql?: IStatement): T[] {
+    public execStatement(sql?: IStatement): Array<IEntity<T>> {
         let statement = '';
         const selectSqlStatement = this.getSqlSelectParsed(sql);
         const params = this.getEvaluatedSqlParams(sql);

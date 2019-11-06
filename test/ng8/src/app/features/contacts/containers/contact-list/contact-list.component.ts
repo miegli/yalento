@@ -1,7 +1,7 @@
 import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {AngularFirestore} from '@angular/fire/firestore';
 import {MatDialog} from '@angular/material';
-import {IPageEventSort, Select, Repository} from '@yalento';
+import {IPageEventSort, Select, Repository, IEntity} from '@yalento';
 
 import 'reflect-metadata';
 import {BehaviorSubject} from 'rxjs';
@@ -39,13 +39,6 @@ export class ContactListComponent implements OnInit, OnDestroy {
       {
         pageSizeOptions: [1, 5, 10, 100],
       });
-
-    this.contacts.getResultsAsObservable()
-      .subscribe((e) => {
-        console.log(e);
-      });
-
-
   }
 
 
@@ -96,7 +89,7 @@ export class ContactListComponent implements OnInit, OnDestroy {
     this.contacts.getPaginator().setPageSort(e);
   }
 
-  toggleSelection(item: Contact) {
+  toggleSelection(item: IEntity<Contact>) {
     this.contacts.getPaginator().toggleSelection(item);
   }
 

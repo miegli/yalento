@@ -12,7 +12,7 @@ export class ContactDialogComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<ContactDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public contact: Contact) {
+    @Inject(MAT_DIALOG_DATA) public contact: IEntity<Contact>) {
   }
 
   ngOnInit(): void {
@@ -20,8 +20,7 @@ export class ContactDialogComponent implements OnInit {
   }
 
   save(item: IEntity<Contact>) {
-    console.log(item.age);
-    console.log(item.save);
+    item.save();
   }
 
 
