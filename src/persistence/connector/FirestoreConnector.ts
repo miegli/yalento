@@ -2,7 +2,6 @@ import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
 import {IEntity, Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
-import {IConnectorInterface} from './ConnectorInterface';
 
 export class Firestore {
 }
@@ -26,7 +25,7 @@ export interface IConnectionFirestore {
     realtimeMode?: boolean;
 }
 
-export class FirestoreConnector<T> extends AbstractConnector<T> implements IConnectorInterface<IEntity<T>> {
+export class FirestoreConnector<T> extends AbstractConnector<T> {
     private readonly db: Firestore;
     private readonly currentUser: User;
     private readonly dataMode: ConnectionFirestoreDataMode = 'ALL';

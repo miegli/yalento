@@ -1,4 +1,4 @@
-import {classToPlain} from 'class-transformer';
+import {classToPlain, deserialize, plainToClass, plainToClassFromExist} from 'class-transformer';
 import 'es6-shim';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
@@ -36,26 +36,23 @@ interface IBaseEntityInner {
     save(): void;
 }
 
-class BaseEntity<T> {
+interface IBaseEntity<T> {
+    save(): void;
 
-    public save(): void {
-        return;
-    };
+    remove(): void;
 
-    public remove(): void {
-        return;
-    };
+    remove(): void;
 
-    public setProperty(property: keyof T, value: any): IBaseEntityInner {
-        return {
-            save: (): void => {
-                return;
-            }
-        }
-    }
+    getUuid(): string;
+
+    getModel(): T;
+
+    setProperty(property: keyof T, value: any): IBaseEntityInner;
+
 }
 
-export type IEntity<T> = BaseEntity<T> & {
+
+export type IEntity<T> = IBaseEntity<T> & {
     [P in keyof T]?: T[P];
 };
 
@@ -164,8 +161,9 @@ export class Repository<T> {
     }
 
     /**
-     * performs sql statement
+     *
      * @param sql
+     * @param paginatorDefaults
      */
     public select(sql?: IStatement, paginatorDefaults?: IQueryPaginatorDefaults): Select<T> {
         const subject = new QuerySubject<T>(this, sql, paginatorDefaults);
@@ -445,9 +443,13 @@ export class Repository<T> {
     /**
      *
      * @param id
+     * @param data
      */
-    public createClassInstance(id?: string | number): IEntity<T> {
-        const c = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
+    public createClassInstance(id?: string | number, data?: any): IEntity<T> {
+        const originalClass = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
+        const o = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
+        const c = plainToClassFromExist(o, data ? data : {}) as any;
+
         const uuid = id === undefined ? Guid.create().toString() : id;
 
         Object.defineProperty(c, '_uuid', {
@@ -478,12 +480,21 @@ export class Repository<T> {
             value: {},
         });
 
+        Object.defineProperty(c, 'getModel', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: (): T => {
+                return deserialize(this._class, JSON.stringify(c['_toPlain']()), {excludePrefixes: ['__']});
+            },
+        });
+
         Object.defineProperty(c, '_toPlain', {
             enumerable: false,
             configurable: false,
             writable: false,
             value: () => {
-                return classToPlain(c, {excludePrefixes: this._excludeSerializeProperties});
+                return classToPlain(o, {excludePrefixes: this._excludeSerializeProperties});
             },
         });
 
@@ -505,6 +516,15 @@ export class Repository<T> {
             value: (): void => {
                 this.remove(c).then(() => {
                 }).catch();
+            },
+        });
+
+        Object.defineProperty(c, 'getUuid', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: (): string => {
+                return c._uuid;
             },
         });
 
@@ -560,11 +580,12 @@ export class Repository<T> {
         if (data) {
 
             Object.keys(data).forEach((k: string) => {
-                if (!c['_lockedProperties'][k]) {
+                if (!c['_lockedProperties'][k] && k.substr(0, 1) !== '_') {
                     c[k] = data[k];
                 }
             });
         }
+
 
         c['__owner'] = {};
 
@@ -579,12 +600,14 @@ export class Repository<T> {
             c['__owner']['EVERYBODY'] = true;
         }
 
+
         if (readDefaultsFromSelectStatement) {
             const additionalData = this.getDataFromSelectStatement(readDefaultsFromSelectStatement);
             Object.keys(additionalData).forEach((k: string) => {
                 c[k] = additionalData[k];
             });
         }
+
 
         if (existingItem.length) {
             existingItem.forEach((item: IRepositoryData) => {
