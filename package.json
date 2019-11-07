@@ -47,6 +47,7 @@
     "firebase-functions": "^3.3.0",
     "firesql": "^2.0.2",
     "firestore": "^1.1.6",
+    "geofirex": "0.0.6",
     "guid-typescript": "^1.0.9",
     "reflect-metadata": "^0.1.13",
     "rxfire": "^3.8.6",

@@ -1,22 +1,40 @@
-import {classToPlain, deserialize, plainToClass, plainToClassFromExist} from 'class-transformer';
+import {classToPlain, deserialize, plainToClassFromExist} from 'class-transformer';
 import 'es6-shim';
+import {FeatureCollection} from "geofirex";
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
 import {Observable} from 'rxjs';
-import {IConnectorInterface} from './connector/ConnectorInterface';
+import {IConnectorInterface} from "./connector/ConnectorInterface";
 import {Firebase, Firestore, FirestoreConnector, IConnectionFirestore} from './connector/FirestoreConnector';
 import {IQueryPaginatorDefaults} from './query/QueryPaginator';
 import {IStatement, IStatementOne, QuerySubject} from './QuerySubject';
 import {Select} from './select/select';
+
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');
 
+export enum GeoStatusEnum {
+    NOT_SET = 0,
+    FOUND = 1,
+    NOT_FOUND = 2,
+}
+
+export interface IGeoData {
+    status: number;
+    radius: number;
+    distance: number;
+    bearing: number;
+    features: FeatureCollection | null;
+    uuid: string;
+}
+
 export interface IRepositoryData {
     _ref: any;
     __removed: boolean;
-    _uuid: string | number;
+    _uuid: string;
     __owners: string[];
+    geo: IGeoData;
 }
 
 export interface IConnections<T> {
@@ -49,6 +67,10 @@ interface IBaseEntity<T> {
 
     setProperty(property: keyof T, value: any): IBaseEntityInner;
 
+    setGeoPoint(latitude: number, longitude: number): IBaseEntityInner;
+
+    getGeoData(): IGeoData;
+
 }
 
 
@@ -79,7 +101,8 @@ export class Repository<T> {
     private readonly _selects: Array<Select<T>> = [];
     private _subscriptions: any[] = [];
     private _tempData: IRepositoryData[] = [];
-    private _excludeSerializeProperties: string[] = ['__owner', '__uuid'];
+    private _tempGeoDataUuidMap: { [uuid: string]: IGeoData } = {};
+    private _excludeSerializeProperties: string[] = ['__owner', '__uuid', '__geo'];
     private _connections: IConnections<IEntity<T>> = {};
     private _className: string = '';
     private userUuid: string = '';
@@ -138,6 +161,40 @@ export class Repository<T> {
         this._connections.firestore = new FirestoreConnector<T>(this, firestore, options);
         this.userUuid = this._connections.firestore.getUserUuid();
         this.privateMode = this._connections.firestore.isPrivateMode();
+
+        if (options && options.nearBy) {
+            let timeout;
+            this._subscriptions.push(options.nearBy.lat.subscribe(() => {
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+                timeout = setTimeout(() => {
+                    this._subjects.forEach((subject: QuerySubject<T>) => {
+                        subject.updateQueryCallbackChanges({geoLocationChanged: true});
+                    });
+                }, 10);
+            }));
+            this._subscriptions.push(options.nearBy.long.subscribe(() => {
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+                timeout = setTimeout(() => {
+                    this._subjects.forEach((subject: QuerySubject<T>) => {
+                        subject.updateQueryCallbackChanges({geoLocationChanged: true});
+                    });
+                }, 10);
+            }));
+            this._subscriptions.push(options.nearBy.radius.subscribe(() => {
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+                timeout = setTimeout(() => {
+                    this._subjects.forEach((subject: QuerySubject<T>) => {
+                        subject.updateQueryCallbackChanges({geoLocationChanged: true});
+                    });
+                }, 10);
+            }));
+        }
 
         return this;
     }
@@ -442,11 +499,35 @@ export class Repository<T> {
 
     /**
      *
+     * @param data
+     */
+    public updateGeoData(data: IGeoData[]) {
+
+        this._tempGeoDataUuidMap = {};
+        data.forEach((r: IGeoData) => {
+            this._tempGeoDataUuidMap[r.uuid] = r;
+        });
+
+        this._tempData.forEach((d: IRepositoryData) => {
+            if (this._tempGeoDataUuidMap[d._uuid] !== undefined) {
+                d.geo = this._tempGeoDataUuidMap[d._uuid];
+            } else {
+                d.geo.status = GeoStatusEnum.NOT_FOUND;
+            }
+        });
+
+        this._subjects.forEach((subject: QuerySubject<T>) => {
+            subject.updateQueryCallbackChanges({dataUpdated: true});
+        });
+
+    }
+
+    /**
+     *
      * @param id
      * @param data
      */
     public createClassInstance(id?: string | number, data?: any): IEntity<T> {
-        const originalClass = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
         const o = this._constructorArguments.length ? new this._class(...this._constructorArguments) : new this._class();
         const c = plainToClassFromExist(o, data ? data : {}) as any;
 
@@ -485,7 +566,19 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: (): T => {
-                return deserialize(this._class, JSON.stringify(c['_toPlain']()), {excludePrefixes: ['__']});
+                const plain = c['_toPlain']();
+                plain['geoData'] = this._tempGeoDataUuidMap[c._uuid] ? this._tempGeoDataUuidMap[c._uuid] : {};
+                return deserialize(this._class, JSON.stringify(plain), {excludePrefixes: ['__']})
+            },
+        });
+
+
+        Object.defineProperty(c, 'getGeoData', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: (): IGeoData => {
+                return this._tempGeoDataUuidMap[c._uuid];
             },
         });
 
@@ -561,6 +654,27 @@ export class Repository<T> {
             },
         });
 
+        Object.defineProperty(c, 'setGeoPoint', {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: (latitude: number, longitude: number) => {
+
+                if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+                    c['__latitude'] = latitude;
+                    c['__longitude'] = longitude;
+                } else {
+                    throw new Error('latitude must be between -90 and 90. longitude must be between -180 and 180');
+                }
+                return {
+                    save: (): void => {
+                        this.update(c).then(() => {
+                        }).catch();
+                    }
+                };
+            },
+        });
+
         return c;
     }
 
@@ -615,6 +729,14 @@ export class Repository<T> {
             });
         } else {
             this._tempData.push({
+                geo: {
+                    uuid: c['__uuid'],
+                    status: 0,
+                    radius: 0,
+                    distance: 0,
+                    bearing: 0,
+                    features: null,
+                },
                 _ref: c,
                 _uuid: c._uuid,
                 __removed: false,

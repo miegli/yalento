@@ -1,4 +1,4 @@
-import {IEntity} from "../Repository";
+import { GeoFirePoint } from "geofirex/dist/index";
 
 export interface IConnectorInterface<T> {
     add(items: T[]): void;
@@ -14,4 +14,5 @@ export interface IConnectorInterface<T> {
     getUserUuid(): string;
 
     isPrivateMode(): boolean;
+
 }

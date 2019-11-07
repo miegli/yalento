@@ -1,6 +1,9 @@
 import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
-import {IEntity, Repository} from '../Repository';
+import {GeoFireClient, toGeoJSON} from "geofirex";
+import * as geofirex from 'geofirex';
+import {BehaviorSubject} from "rxjs";
+import {GeoStatusEnum, IEntity, Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
 
 export class Firestore {
@@ -8,6 +11,7 @@ export class Firestore {
 
 export class Firebase {
 }
+
 
 export declare class User {
     public readonly uid: string | null;
@@ -23,25 +27,35 @@ export interface IConnectionFirestore {
     path?: string;
     dataMode?: ConnectionFirestoreDataMode;
     realtimeMode?: boolean;
+    nearBy?: {
+        long: BehaviorSubject<number>;
+        lat: BehaviorSubject<number>;
+        radius: BehaviorSubject<number>;
+    }
 }
 
 export class FirestoreConnector<T> extends AbstractConnector<T> {
+    public readonly options: IConnectionFirestore;
     private readonly db: Firestore;
     private readonly currentUser: User;
     private readonly dataMode: ConnectionFirestoreDataMode = 'ALL';
     private readonly realtimeMode: boolean = true;
+    private readonly geoFireClient: GeoFireClient;
     private firesSQL: any;
     private lastSql: string = '';
     private rxQuerySubscriber: any;
+    private rxQuerySubscriberGeoLocation: any;
 
     constructor(repository: Repository<T>, db: Firestore, options?: IConnectionFirestore) {
         super(repository, options);
 
-        if (options && options.dataMode) {
-            this.dataMode = options.dataMode;
+        this.options = options ? options : {};
+
+        if (this.options.dataMode) {
+            this.dataMode = this.options.dataMode;
         }
 
-        if (options && options.realtimeMode === false) {
+        if (this.options.realtimeMode === false) {
             this.realtimeMode = false;
         }
 
@@ -51,6 +65,8 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         } else {
             this.db = (db as any).firestore;
         }
+
+        this.geoFireClient = geofirex.init((this.db as any).app.firebase_);
 
         this.currentUser = (this.db as any)._credentials ? (this.db as any)._credentials.currentUser : null;
         if (!this.currentUser) {
@@ -78,6 +94,12 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
 
             const data = item._toPlain();
 
+            if (data['__latitude'] !== undefined && data['__longitude'] !== undefined) {
+                data['__location'] = this.getGeoPoint(data['__latitude'], data['__longitude']).data;
+                delete data['__latitude'];
+                delete data['__longitude'];
+            }
+
             data['__uuid'] = item['_uuid'];
             data['__owner'] = {};
 
@@ -88,6 +110,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
             if (this.dataMode !== 'PRIVATE') {
                 data['__owner']['EVERYBODY'] = true;
             }
+
 
             (this.db as any)
                 .doc(this.getPath() + '/' + item._uuid)
@@ -130,7 +153,10 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         const originalSqlParts = sql.split(' WHERE ', 2);
         const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
 
+        this.observeGeoLocation();
+
         if (this.lastSql !== finalSql) {
+
             if (this.realtimeMode) {
                 const data$ = this.firesSQL.rxQuery(finalSql);
 
@@ -170,5 +196,60 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         if (this.rxQuerySubscriber) {
             this.rxQuerySubscriber.unsubscribe();
         }
+        if (this.rxQuerySubscriberGeoLocation) {
+            this.rxQuerySubscriberGeoLocation.unsubscribe();
+        }
+    }
+
+    /**
+     *
+     *
+     * @param latitude
+     * @param longitude
+     */
+    private getGeoPoint(latitude: number, longitude: number): geofirex.GeoFirePoint {
+
+        return this.geoFireClient.point(latitude, longitude);
+
+    }
+
+    private getCurrentGeoPoint(): geofirex.GeoFirePoint | null {
+
+        if (this.options.nearBy && this.options.nearBy.lat.getValue() >= -90 && this.options.nearBy.lat.getValue() <= 90 && this.options.nearBy.long.getValue() >= -180 && this.options.nearBy.long.getValue() <= 180) {
+            return this.geoFireClient.point(this.options.nearBy.lat.getValue(), this.options.nearBy.long.getValue());
+        }
+
+        return null;
+
+    }
+
+    private observeGeoLocation() {
+
+        if (this.options.nearBy) {
+            const point = this.getCurrentGeoPoint();
+
+            if (!point) {
+                return;
+            }
+
+            const query = this.geoFireClient.collection(this.getPath(), ref => {
+                return ref.where('__owner.EVERYBODY', '==', true);
+            }).within(point, this.options.nearBy.radius.getValue(), '__location');
+
+            this.rxQuerySubscriberGeoLocation = query.pipe(toGeoJSON('__location', true)).subscribe((e: any) => {
+
+                this.repository.updateGeoData(e.features.map((d: any) => {
+                    return {
+                        geometry: d.geometry,
+                        uuid: d.properties['__uuid'],
+                        bearing: d.properties['queryMetadata']['bearing'],
+                        distance: d.properties['queryMetadata']['distance'],
+                        status: GeoStatusEnum.FOUND
+                    }
+                }));
+
+            });
+        }
+
     }
 }

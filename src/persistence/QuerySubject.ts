@@ -26,6 +26,7 @@ export interface IQueryCallbackChanges {
     pageIndex?: number;
     pageSort?: IPageEventSort;
     dataAdded?: boolean;
+    geoLocationChanged?: boolean;
     dataRemoved?: boolean;
     dataUpdated?: boolean;
     selectSqlStatement?: boolean;
@@ -144,7 +145,7 @@ export class QuerySubject<T> {
             sql = {};
         }
 
-        statement += ' WHERE __removed = false AND ( ';
+        statement += ' WHERE __removed = false AND geo->status != 2 AND ( ';
 
         if (this.getRepository().isPrivateMode()) {
             statement += '"' + this.getUserUuid() + '" IN __owners ';
@@ -334,6 +335,7 @@ export class QuerySubject<T> {
             this._subscriptions.push(
                 this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
                     if (
+                        changes.geoLocationChanged ||
                         changes.dataAdded ||
                         changes.dataRemoved ||
                         changes.dataUpdated ||
@@ -342,6 +344,11 @@ export class QuerySubject<T> {
                         changes.pageSort !== undefined ||
                         changes.selectSqlStatement !== undefined
                     ) {
+
+                        if (changes.geoLocationChanged) {
+                            this._lastExecStatement = '';
+                        }
+
                         await setTimeout(() => {
                             this.execStatement(sql);
                         }, 1);

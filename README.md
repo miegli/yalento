@@ -5,6 +5,7 @@
 An awesome framework that combines the best benefits from [AlaSQL](http://alasql.org) and [Google Cloud Firestore](https://firebase.google.com/docs/firestore) written in typescript for best using in Angular and Node.js projects:
 
 - Write normal SQL-Queries and get observable **realtime** result changes.
+- Supports **near by** queries and provides geo informations.
 - Native integration of most common features like pagination or selection.
 - **Made for serverless** (google cloud functions, aws lambda, etc).
 - CRUD operations for any, even complex, javascript objects
@@ -39,6 +40,40 @@ And what about querying? Nothing easier than this.
 
 Instead of ‘getResults()’ you also can use ‘getResultsAsObservable’ if you want to observe changes in the repository. That means, your subscribers get informed whenever data has been changed (new contacts matching your query, contacts data changed, etc.). 
 
+#### readonly results
+If you just wont to read data or if you are using yalento as state storage, then you should access to selection only via 'getReadOnlyResultsAsObservable()' method. This method returns an `array of Contact` (array of original model).
+
+### NearBy / Geo informations
+Yalento is including a state of the art library, that allows you to query data by theirs location. The following example stands for great simplicity.
+
+
+    private long$: BehaviorSubject<number> = new BehaviorSubject<number>(40.1);
+    private lat$: BehaviorSubject<number> = new BehaviorSubject<number>(5);
+    private radius$: BehaviorSubject<number> = new BehaviorSubject<number>(100);
+
+	connectFirestore(fs, { nearBy: { long: this.long$, lat: this.lat$, radius: this.radius$} });
+
+Once you have connected firestore with nearBy option, then every selection call returns only data that match long, lat and radius values:
+
+*Example: With nearBy option only kids are returned when they are in given radius:*
+
+     const kids: Array<IEntity<Contact>> = repository.select().getResults();
+ 
+With activated nearBy option each result contains geo information data automatically:
+
+     const kid: <IEntity<Contact>> = repository.select().getResults()[0];
+          
+     // read geo data like distance betwen current long$ and lat$ values and the kids geo location
+     kid.getGeoData(): {distance: number; bearing: number;} 
+
+You can set the kids geo location by calling:
+
+    kid.setGeoPoint(latitude: number, longitude: number).save();
+    
+And what about order the results by distance? Nothing easier than this.
+
+    const kids: Array<IEntity<Contact>> = repository.select({ orderBy: 'geo.distance ASC'}).getResults();
+    
 ### CRUD
 
 Once you have selected your data (read), maybe you go to work on it.
