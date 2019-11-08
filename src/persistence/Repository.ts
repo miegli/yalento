@@ -615,8 +615,7 @@ export class Repository<T> {
             configurable: false,
             writable: true,
             value: (): void => {
-                this.remove(c).then(() => {
-                }).catch();
+                this.remove(c).then().catch();
             },
         });
 
@@ -676,8 +675,7 @@ export class Repository<T> {
                 }
                 return {
                     save: (): void => {
-                        this.update(c).then(() => {
-                        }).catch();
+                        this.update(c).then().catch();
                     }
                 };
             },
