@@ -287,8 +287,10 @@ export class QueryPaginator<T> {
    * @param pageSize
    */
   public addPageSizeOption(pageSize: number) {
+    if (this.pageSizeOptions.indexOf(pageSize) >= 0) {
+      return;
+    }
     this.pageSizeOptions.push(pageSize);
-    this.pageSizeOptions = [...new Set(this.pageSizeOptions)];
     this.pageSizeOptions.sort((a, b) => a - b);
   }
 

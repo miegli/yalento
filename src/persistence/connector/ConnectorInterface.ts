@@ -7,7 +7,7 @@ export interface IConnectorInterface<T> {
 
     update(items: T[]): void;
 
-    select(sql: string): void;
+    select(sql: string, uuid?: string): void;
 
     disconnect(): void;
 

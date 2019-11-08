@@ -25,6 +25,8 @@ export interface IGeoData {
     radius: number;
     distance: number;
     bearing: number;
+    lng: number;
+    lat: number;
     features: FeatureCollection | null;
     uuid: string;
 }
@@ -211,9 +213,9 @@ export class Repository<T> {
     /**
      *
      */
-    public loadQueryFromConnectors(query: string) {
+    public loadQueryFromConnectors(query: string, uuid?: string) {
         (Object.keys(this._connections) as IConnectionsKeys).forEach((key: string) => {
-            this._connections[key].select(query);
+            this._connections[key].select(query, uuid);
         });
     }
 
@@ -240,6 +242,12 @@ export class Repository<T> {
             let sqlOne: IStatement = {limit: 1, offset: 0};
             if (sql) {
                 sqlOne = {...sql};
+                if (sql.uuid && !sql.where) {
+                    sql.where = '__uuid = ' + sql.uuid;
+                }
+                if (sql.uuid && sql.where) {
+                    sql.where = '(' + sql.where + ' ) AND __uuid = ' + sql.uuid;
+                }
             }
 
             const subject = new QuerySubject<T>(this, sqlOne);
@@ -726,22 +734,34 @@ export class Repository<T> {
         if (existingItem.length) {
             existingItem.forEach((item: IRepositoryData) => {
                 item._ref = c;
+                if (data && data['__location']) {
+                    item.geo.lat = data['__location']['geopoint']['_lat'];
+                    item.geo.lng = data['__location']['geopoint']['_long'];
+                    this._tempGeoDataUuidMap[item.geo.uuid] = item.geo;
+                }
             });
+
         } else {
+            const geo = {
+                uuid: c._uuid,
+                status: 0,
+                radius: 0,
+                distance: 0,
+                bearing: 0,
+                lat: data && data['__location'] ? data['__location']['geopoint']['_lat'] : 0,
+                lng: data && data['__location'] ? data['__location']['geopoint']['_long'] : 0,
+                features: null
+            };
             this._tempData.push({
-                geo: {
-                    uuid: c['__uuid'],
-                    status: 0,
-                    radius: 0,
-                    distance: 0,
-                    bearing: 0,
-                    features: null,
-                },
+                geo: geo,
                 _ref: c,
                 _uuid: c._uuid,
                 __removed: false,
                 __owners: Object.keys(c.__owner).map(k => (c.__owner[k] ? k : '')),
             });
+
+            this._tempGeoDataUuidMap[c._uuid] = geo;
+
         }
         return c;
     }
@@ -753,9 +773,8 @@ export class Repository<T> {
      */
     private createOneFromMany(
         data: IRepositoryDataCreate,
-        id?: string | number,
-        readDefaultsFromSelectStatement?: string,
-    ): Promise<IEntity<T>> {
+        id ?: string | number,
+        readDefaultsFromSelectStatement ?: string): Promise<IEntity<T>> {
         return new Promise<IEntity<T>>(resolve => {
             resolve(this.createObjectFromClass(data, id, readDefaultsFromSelectStatement));
         });

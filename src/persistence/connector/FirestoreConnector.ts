@@ -45,6 +45,9 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     private lastSql: string = '';
     private rxQuerySubscriber: any;
     private rxQuerySubscriberGeoLocation: any;
+    private lastLat: number = 0;
+    private lastLong: number = 0;
+    private lastRadius: number = 0;
 
     constructor(repository: Repository<T>, db: Firestore, options?: IConnectionFirestore) {
         super(repository, options);
@@ -149,13 +152,17 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         return;
     }
 
-    public select(sql: string) {
-        const originalSqlParts = sql.split(' WHERE ', 2);
-        const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
+    public select(sql: string, uuid?: string) {
 
-        this.observeGeoLocation();
+        if (this.options.nearBy) {
+            this.observeGeoLocation();
+            return;
+        }
 
-        if (this.lastSql !== finalSql) {
+        if (this.lastSql !== sql) {
+
+            const originalSqlParts = sql.split(' WHERE ', 2);
+            const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
 
             if (this.realtimeMode) {
                 const data$ = this.firesSQL.rxQuery(finalSql);
@@ -186,7 +193,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
                     });
             }
 
-            this.lastSql = finalSql;
+            this.lastSql = sql;
         }
 
         return;
@@ -226,11 +233,25 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     private observeGeoLocation() {
 
         if (this.options.nearBy) {
+
+            if (this.lastLat && this.options.nearBy.lat.getValue() && this.lastLat && this.options.nearBy.long.getValue() && this.lastRadius && this.options.nearBy.radius.getValue()) {
+                return;
+            }
+
             const point = this.getCurrentGeoPoint();
 
             if (!point) {
                 return;
             }
+
+            if (this.rxQuerySubscriberGeoLocation) {
+                this.rxQuerySubscriberGeoLocation.unsubscribe();
+            }
+
+
+            this.lastLat = this.options.nearBy.lat.getValue();
+            this.lastLong = this.options.nearBy.long.getValue();
+            this.lastRadius = this.options.nearBy.radius.getValue();
 
             const query = this.geoFireClient.collection(this.getPath(), ref => {
                 return ref.where('__owner.EVERYBODY', '==', true);
@@ -238,15 +259,24 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
 
             this.rxQuerySubscriberGeoLocation = query.pipe(toGeoJSON('__location', true)).subscribe((e: any) => {
 
-                this.repository.updateGeoData(e.features.map((d: any) => {
-                    return {
-                        geometry: d.geometry,
-                        uuid: d.properties['__uuid'],
-                        bearing: d.properties['queryMetadata']['bearing'],
-                        distance: d.properties['queryMetadata']['distance'],
-                        status: GeoStatusEnum.FOUND
-                    }
-                }));
+                this.repository
+                    .createMany(e.features.map((d: any) => d.properties), '', 'firestore')
+                    .then(() => {
+                        this.repository.updateGeoData(e.features.map((d: any) => {
+                            return {
+                                lng: d.geometry.coordinates[0],
+                                lat: d.geometry.coordinates[1],
+                                uuid: d.properties['__uuid'],
+                                bearing: d.properties['queryMetadata']['bearing'],
+                                distance: d.properties['queryMetadata']['distance'],
+                                status: GeoStatusEnum.FOUND
+                            }
+                        }));
+                    })
+                    .catch(error => {
+                        throw error;
+                    });
+
 
             });
         }

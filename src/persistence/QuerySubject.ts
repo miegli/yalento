@@ -15,6 +15,7 @@ export interface IStatement {
 
 export interface IStatementOne {
     where?: string;
+    uuid?: string;
     params?: any[];
 }
 
@@ -259,6 +260,7 @@ export class QuerySubject<T> {
         if (params) {
             const tmpParams: any = [];
             params.forEach((param: any) => {
+
                 if (
                     typeof param === 'object' &&
                     param.asObservable !== undefined &&
