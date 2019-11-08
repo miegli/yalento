@@ -1,18 +1,17 @@
-import { GeoFirePoint } from "geofirex/dist/index";
+import { GeoFirePoint } from 'geofirex/dist/index';
 
 export interface IConnectorInterface<T> {
-    add(items: T[]): void;
+  add(items: T[]): void;
 
-    remove(items: T[]): void;
+  remove(items: T[]): void;
 
-    update(items: T[]): void;
+  update(items: T[]): void;
 
-    select(sql: string, uuid?: string): void;
+  select(sql: string, uuid?: string): void;
 
-    disconnect(): void;
+  disconnect(): void;
 
-    getUserUuid(): string;
+  getUserUuid(): string;
 
-    isPrivateMode(): boolean;
-
+  isPrivateMode(): boolean;
 }

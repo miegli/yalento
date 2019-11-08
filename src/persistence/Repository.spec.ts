@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { BehaviorSubject } from 'rxjs';
 import { skipWhile, takeUntil, takeWhile } from 'rxjs/operators';
-import {IEntity, Repository} from '..';
+import { IEntity, Repository } from '..';
 import { IQueryCallbackChanges } from './QuerySubject';
 
 export class Contact {
@@ -248,7 +248,6 @@ describe('RepositoryTest', async () => {
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(3);
   });
 
-
   it('removing model after repository querying should update results', async () => {
     const repository: Repository<Contact> = new Repository(Contact);
     const contacts = repository.select();
@@ -258,15 +257,13 @@ describe('RepositoryTest', async () => {
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
   });
 
-
   it('updating model after repository querying should update results', async () => {
     const repository: Repository<Contact> = new Repository(Contact);
-    const contacts = repository.select({ where: 'age = 0'});
+    const contacts = repository.select({ where: 'age = 0' });
     const contact = await contacts.create();
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
     contact.age = 1;
     await repository.update(contact);
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
   });
-
 });

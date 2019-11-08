@@ -1,7 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 import { IQueryCallbackChanges, QuerySubject } from '../QuerySubject';
-import {IEntity} from "../Repository";
+import { IEntity } from '../Repository';
 
 export interface IQueryPaginatorDefaults {
   pageSizeOptions?: number[];
