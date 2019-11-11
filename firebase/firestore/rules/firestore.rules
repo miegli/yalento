@@ -2,11 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
- match /User/{userId} {
-        allow read: if request.auth.uid == resource.data.__uuid;
-        allow write: if request.auth.uid == userId;
-    }
-
     match /{model}/data/{entity}/{id} {
 
           function evaluateEntityPermissions(entity, operation) {
@@ -26,5 +21,26 @@ service cloud.firestore {
       allow delete: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(model)/permissions), 'delete'))
 
     }
+
+    match /{root=**}/{model}/data/{entity}/{id} {
+
+          function evaluateEntityPermissions(entity, operation) {
+              return entity.data.keys().size() == 0 || entity.data.keys().hasAny([operation]) == false || entity.data[operation].get(request.auth.uid, false) == true || (request.auth.uid != null && entity.data[operation].get('AUTHENTICATED', false) == true)
+           }
+
+
+          function evaluateDocumentPermissions() {
+              return resource == null || ( resource.data.__owner.get('EVERYBODY', false) == true || resource.data.__owner.get(request.auth.uid, false) == true)
+           }
+
+
+      allow get: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(root)/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(root)/$(model)/permissions), 'get'))
+      allow list: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(root)/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(root)/$(model)/permissions), 'list'))
+      allow create: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(root)/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(root)/$(model)/permissions), 'create'))
+      allow update: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(root)/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(root)/$(model)/permissions), 'update'))
+      allow delete: if evaluateDocumentPermissions() && (exists(/databases/$(database)/documents/$(root)/$(model)/permissions) == false || evaluateEntityPermissions(get(/databases/$(database)/documents/$(root)/$(model)/permissions), 'delete'))
+
+    }
+
   }
 }
