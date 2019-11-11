@@ -1,5 +1,5 @@
 import { GeoFirePoint } from 'geofirex/dist/index';
-import {Observable} from "rxjs";
+import { Observable } from 'rxjs';
 
 export interface IConnectorInterface<T> {
   add(items: T[]): void;
