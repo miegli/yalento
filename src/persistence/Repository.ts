@@ -35,7 +35,7 @@ export interface IGeoData {
 export interface IRepositoryData {
     _ref: any;
     __removed: boolean;
-    _uuid: string;
+    __uuid: string;
     __owners: string[];
     geo: IGeoData;
 }
@@ -259,12 +259,13 @@ export class Repository<T> {
             let sqlOne: IStatement = {limit: 1, offset: 0};
             if (sql) {
                 sqlOne = {...sql};
-                if (sql.uuid && !sql.where) {
-                    sql.where = '__uuid = ' + sql.uuid;
-                }
                 if (sql.uuid && sql.where) {
-                    sql.where = '(' + sql.where + ' ) AND __uuid = ' + sql.uuid;
+                    sql.where = '(' + sql.where + ' ) AND __uuid LIKE ' + "'" + sql.uuid + "'";
                 }
+                if (sql.uuid && !sql.where) {
+                    sql.where = '__uuid LIKE ' + "'" + sql.uuid + "'";
+                }
+
             }
 
             const subject = new QuerySubject<T>(this, sqlOne);
@@ -330,7 +331,7 @@ export class Repository<T> {
     public remove(data: IEntity<T>, skipConnector?: string): Promise<IEntity<T>> {
         return new Promise<IEntity<T>>(resolve => {
             this._tempData
-                .filter((value: any) => value['_uuid'] === data['_uuid'])
+                .filter((value: any) => value['__uuid'] === data['__uuid'])
                 .forEach((remove: any) => {
                     remove['__removed'] = true;
                 });
@@ -408,9 +409,9 @@ export class Repository<T> {
                 value['__removed'] = true;
             });
 
-            const ids = data.map((value: any) => value['_uuid']);
+            const ids = data.map((value: any) => value['__uuid']);
             this._tempData
-                .filter((value: any) => ids.indexOf(value['_uuid']) >= 0)
+                .filter((value: any) => ids.indexOf(value['__uuid']) >= 0)
                 .forEach((remove: any) => {
                     remove['__removed'] = true;
                 });
@@ -530,8 +531,8 @@ export class Repository<T> {
         });
 
         this._tempData.forEach((d: IRepositoryData) => {
-            if (this._tempGeoDataUuidMap[d._uuid] !== undefined) {
-                d.geo = this._tempGeoDataUuidMap[d._uuid];
+            if (this._tempGeoDataUuidMap[d.__uuid] !== undefined) {
+                d.geo = this._tempGeoDataUuidMap[d.__uuid];
             } else {
                 d.geo.status = GeoStatusEnum.NOT_FOUND;
             }
@@ -553,7 +554,7 @@ export class Repository<T> {
 
         const uuid = id === undefined ? Guid.create().toString() : id;
 
-        Object.defineProperty(c, '_uuid', {
+        Object.defineProperty(c, '__uuid', {
             enumerable: false,
             configurable: false,
             writable: false,
@@ -587,7 +588,7 @@ export class Repository<T> {
             writable: false,
             value: (): T => {
                 const plain = c['_toPlain']();
-                plain['geoData'] = this._tempGeoDataUuidMap[c._uuid] ? this._tempGeoDataUuidMap[c._uuid] : {};
+                plain['geoData'] = this._tempGeoDataUuidMap[c.__uuid] ? this._tempGeoDataUuidMap[c.__uuid] : {};
                 return deserialize(this._class, JSON.stringify(plain), {excludePrefixes: ['__']});
             },
         });
@@ -597,7 +598,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: (): IGeoData => {
-                return this._tempGeoDataUuidMap[c._uuid];
+                return this._tempGeoDataUuidMap[c.__uuid];
             },
         });
 
@@ -639,7 +640,7 @@ export class Repository<T> {
             configurable: false,
             writable: false,
             value: (): string => {
-                return c._uuid;
+                return c.__uuid;
             },
         });
 
@@ -708,7 +709,7 @@ export class Repository<T> {
     ) {
         const exdistingId = id ? id : data && data['__uuid'] ? data['__uuid'] : null;
         const existingItem = this._tempData.filter((item: IRepositoryData) => {
-            return item._uuid === exdistingId;
+            return item.__uuid === exdistingId;
         });
 
         const c = existingItem.length ? existingItem[0]._ref : (this.createClassInstance(id) as any);
@@ -752,7 +753,7 @@ export class Repository<T> {
             });
         } else {
             const geo = {
-                uuid: c._uuid,
+                uuid: c.__uuid,
                 status: 0,
                 radius: 0,
                 distance: 0,
@@ -764,12 +765,12 @@ export class Repository<T> {
             this._tempData.push({
                 geo: geo,
                 _ref: c,
-                _uuid: c._uuid,
+                __uuid: c.__uuid,
                 __removed: false,
                 __owners: Object.keys(c.__owner).map(k => (c.__owner[k] ? k : '')),
             });
 
-            this._tempGeoDataUuidMap[c._uuid] = geo;
+            this._tempGeoDataUuidMap[c.__uuid] = geo;
         }
         return c;
     }

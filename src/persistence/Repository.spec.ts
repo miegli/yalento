@@ -53,13 +53,13 @@ describe('RepositoryTest', async () => {
     const repository: Repository<Contact> = new Repository(Contact);
     expect((await repository.create()).street).to.be.equal('street');
     expect((await repository.create({ street: 'test' })).street).to.be.equal('test');
-    expect((await repository.create({}, 1))['_uuid']).to.be.equal(1);
+    expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
   });
 
   it('create items with same identifier should create only once', async () => {
     const repository: Repository<Contact> = new Repository(Contact);
-    expect((await repository.create({}, 1))['_uuid']).to.be.equal(1);
-    expect((await repository.create({}, 1))['_uuid']).to.be.equal(1);
+    expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
+    expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
     expect(await repository.select().getResultsAsPromise()).to.be.lengthOf(1);
 
     const repository2: Repository<Contact> = new Repository(Contact);
@@ -70,7 +70,7 @@ describe('RepositoryTest', async () => {
   it('create many items of repository should return models', async () => {
     const repository: Repository<Contact> = new Repository(Contact);
     expect(await repository.createMany([{ age: 1 }, { age: 2 }])).to.lengthOf(2);
-    expect((await repository.createMany([{ __uuid: 2 }]))[0]['_uuid']).to.be.equal(2);
+    expect((await repository.createMany([{ __uuid: 2 }]))[0]['__uuid']).to.be.equal(2);
   });
 
   it('create item of repository by reading default data from sql statement should return model', async () => {

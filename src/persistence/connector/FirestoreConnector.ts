@@ -114,7 +114,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
                 delete data['__longitude'];
             }
 
-            data['__uuid'] = item['_uuid'];
+            data['__uuid'] = item['__uuid'];
             data['__owner'] = {};
 
             if (this.currentUser.uid && this.currentUser.uid !== 'null') {
@@ -126,12 +126,12 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
             }
 
             (this.db as any)
-                .doc(this.getPath() + '/' + item._uuid)
+                .doc(this.getPath() + '/' + item.__uuid)
                 .set(data, {merge: true})
                 .then()
                 .catch(e => {
                     throw new Error(
-                        'error while creating firestore document "' + this.getPath() + '/' + item._uuid + '": ' + e.message,
+                        'error while creating firestore document "' + this.getPath() + '/' + item.__uuid + '": ' + e.message,
                     );
                 });
         });
@@ -148,12 +148,12 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     public remove(items: Array<IEntity<T>>) {
         items.forEach((item: any) => {
             (this.db as any)
-                .doc(this.getPath() + '/' + item._uuid)
+                .doc(this.getPath() + '/' + item.__uuid)
                 .delete()
                 .then()
                 .catch(e => {
                     throw new Error(
-                        'error while creating firestore document "' + this.getPath() + '/' + item._uuid + '": ' + e.message,
+                        'error while creating firestore document "' + this.getPath() + '/' + item.__uuid + '": ' + e.message,
                     );
                 });
         });
@@ -181,6 +181,9 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
                 }
 
                 this.rxQuerySubscriber = data$.subscribe((results: any) => {
+
+
+
                     this.repository
                         .createMany(results, '', 'firestore')
                         .then()

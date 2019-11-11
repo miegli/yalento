@@ -73,7 +73,7 @@ export class QueryPaginator<T> {
 
     this.results.forEach((r: IEntity<T>) => {
       // @ts-ignore
-      if (this._selected[r['_uuid']]) {
+      if (this._selected[r['__uuid']]) {
         selected.push(r);
         // @ts-ignore
         r['_selected'] = true;
@@ -100,7 +100,7 @@ export class QueryPaginator<T> {
   public toggleSelection(item?: IEntity<T>) {
     if (item) {
       // @ts-ignore
-      const uuid = item['_uuid'];
+      const uuid = item['__uuid'];
       this._selected[uuid] = !this._selected[uuid];
       this._isSelectedAll$.next(false);
       this._isSelectedCount$.next(this.countSelected());
@@ -115,7 +115,7 @@ export class QueryPaginator<T> {
         this._isSelectedAll$.next(false);
       } else {
         this.resultsAll.forEach((result: any) => {
-          this._selected[result['_uuid']] = true;
+          this._selected[result['__uuid']] = true;
         });
 
         this._isSelectedAll$.next(true);
@@ -129,7 +129,7 @@ export class QueryPaginator<T> {
    *
    */
   public isSelected(item: IEntity<T> | any): boolean {
-    return this._selected[item['_uuid']] === true;
+    return this._selected[item['__uuid']] === true;
   }
 
   /**
@@ -309,8 +309,8 @@ export class QueryPaginator<T> {
   private setResults(results: Array<IEntity<T>>) {
     const selectedAll = this.isSelectedAll().getValue();
     results.forEach((result: any) => {
-      if (result && this._selected[result['_uuid']] === undefined) {
-        this._selected[result['_uuid']] = selectedAll;
+      if (result && this._selected[result['__uuid']] === undefined) {
+        this._selected[result['__uuid']] = selectedAll;
       }
     });
     this.results = results;
@@ -325,7 +325,7 @@ export class QueryPaginator<T> {
     } else {
       this.results.forEach((r: IEntity<T>) => {
         // @ts-ignore
-        if (this._selected[r['_uuid']]) {
+        if (this._selected[r['__uuid']]) {
           count++;
         }
       });
