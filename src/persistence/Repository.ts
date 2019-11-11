@@ -4,6 +4,7 @@ import {FeatureCollection} from 'geofirex';
 import {Guid} from 'guid-typescript';
 import 'reflect-metadata';
 import {Observable} from 'rxjs';
+import {take} from "rxjs/operators";
 import {IConnectorInterface} from './connector/ConnectorInterface';
 import {Firebase, Firestore, FirestoreConnector, IConnectionFirestore} from './connector/FirestoreConnector';
 import {IQueryPaginatorDefaults} from './query/QueryPaginator';
@@ -104,8 +105,8 @@ export class Repository<T> {
     private _excludeSerializeProperties: string[] = ['__owner', '__uuid', '__geo'];
     private _connections: IConnections<IEntity<T>> = {};
     private _className: string = '';
-    private userUuid: string = '';
-    private userUuid$: Observable<string> = new Observable<string>();
+    private userUuid: any = null;
+    private userUuid$: Observable<string>;
     private privateMode: boolean = false;
 
     /**
@@ -116,6 +117,9 @@ export class Repository<T> {
     constructor(model: any, ...constructorArguments: any[]) {
         this._class = model;
         this._constructorArguments = constructorArguments;
+        this.userUuid$ = new Observable<any>((observer) => {
+            observer.next(this.userUuid);
+        });
         this._instanceIdentifier = Guid.create()
             .toString()
             .replace(/-/g, '');
@@ -295,7 +299,12 @@ export class Repository<T> {
         readDefaultsFromSelectStatement?: string,
         skipConnector?: string,
     ): Promise<IEntity<T>> {
-        return new Promise<IEntity<T>>(resolve => {
+        return new Promise<IEntity<T>>(async (resolve) => {
+
+            if (this.userUuid !== null) {
+                this.userUuid = await this.userUuid$.pipe(take(1)).toPromise();
+            }
+
             const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement);
 
             Object.keys(this._connections as any).forEach((k: string) => {
@@ -434,6 +443,10 @@ export class Repository<T> {
         skipConnector?: string,
     ): Promise<Array<IEntity<T>>> {
         const promises: any = [];
+
+        if (this.userUuid !== null) {
+            this.userUuid = await this.userUuid$.pipe(take(1)).toPromise();
+        }
 
         data.forEach(value => {
             promises.push(
@@ -712,7 +725,7 @@ export class Repository<T> {
 
         if (data && data['__owner']) {
             c['__owner'] = data['__owner'];
-        } else if (this.getUserUuid() !== 'null' && this.getUserUuid() !== '') {
+        } else if (this.getUserUuid()) {
             c['__owner'][this.getUserUuid()] = true;
             if (!this.isPrivateMode) {
                 c['__owner']['EVERYBODY'] = true;

@@ -131,7 +131,7 @@ export class QuerySubject<T> {
      */
     public async execStatement(sql?: IStatement): Promise<Array<IEntity<T>>> {
 
-        if (!this.uuid && this.getRepository().isPrivateMode()) {
+        if (this.getRepository().isPrivateMode()) {
             this.uuid = await this.getRepository().getUserUuidObservable().pipe(take(1)).toPromise();
         }
 

@@ -2,6 +2,7 @@ import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
 import {GeoFireClient, toGeoJSON} from 'geofirex';
 import * as geofirex from 'geofirex';
+import {Guid} from "guid-typescript";
 import {BehaviorSubject, Observable} from 'rxjs';
 import {GeoStatusEnum, IEntity, Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
@@ -38,7 +39,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     private readonly dataMode: ConnectionFirestoreDataMode = 'ALL';
     private readonly realtimeMode: boolean = true;
     private readonly geoFireClient: GeoFireClient;
-    private currentUser: User;
+    private currentUser: User = {uid: null};
     private currentUser$: BehaviorSubject<User> = new BehaviorSubject<User>({uid: null});
     private firesSQL: any;
     private lastSql: string = '';
@@ -63,27 +64,23 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         }
 
         /* istanbul ignore next */
-        if (db.constructor.name !== 'AngularFirestore') {
-            this.db = (db as any).firestore();
-        } else {
-            this.db = (db as any).firestore;
-        }
-
+        this.db = (db as any).firestore ? (db as any).firestore : (db as any);
+        const app = (this.db as any).app;
+        this.firesSQL = new firesql.FireSQL(this.db);
         this.geoFireClient = geofirex.init((this.db as any).app.firebase_);
 
-        this.currentUser = (this.db as any)._credentials ? (this.db as any)._credentials.currentUser : null;
-
-        if (typeof (this.db as any).app.firebase_.auth === 'function') {
-            (this.db as any).app.firebase_.auth().onAuthStateChanged((state: any) => {
+        if (typeof app.auth === 'function') {
+            app.auth().onAuthStateChanged((state: any) => {
                 this.currentUser = {
                     uid: state.uid
                 };
                 this.currentUser$.next(this.currentUser);
             });
+        } else {
+            this.currentUser$.next(this.currentUser);
         }
 
 
-        this.firesSQL = new firesql.FireSQL(this.db);
     }
 
     public getUserUuid(): Observable<string> {
@@ -91,8 +88,8 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         const o = new Observable<string>((observer) => {
 
             this.currentUser$.subscribe((u: User) => {
-                if (u && u.uid) {
-                    observer.next(u.uid);
+                if (u && u.uid !== undefined) {
+                    observer.next(u.uid ? u.uid : '');
                 }
             })
 
@@ -171,6 +168,8 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         }
 
         if (this.lastSql !== sql) {
+
+
             const originalSqlParts = sql.split(' WHERE ', 2);
             const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
 
