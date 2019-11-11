@@ -1,4 +1,5 @@
 import { GeoFirePoint } from 'geofirex/dist/index';
+import {Observable} from "rxjs";
 
 export interface IConnectorInterface<T> {
   add(items: T[]): void;
@@ -11,7 +12,7 @@ export interface IConnectorInterface<T> {
 
   disconnect(): void;
 
-  getUserUuid(): string;
+  getUserUuid(): Observable<string>;
 
   isPrivateMode(): boolean;
 }
