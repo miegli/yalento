@@ -2,10 +2,10 @@ import * as firesql from 'firesql/firesql.umd.js';
 import 'firesql/rx';
 import {GeoFireClient, toGeoJSON} from 'geofirex';
 import * as geofirex from 'geofirex';
+import {Guid} from 'guid-typescript';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {GeoStatusEnum, IEntity, Repository} from '../Repository';
 import {AbstractConnector} from './AbstractConnector';
-import {Guid} from 'guid-typescript';
 
 export class Firestore {
 }
