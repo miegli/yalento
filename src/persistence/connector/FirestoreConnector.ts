@@ -166,6 +166,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         }
 
         if (this.lastSql !== sql) {
+
             const originalSqlParts = sql.split(' WHERE ', 2);
             const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
 
@@ -175,7 +176,6 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
                 if (this.rxQuerySubscriber) {
                     this.rxQuerySubscriber.unsubscribe();
                 }
-
                 this.rxQuerySubscriber = data$.subscribe((results: any) => {
                     this.repository
                         .createMany(results, '', 'firestore')

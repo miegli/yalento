@@ -242,7 +242,7 @@ export class Repository<T> {
     public select(sql?: IStatement, paginatorDefaults?: IQueryPaginatorDefaults): Select<T> {
         const subject = new QuerySubject<T>(this, sql, paginatorDefaults);
         this._subjects.push(subject);
-        subject.execStatement(subject.getSql());
+        subject.execStatement(subject.getSql()).then();
         const select = new Select<T>(subject);
         this._selects.push(select);
         return select;
