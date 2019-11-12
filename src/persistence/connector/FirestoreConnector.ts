@@ -163,9 +163,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
 
             docReference
                 .delete()
-                .then(() => {
-
-                })
+                .then()
                 .catch(e => {
                     throw new Error(
                         'error while creating firestore document "' + this.getPath() + '/' + item.__uuid + '": ' + e.message,
