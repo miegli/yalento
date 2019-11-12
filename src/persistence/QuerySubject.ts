@@ -376,12 +376,15 @@ export class QuerySubject<T> {
    * @param statement
    */
   private replaceStatement(statement: string): string {
+
     this.repository.getClassProperties().forEach((property: IClassProperty) => {
+
       statement = statement.replace(new RegExp('\\(' + property.name + '->', 'gm'), '(_ref->' + property.name + '->');
       statement = statement.replace(new RegExp(' ' + property.name + '->', 'gm'), ' _ref->' + property.name + '->');
       statement = statement.replace(new RegExp(' ' + property.name + ' ', 'gm'), ' _ref->' + property.name + ' ');
       statement = statement.replace(new RegExp('\\(' + property.name + ' ', 'gm'), '(_ref->' + property.name + ' ');
     });
+
 
     return statement;
   }

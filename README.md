@@ -1,4 +1,5 @@
 
+
 [![Build Status](https://travis-ci.com/miegli/yalento.svg?branch=master)](https://travis-ci.com/miegli/yalento)  
   
 # Yalento  
@@ -51,7 +52,7 @@ Yalento is including a state of the art library, that allows you to query data b
     private lat$: BehaviorSubject<number> = new BehaviorSubject<number>(5);
     private radius$: BehaviorSubject<number> = new BehaviorSubject<number>(100);
 
-	connectFirestore(fs, { nearBy: { long: this.long$, lat: this.lat$, radius: this.radius$} });
+	connectFirestore(firestore, { nearBy: { long: this.long$, lat: this.lat$, radius: this.radius$} });
 
 Once you have connected firestore with nearBy option, then every selection call returns only data that match long, lat and radius values:
 
@@ -110,12 +111,12 @@ Once you have selected your data (read), maybe you go to work on it.
 ### Observable realtime changes
 The observables are really useful if you connect your repository to "Google Cloud Firestore" or to any other database with realtime updates support:
 
-    const fb = firebase.initializeApp({  
+    const firestore = firebase.initializeApp({  
 	    apiKey: '***',
 	    ...
-    });
+    }).firestore();
     
-    repository.connectFirestore(fb);
+    repository.connectFirestore(firestore);
     
 Now, you have successfully connected your repository to realtime database of cloud firestore. This has the consequence that:
 
@@ -152,6 +153,33 @@ Nothing to configure - you've already implemented all the pagination component f
 
     # get all selected kids
     const yourKids: Contact[] = kids.getPaginator().getSelected();
+
+### Nesting objects
+
+You can create subobjects for each object and thus map a complete tree structure:
+
+    const repository = new Repository<T>(Toy);  
+    repository.connectFirestore(firestore, {   
+         parent: [{  
+            documentId: kid.getUuid()(),  
+            modelName: 'Contact'  
+         }]  
+      });
+      const redToy: IEntity<Toy> = await repository.create({ color: 'red'});
+
+ In the example above you assign a red toy for the kids into a child collection. By adding one level you can create a tree something like 'contacts->toys->accessoires:
+
+    {   
+         parent: [{  
+            documentId: kid.getUuid()(),  
+            modelName: 'Contact'  
+         },
+         {  
+            documentId: redToy.getUuid()(),  
+            modelName: 'Toy'  
+         }]  
+      }
+
 
 ## Example serverless
 ### google cloud functions
@@ -198,7 +226,7 @@ The permission document is empty by default. You should add one for each model/e
 
     Permissions: {
 				    get|list|create|update|delete: {
-					    AUTHENTICATED|AUTH.USER.UUID: boolean 
+					    AUTHENTICATED|AUTH.USER.UID: boolean 
 				    }
                  }
 Each key of the permission document that is not defined makes the privilege as public for everybody. So if you do not add 'get' key, then everybody can read data. The following examples explain the mode of operation:
@@ -214,7 +242,7 @@ Each key of the permission document that is not defined makes the privilege as p
 				    }
                  }
                  
-*Example 2: Only user with uuid 'TEST'  can update documents of given model/entity. All other operations are allowed to everybody.*
+*Example 2: Only user with uid 'TEST'  can update documents of given model/entity. All other operations are allowed to everybody.*
 
     Permissions: {
 				    update: {
@@ -231,7 +259,7 @@ The __owner property has EVERYBODY as default value. So everybody with collectio
 
     Contact: { name: 'Bob', age: 10, __owner: { TESTUSER: true}}
 
-Connecting yalento repository with dataMode option  `repository.connectFirestore(fb, { dataMode: 'PRIVATE' });` adds automatically the currents users uuid to the __owner property. In private dataMode only users can access documents, if they are owner of it. This mode affects  querying, writing and reading. If you execute a select like `const kids: Contact[] = repository.select({ where: 'age < 18'}).getResults();` you only get kids who have your UUID as owner key.
+Connecting yalento repository with dataMode option  `repository.connectFirestore(fb, { dataMode: 'PRIVATE' });` adds automatically the currents users uid to the __owner property. In private dataMode only users can access documents, if they are owner of it. This mode affects  querying, writing and reading. If you execute a select like `const kids: Contact[] = repository.select({ where: 'age < 18'}).getResults();` you only get kids who have your UID as owner key.
 
 ### The firestore.rules
 Yalento implements very basic privileges to avoid any performance troubles, but you can extend the default [firestore.rules](https://github.com/miegli/yalento/blob/master/firebase/firestore/rules/firestore.rules) provided by yalento whenever you want to do. Please note, however, the [limits of firestore](https://firebase.google.com/docs/firestore/quotas).
