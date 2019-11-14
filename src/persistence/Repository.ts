@@ -304,7 +304,6 @@ export class Repository<T> {
     skipConnector?: string,
   ): Promise<IEntity<T>> {
     return new Promise<IEntity<T>>(async resolve => {
-
       if (this.userUuid === null && this._connections.firestore !== undefined) {
         await this.userUuid$
           .pipe(
@@ -314,8 +313,6 @@ export class Repository<T> {
           )
           .toPromise();
       }
-
-
 
       const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement);
 
