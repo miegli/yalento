@@ -92,7 +92,7 @@ export class Select<T> {
     });
   }
 
-  public create(data?: IRepositoryDataCreate, id?: string | number): Promise<IEntity<T>> {
+  public create(data?: IRepositoryDataCreate<T>, id?: string | number): Promise<IEntity<T>> {
     return new Promise<IEntity<T>>((resolve, reject) => {
       this.subject
         .getRepository()
