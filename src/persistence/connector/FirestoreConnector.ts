@@ -182,6 +182,9 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     const finalSql = 'SELECT * FROM ' + this.getPath() + ' WHERE ' + originalSqlParts[1];
 
     if (this.lastSql !== finalSql) {
+
+      console.log(finalSql);
+
       if (this.realtimeMode) {
         const data$ = this.firesSQL.rxQuery(finalSql);
 

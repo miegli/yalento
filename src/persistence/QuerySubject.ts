@@ -115,6 +115,10 @@ export class QuerySubject<T> {
             ownerWhere += '`__owner.EVERYBODY` = true ';
         }
 
+        if (sql.includeWhereIamOwner === true) {
+            ownerWhere += ' AND `__owner.' + this.getUserUuid() + '` = true ';
+        }
+        
         if (sql.where) {
             selectSqlStatement =
                 querySelect + ' WHERE (' + ownerWhere + ') AND (' + selectSqlStatement.substr(querySelect.length + 6) + ')';
@@ -133,7 +137,7 @@ export class QuerySubject<T> {
     public async execStatement(sql?: IStatement): Promise<Array<IEntity<T>>> {
         this.uuid = this.getRepository().getUserUuid();
 
-        if (this.getRepository().isPrivateMode() && this.uuid === null) {
+        if ((sql && sql.excludeWhereIamOwner === true || sql && sql.includeWhereIamOwner === true || this.getRepository().isPrivateMode()) && this.uuid === null) {
             await this.getRepository()
                 .getUserUuidObservable()
                 .pipe(take(1))
@@ -185,7 +189,6 @@ export class QuerySubject<T> {
         if (sql.includeWhereIamOwner === true) {
             statement += ' AND "' + this.getUserUuid() + '" IN __owners = true';
         }
-
 
 
         if (this.getPaginator().getPageSortProperty() !== '' && this.getPaginator().getPageSortDirection() !== '') {
