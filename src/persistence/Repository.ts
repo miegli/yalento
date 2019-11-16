@@ -1,4 +1,4 @@
-import {classToPlain, deserialize, plainToClassFromExist} from 'class-transformer';
+import {classToPlain, deserialize, plainToClass, plainToClassFromExist} from 'class-transformer';
 import 'es6-shim';
 import {FeatureCollection} from 'geofirex';
 import {Guid} from 'guid-typescript';
@@ -749,10 +749,18 @@ export class Repository<T> {
 
         const c = existingItem.length ? existingItem[0]._ref : (this.createClassInstance(id) as any);
 
+
         if (data) {
             Object.keys(data).forEach((k: string) => {
                 if ((!c['_lockedProperties'][k] && k.substr(0, 1) !== '_') || k === '__references') {
-                    c[k] = data[k];
+
+                    if (data[k] && data[k].constructor.name === 'Timestamp') {
+                        c[k] = new Date().setTime(data[k].seconds * 1000);
+                    } else {
+                        c[k] = data[k];
+                    }
+
+
                 }
             });
         }
