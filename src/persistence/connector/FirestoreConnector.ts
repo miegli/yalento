@@ -145,7 +145,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
                             name: this.repository.getClassName(),
                             lastUpdated: new Date(),
                         };
-                        console.log(references);
+
                         (this.db as any)
                             .doc(this.getParentDocumentPath())
                             .set({__references: references}, {merge: true})
