@@ -50,7 +50,6 @@ describe('FirestoreConnectorTest', async () => {
         EVERYBODY: true,
       },
       __viewer: {
-        EVERYBODY: true,
       },
       name: name,
       lastName: '',
