@@ -202,6 +202,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
         }
 
         this.rxQuerySubscriber = data$.subscribe((results: any) => {
+
           this.repository
             .createMany(results, '', 'firestore')
             .then()
