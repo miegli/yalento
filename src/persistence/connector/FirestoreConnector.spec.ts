@@ -49,8 +49,7 @@ describe('FirestoreConnectorTest', async () => {
       __owner: {
         EVERYBODY: true,
       },
-      __viewer: {
-      },
+      __viewer: {},
       name: name,
       lastName: '',
       street: '',
