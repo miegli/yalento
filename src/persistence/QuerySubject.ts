@@ -135,8 +135,9 @@ export class QuerySubject<T> {
   /**
    *
    * @param sql
+   * @param skipConnectors
    */
-  public async execStatement(sql?: IStatement): Promise<Array<IEntity<T>>> {
+  public async execStatement(sql?: IStatement, skipConnectors?: boolean): Promise<Array<IEntity<T>>> {
     this.uuid = this.getRepository().getUserUuid();
 
     if (
@@ -156,7 +157,7 @@ export class QuerySubject<T> {
     const selectSqlStatement = this.getSqlSelectParsed(sql);
     const params = this.getEvaluatedSqlParams(sql);
 
-    if (this._lastExecStatement !== selectSqlStatement) {
+    if (!skipConnectors && this._lastExecStatement !== selectSqlStatement) {
       this.repository.loadQueryFromConnectors(selectSqlStatement);
       this._lastExecStatement = selectSqlStatement;
     }

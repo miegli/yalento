@@ -1,18 +1,19 @@
-import { GeoFirePoint } from 'geofirex/dist/index';
-import { Observable } from 'rxjs';
+import {Observable} from 'rxjs';
 
 export interface IConnectorInterface<T> {
-  add(items: T[]): void;
+    add(items: T[]): void;
 
-  remove(items: T[]): void;
+    remove(items: T[]): void;
 
-  update(items: T[]): void;
+    update(items: T[]): void;
 
-  select(sql: string, uuid?: string): void;
+    select(sql: string): void;
 
-  disconnect(): void;
+    selectOneByIdentifier(identifier: string): Promise<T>;
 
-  getUserUuid(): Observable<string>;
+    disconnect(): void;
 
-  isPrivateMode(): boolean;
+    getUserUuid(): Observable<string>;
+
+    isPrivateMode(): boolean;
 }
