@@ -264,28 +264,30 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     }
   }
 
-    public selectOneByIdentifier(identifier: string): Promise<any> {
-        return new Promise((resolve) => {
-            if (this.debug) {
-                this.debugMessage(`firebase read once ${this.getPath() + '/' + identifier}`);
-            }
-            (this.db as any).doc(this.getPath() + '/' + identifier).get().then((data) => {
-                if (!data.exists) {
-                    resolve(null)
-                } else {
-                    this.repository
-                        .create(data.data(), identifier, undefined, 'firestore')
-                        .then((e) => {
-                            resolve(e)
-                        }).catch(() => {
-                        resolve(null);
-                    })
-
-                }
-            })
-
-        })
-    }
+  public selectOneByIdentifier(identifier: string): Promise<any> {
+    return new Promise(resolve => {
+      if (this.debug) {
+        this.debugMessage(`firebase read once ${this.getPath() + '/' + identifier}`);
+      }
+      (this.db as any)
+        .doc(this.getPath() + '/' + identifier)
+        .get()
+        .then(data => {
+          if (!data.exists) {
+            resolve(null);
+          } else {
+            this.repository
+              .create(data.data(), identifier, undefined, 'firestore')
+              .then(e => {
+                resolve(e);
+              })
+              .catch(() => {
+                resolve(null);
+              });
+          }
+        });
+    });
+  }
 
   /**
    * replace some statements that are working with firebase
