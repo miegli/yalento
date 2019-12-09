@@ -49,6 +49,7 @@ describe('FirestoreConnectorTest', async () => {
       __owner: {
         EVERYBODY: true,
       },
+      __uuid: 'test1',
       __viewer: {},
       name: name,
       lastName: '',
