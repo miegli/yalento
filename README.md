@@ -73,7 +73,7 @@ You can set the kids geo location by calling:
     
 And what about order the results by distance? Nothing easier than this.
 
-    const kids: Array<IEntity<Contact>> = repository.select({ orderBy: 'geo.distance ASC'}).getResults();
+    const kids: Array<IEntity<Contact>> = repository.select({ orderBy: 'geo->distance ASC'}).getResults();
     
 ### CRUD
 
