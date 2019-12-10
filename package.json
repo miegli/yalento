@@ -1,6 +1,6 @@
 {
   "name": "yalento",
-  "version": "0.0.39",
+  "version": "0.0.40",
   "description": "An awesome integration of Google Firebase for Angular and Node",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
