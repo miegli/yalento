@@ -134,7 +134,7 @@ Now, you have successfully connected your repository to realtime database of clo
 
 ### Paginator
 
-Using the native pagination makes most sense, if you are in the context of an angular app. Let's see how easy yalento works with the google material component:
+Using the native pagination makes most sense, if you are in the context of an angular app. The paginator prevents fluttering effects when updating frequently, e.g. of list views because it deliberately transmits individual changes to the views. Let's see how easy yalento works with the google material component:
 
     <mat-paginator [length]="kids.getPaginator().getLength()"  
 	    [pageSize]="kids.getPaginator().getPageSize()"
