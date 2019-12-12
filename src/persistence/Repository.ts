@@ -74,16 +74,16 @@ export type IConnectionsKeys = ['firestore'];
 
 class GeoData {
 
-    constructor(hash: string, lat: number, lng: number) {
-        this.geohash = hash;
-        this.latitude = lat;
-        this.longitude = lng;
-    }
 
     private readonly geohash: string;
     private readonly latitude: number;
     private readonly longitude: number;
 
+    constructor(hash: string, lat: number, lng: number) {
+        this.geohash = hash;
+        this.latitude = lat;
+        this.longitude = lng;
+    }
     public getHash(): string {
         return this.geohash;
     }
@@ -95,7 +95,7 @@ class GeoData {
     public getLng(): number {
         return this.longitude;
     }
-    
+
 }
 
 /**
