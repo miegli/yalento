@@ -328,7 +328,7 @@ export class Repository<T> {
         owners?: string[],
     ): Promise<IEntity<T>> {
         return new Promise<IEntity<T>>(async resolve => {
-            const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement, owners);
+            const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement, owners, true);
 
             Object.keys(this._connections as any).forEach((k: string) => {
                 /* istanbul ignore next */
@@ -740,7 +740,7 @@ export class Repository<T> {
                                     c['_lockedProperties'][property] = false;
                                 })
                                 .catch();
-                        }, 1000);
+                        }, 100);
                     },
                 };
             },
@@ -780,9 +780,10 @@ export class Repository<T> {
         id?: string | number,
         readDefaultsFromSelectStatement?: string,
         owners?: string[],
+        skipExistingData?: boolean
     ) {
         const exdistingId = id ? id : data && data['__uuid'] ? data['__uuid'] : null;
-        const existingItem = this._tempData.filter((item: IRepositoryData) => {
+        const existingItem = skipExistingData ? [] : this._tempData.filter((item: IRepositoryData) => {
             return item.__uuid === exdistingId;
         });
 
