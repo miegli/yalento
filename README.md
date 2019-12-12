@@ -64,8 +64,8 @@ With activated nearBy option each result contains geo information data automatic
 
      const kid: <IEntity<Contact>> = repository.select().getResults()[0];
           
-     // read geo data like distance betwen current long$ and lat$ values and the kids geo location
-     kid.getGeoData(): {distance: number; bearing: number;} 
+     // read distance betwen current long$ and lat$ values and the kids geo location
+     kid.getDistance(): number 
 
 You can set the kids geo location by calling:
 
@@ -73,7 +73,7 @@ You can set the kids geo location by calling:
     
 And what about order the results by distance? Nothing easier than this.
 
-    const kids: Array<IEntity<Contact>> = repository.select({ orderBy: 'geo->distance ASC'}).getResults();
+    const kids: Array<IEntity<Contact>> = repository.select({ orderBy: '__distance ASC'}).getResults();
     
 ### CRUD
 
