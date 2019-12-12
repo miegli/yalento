@@ -103,7 +103,6 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
   public async add(items: Array<IEntity<T>>) {
     items.forEach((item: any) => {
       const data = item._toPlain();
-
       if (this.options.nearBy !== undefined) {
         data['__geohash'] = geohash.encode(this.options.nearBy.lat.getValue(), this.options.nearBy.long.getValue());
         data['__latitude'] = this.options.nearBy.lat.getValue();
