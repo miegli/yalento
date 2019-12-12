@@ -977,7 +977,7 @@ export class Repository<T> {
      * @param lon2
      */
     private distance(lat1, lon1, lat2, lon2) {
-        console.log(lat1, lon1, lat2, lon2);
+
         if ((lat1 === lat2) && (lon1 === lon2)) {
             return 0;
         } else {
