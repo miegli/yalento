@@ -61,7 +61,7 @@ export interface IStorage {
     forEach(iteratorCallback: (value: any, key: string, iterationNumber: number) => any): Promise<void>;
 }
 
-export class LocalStorageConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T>{
+export class LocalStorageConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T> {
     public readonly options: IConnectionLocalStorage;
 
     private storage: IStorage;
@@ -139,7 +139,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     }
 
     public disconnect(): void {
-
+        // no implementation needed
     }
 
     public getUserUuid(): Observable<string> {
