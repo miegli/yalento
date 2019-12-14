@@ -8,6 +8,7 @@ An awesome framework that combines the best benefits from [AlaSQL](http://alasql
 - Write normal SQL-Queries and get observable **realtime** result changes.
 - Supports **near by** queries and provides geo informations.
 - Native integration of most common features like pagination or selection.
+- Local storage connector
 - **Made for serverless** (google cloud functions, aws lambda, etc).
 - CRUD operations for any, even complex, javascript objects
 - Full **offline support** und high performance guaranteed.
@@ -180,6 +181,17 @@ You can create subobjects for each object and thus map a complete tree structure
          }]  
       }
 
+### Connector local storage
+
+You can connect every yalento repository with connectors like local storage connector. The local storage must be an implementation of key-value object storage like ionic/storage:
+
+     import {Storage} from '@ionic/storage';
+     const storage = new Storage({
+                name: 'kids'
+     });const repository = new Repository<T>(Kids);  
+      
+     repository.connectLocalStorage(localStorage);
+     
 
 ## Example serverless
 ### google cloud functions
