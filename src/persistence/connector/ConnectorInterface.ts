@@ -1,20 +1,20 @@
-import {Observable} from 'rxjs';
-import {IEntity} from "../Repository";
+import { Observable } from 'rxjs';
+import { IEntity } from '../Repository';
 
 export interface IConnectorInterface<T> {
-    add(items: Array<IEntity<T>>): void;
+  add(items: Array<IEntity<T>>): void;
 
-    remove(items: Array<IEntity<T>>): void;
+  remove(items: Array<IEntity<T>>): void;
 
-    update(items: Array<IEntity<T>>): void;
+  update(items: Array<IEntity<T>>): void;
 
-    select(sql: string): void;
+  select(sql: string): void;
 
-    selectOneByIdentifier(identifier: string): Promise<any>;
+  selectOneByIdentifier(identifier: string): Promise<any>;
 
-    disconnect(): void;
+  disconnect(): void;
 
-    getUserUuid(): Observable<string>;
+  getUserUuid(): Observable<string>;
 
-    isPrivateMode(): boolean;
+  isPrivateMode(): boolean;
 }
