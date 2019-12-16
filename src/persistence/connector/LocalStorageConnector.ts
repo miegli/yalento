@@ -60,7 +60,7 @@ export interface IStorage {
   forEach(iteratorCallback: (value: any, key: string, iterationNumber: number) => any): Promise<void>;
 }
 
-export class LocalStorageConnector<T> extends AbstractConnector<T> implements IConnectorInterface<T> {
+export class LocalStorageConnector<T> extends AbstractConnector<T> implements IConnectorInterface<IEntity<T>> {
   public readonly options: IConnectionLocalStorage;
 
   private storage: IStorage;
