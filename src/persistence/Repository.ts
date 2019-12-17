@@ -283,7 +283,7 @@ export class Repository<T> {
         if (this.cachedByIdentifier[identifier]) {
           const existingData = await this.exec(
             {
-              where: 'uid LIKE ?',
+              where: '__uuid LIKE ?',
               params: [identifier],
             },
             true,
@@ -304,7 +304,7 @@ export class Repository<T> {
         }
 
         Promise.all(promises).then(() => {
-          this.exec({ where: 'uid LIKE ?', params: [identifier] }, true).then(data => {
+          this.exec({ where: '__uuid LIKE ?', params: [identifier] }, true).then(data => {
             resolve(data.length ? data[0] : undefined);
             this.cachedByIdentifier[identifier] = true;
           });
