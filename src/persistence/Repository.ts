@@ -789,7 +789,7 @@ export class Repository<T> {
     data?: IRepositoryDataCreate<T>,
     id?: string | number,
     readDefaultsFromSelectStatement?: string,
-    owners?: string[],
+    owners?: string[]
   ) {
     const exdistingId = id ? id : data && data['__uuid'] ? data['__uuid'] : null;
     const existingItem = this._tempData.filter((item: IRepositoryData) => {
@@ -853,6 +853,7 @@ export class Repository<T> {
     if (existingItem.length) {
       existingItem.forEach((item: IRepositoryData) => {
         item._ref = c;
+        item.__removed = false;
       });
     } else {
       this._tempData.push({
