@@ -280,7 +280,7 @@ export class Repository<T> {
       if (!identifier) {
         reject('getOneByIdentifier identifier is null for ' + this.getClassName());
       } else {
-        if (this.cachedByIdentifier[identifier]) {
+        if (!this.cachedByIdentifier[identifier]) {
           const existingData = await this.exec(
             {
               where: '__uuid LIKE ?',
