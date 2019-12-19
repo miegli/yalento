@@ -5,12 +5,22 @@
     "declaration": true,
     "outDir": "./lib",
     "strict": true,
-    "lib": ["es5", "es2015", "dom", "scripthost"],
+    "lib": [
+      "es2015",
+      "dom",
+      "scripthost",
+      "es6"
+    ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": false
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "**/__tests__/*"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/__tests__/*"
+  ]
 }
