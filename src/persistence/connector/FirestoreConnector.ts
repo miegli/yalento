@@ -208,10 +208,6 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
             );
             const geoquery = ' AND __geohash >= "' + range.lower + '" AND __geohash <= "' + range.upper + '" ';
             finalSql += geoquery;
-            this.options.nearBy.long.getValue(),
-                this.options.nearBy.radius.getValue(),
-        )
-            ;
             this.repository.setGeoQuery(geoquery + ' AND __distance <= ' + this.options.nearBy.radius.getValue());
         } else {
             this.repository.setGeoQuery();
