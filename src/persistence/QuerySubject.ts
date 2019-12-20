@@ -166,9 +166,9 @@ export class QuerySubject<T> {
       return of([]).toPromise();
     }
 
-    if (!skipConnectors && this._lastExecStatement !== selectSqlStatement) {
+    if (!skipConnectors && this._lastExecStatement !== selectSqlStatement + this.repository.getGeoQuery()) {
       this.repository.loadQueryFromConnectors(selectSqlStatement);
-      this._lastExecStatement = selectSqlStatement;
+      this._lastExecStatement = selectSqlStatement + this.repository.getGeoQuery();
     }
 
     if (this._repositoryLastCount === 0 && this.repository.count() === 0) {
