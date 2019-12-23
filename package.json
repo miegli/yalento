@@ -44,8 +44,8 @@
     "core-js": "^3.6.0",
     "es6-shim": "^0.35.5",
     "firebase": "^7.6.1",
-    "flora-sql-parser": "^0.9.4",
     "guid-typescript": "^1.0.9",
+    "js-sql-parser": "^1.2.1",
     "ngeohash": "^0.6.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.5.3"
