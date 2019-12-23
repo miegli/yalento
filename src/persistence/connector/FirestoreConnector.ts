@@ -1,10 +1,12 @@
 import * as firebase from 'firebase/app';
 import { Guid } from 'guid-typescript';
 import geohash from 'ngeohash';
-import * as parser from 'node-sql-parser';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { IEntity, Repository } from '../Repository';
 import { AbstractConnector } from './AbstractConnector';
+
+// tslint:disable-next-line:no-var-requires
+const { Parser } = require('flora-sql-parser');
 
 export class Firestore {}
 
@@ -359,8 +361,8 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
   private getFirebaseCollection(sql: string): firebase.firestore.Query {
     const ref = (this.db as any).collection(this.getPath());
 
-    const parser1 = new parser.Parser();
-    const ast = parser1.astify('SELECT * FROM t WHERE ' + sql);
+    const parser1 = new Parser();
+    const ast = parser1.parse('SELECT * FROM t WHERE ' + sql);
 
     const addQuery = (reference: firebase.firestore.Query, statement: IAstStatement): firebase.firestore.Query => {
       if (statement.operator === 'AND') {
