@@ -3,3 +3,5 @@ export { Repository, IEntity } from './persistence/Repository';
 export { IPageEventSort, QueryPaginator } from './persistence/query/QueryPaginator';
 export { IsMatch } from './helper/isMatch';
 export { IConnectionFirestoreNearBy } from './persistence/connector/FirestoreConnector';
+export { Observable, BehaviorSubject, Subject } from 'rxjs';
+export * from 'rxjs/operators';
