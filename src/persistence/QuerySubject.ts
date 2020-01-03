@@ -1,5 +1,5 @@
 import { BehaviorSubject, of } from 'rxjs';
-import { take, takeUntil, takeWhile, timeout, withLatestFrom } from 'rxjs/operators';
+import { take } from 'rxjs/operators';
 import { IClassProperty, IEntity, IRepositoryData, Repository } from '../persistence/Repository';
 import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
 /// <reference path="alasql.d.ts" />

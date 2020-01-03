@@ -325,7 +325,7 @@ export class QueryPaginator<T> {
     } else {
       this.results.forEach((r: IEntity<T>) => {
         // @ts-ignore
-        if (this._selected[r['__uuid']]) {
+        if (r && this._selected[r['__uuid']]) {
           count++;
         }
       });

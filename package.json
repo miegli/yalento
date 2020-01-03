@@ -39,7 +39,7 @@
     "@firebase/firestore-types": "^1.6.2",
     "@types/bluebird": "^3.5.27",
     "@types/validator": "^10.11.3",
-    "alasql": "^0.5.1",
+    "alasql": "^0.5.3",
     "class-transformer": "^0.2.3",
     "core-js": "^3.6.0",
     "es6-shim": "^0.35.5",
@@ -48,7 +48,7 @@
     "js-sql-parser": "^1.2.1",
     "ngeohash": "^0.6.3",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^6.5.3"
+    "rxjs": "^6.5.4"
   },
   "devDependencies": {
     "@firebase/testing": "^0.5.3",
