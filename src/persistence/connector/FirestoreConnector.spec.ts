@@ -46,7 +46,7 @@ describe('FirestoreConnectorTest', async () => {
     const name = 'name' + Guid.create();
 
     expect(await repo.create({ name: name }, 'test1')).to.be.deep.equal({
-      __initialdata: "{\"name\":\""+name+"\"}",
+      __initialdata: '{"name":"' + name + '"}',
       __owner: {
         EVERYBODY: true,
       },
