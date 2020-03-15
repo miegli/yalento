@@ -127,7 +127,7 @@ export class Repository<T> {
   private readonly _selects: Array<Select<T>> = [];
   private _subscriptions: any[] = [];
   private _tempData: IRepositoryData[] = [];
-  private _excludeSerializeProperties: string[] = ['__owner', '__distance'];
+  private _excludeSerializeProperties: string[] = ['__owner', '__distance', '__initialdata'];
   private _connections: IConnections<IEntity<T>> = {};
   private _className: string = '';
   private userUuid: any = null;
