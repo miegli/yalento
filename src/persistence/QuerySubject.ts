@@ -2,6 +2,7 @@ import { BehaviorSubject, of } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { IClassProperty, IEntity, IRepositoryData, Repository } from '../persistence/Repository';
 import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
+declare const require: any;
 /// <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');

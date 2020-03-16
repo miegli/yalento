@@ -1,3 +1,4 @@
+declare const require: any;
 // <reference path="alasql.d.ts" />
 // tslint:disable-next-line:no-var-requires
 const alasql = require('alasql');

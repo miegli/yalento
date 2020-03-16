@@ -29,7 +29,7 @@ The yalento repository supports even complex javascript objects where you can do
 Your model must not extend from any yalento classes - just write your classes how you like it. Only if you work with objects in a repository, then you need the yalento class and IEntity type:
 
     import { Repository, IEntity } from 'yalento';
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
    
 Now we are ready. Let's create two new contacts from repository:
 
@@ -159,7 +159,7 @@ Nothing to configure - you've already implemented all the pagination component f
 
 You can create subobjects for each object and thus map a complete tree structure:
 
-    const repository = new Repository<T>(Toy);  
+    const repository = new Repository<T>(Toy, 'Toy');  
     repository.connectFirestore(firestore, {   
          parent: [{  
             documentId: kid.getUuid()(),  
@@ -188,7 +188,7 @@ You can connect every yalento repository with connectors like local storage conn
      import {Storage} from '@ionic/storage';
      const storage = new Storage({
                 name: 'kids'
-     });const repository = new Repository<T>(Kids);  
+     });const repository = new Repository<T>(Kids, 'Kids');  
       
      repository.connectLocalStorage(localStorage);
      
@@ -205,7 +205,7 @@ Let's look at an example for a serverless function:
     import {Repository} from "yalento";
     
     const fb = firebase.initializeApp();  
-    const repo = new Repository<Contact>(Contact);  
+    const repo = new Repository<Contact>(Contact, 'Contact');  
     const select = repo.connectFirestore(fb).select({where: 'age > 0'});  
       
       export const helloWorld = functions.https.onRequest((request, response) => {

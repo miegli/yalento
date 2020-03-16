@@ -18,7 +18,7 @@ export class Contact {
 }
 
 describe('FirestoreConnectorTest', async () => {
-  const repo = new Repository<Contact>(Contact);
+  const repo = new Repository<Contact>(Contact, 'Contact');
   const fb = firebase.initializeApp({
     apiKey: process.env.test_firebase_apiKey,
     authDomain: process.env.test_firebase_authDomain,
@@ -71,7 +71,7 @@ describe('FirestoreConnectorTest', async () => {
     expect(await repo.select().getResultsAsPromise()).to.be.lengthOf(3);
 
     const name$ = new BehaviorSubject<string>(name);
-    const repo2 = new Repository<Contact>(Contact);
+    const repo2 = new Repository<Contact>(Contact, 'Contact');
 
     repo2.connectFirestore(fb.firestore());
     const select = repo2.select({

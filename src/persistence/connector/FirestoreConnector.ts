@@ -4,7 +4,7 @@ import geohash from 'ngeohash';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { IEntity, Repository } from '../Repository';
 import { AbstractConnector } from './AbstractConnector';
-
+declare const require: any;
 // tslint:disable-next-line:no-var-requires
 const { Parser } = require('js-sql-parser');
 

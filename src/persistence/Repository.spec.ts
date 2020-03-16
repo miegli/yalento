@@ -27,54 +27,54 @@ export class ContactWithoutConstructor {
 
 describe('RepositoryTest', async () => {
   it('construct new repository should instantiate with model with and without constructor parameters', async () => {
-    const repository1: Repository<Contact> = new Repository(Contact);
+    const repository1: Repository<Contact> = new Repository(Contact, 'Contact');
     expect(typeof repository1 === 'object').to.be.true;
 
-    const repository2: Repository<Contact> = new Repository(Contact, 'name', 'lastName', 3);
+    const repository2: Repository<Contact> = new Repository(Contact, 'Contact','name', 'lastName', 3);
     expect(typeof repository2 === 'object').to.be.true;
   });
 
   it('destroying a repository should be destroy instance', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     expect(typeof repository === 'object').to.be.true;
 
     repository.destroy();
   });
 
   it('construct new repository should instantiate model', async () => {
-    const repository: Repository<Contact> = new Repository(Contact, 'test1', 'test2', 1);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact','test1', 'test2', 1);
     expect(typeof repository === 'object').to.be.true;
 
-    const repository2: Repository<ContactWithoutConstructor> = new Repository(ContactWithoutConstructor);
+    const repository2: Repository<ContactWithoutConstructor> = new Repository(ContactWithoutConstructor, 'ContactWithoutConstructor');
     expect(typeof repository2 === 'object').to.be.true;
   });
 
   it('create item of repository should return model', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     expect((await repository.create()).street).to.be.equal('street');
     expect((await repository.create({ street: 'test' })).street).to.be.equal('test');
     expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
   });
 
   it('create items with same identifier should create only once', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
     expect((await repository.create({}, 1))['__uuid']).to.be.equal(1);
     expect(await repository.select().getResultsAsPromise()).to.be.lengthOf(1);
 
-    const repository2: Repository<Contact> = new Repository(Contact);
+    const repository2: Repository<Contact> = new Repository(Contact, 'Contact');
     await repository2.createMany([{ __uuid: 2 }, { __uuid: 2 }]);
     expect(await repository2.select().getResultsAsPromise()).to.be.lengthOf(1);
   });
 
   it('create many items of repository should return models', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     expect(await repository.createMany([{ age: 1 }, { age: 2 }])).to.lengthOf(2);
     expect((await repository.createMany([{ __uuid: 2 }]))[0]['__uuid']).to.be.equal(2);
   });
 
   it('create item of repository by reading default data from sql statement should return model', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contact = await repository.create(
       { lastName: 'lastName' },
       undefined,
@@ -103,15 +103,15 @@ describe('RepositoryTest', async () => {
   });
 
   it('querying items from empty repository should return no models', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     expect(repository.select().getResults()).to.lengthOf(0);
 
-    const repository2: Repository<Contact> = new Repository(Contact, 'name', 'lastName', 1);
+    const repository2: Repository<Contact> = new Repository(Contact, 'Contact', 'name', 'lastName', 1);
     expect(repository2.select().getResults()).to.lengthOf(0);
   });
 
   it('querying items from repository should return matching models', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contacts1 = repository.select();
     await contacts1.create({ name: 'name', lastName: 'lastName', age: 3 });
     expect(contacts1.getResults()).to.lengthOf(1);
@@ -139,7 +139,7 @@ describe('RepositoryTest', async () => {
 
   it('querying items with params from repository should return matching models', async () => {
     const age$: BehaviorSubject<number> = new BehaviorSubject(1);
-    const repository: Repository<Contact> = new Repository(Contact, 'test');
+    const repository: Repository<Contact> = new Repository(Contact,'Contact', 'test');
     const contacts = repository.select({ where: 'age = ? AND name LIKE ?', params: [age$, 'test'] });
     await repository.create({ age: 1 });
     await repository.create({ age: 2 });
@@ -158,7 +158,7 @@ describe('RepositoryTest', async () => {
   });
 
   it('querying items from repository should return observable results', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contacts = repository.select();
     expect(await contacts.getResults()).to.be.lengthOf(0);
 
@@ -196,7 +196,7 @@ describe('RepositoryTest', async () => {
   });
 
   it('paginator for select items from repository should be applied', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     await repository.create({ age: 1 });
     await repository.create({ age: 2 });
     await repository.create({ age: 3 });
@@ -239,7 +239,7 @@ describe('RepositoryTest', async () => {
   });
 
   it('creating model after repository querying should update results', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contacts = repository.select();
     expect(contacts.getResults()).to.be.lengthOf(0);
     await contacts.create();
@@ -249,7 +249,7 @@ describe('RepositoryTest', async () => {
   });
 
   it('removing model after repository querying should update results', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contacts = repository.select();
     const contact = await contacts.create();
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
@@ -258,7 +258,7 @@ describe('RepositoryTest', async () => {
   });
 
   it('updating model after repository querying should update results', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const contacts = repository.select({ where: 'age = 0' });
     const contact = await contacts.create();
     expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);

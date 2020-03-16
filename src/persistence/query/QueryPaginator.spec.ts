@@ -11,7 +11,7 @@ export class Contact {
 
 describe('QueryPaginatorTest', async () => {
   it('select operation on repository should return query paginator with correct length', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const select = repository.select({}, { pageSize: 1 });
     await repository.createMany([{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]);
     await select.getResultsAsPromise();
@@ -20,7 +20,7 @@ describe('QueryPaginatorTest', async () => {
   });
 
   it('paginator should work with page changes and default values', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const select = repository.select({}, { pageSize: 1 });
     await repository.createMany([{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]);
     await select.getResultsAsPromise();
@@ -44,7 +44,7 @@ describe('QueryPaginatorTest', async () => {
   });
 
   it('selecting item on paginators should return correct state', async () => {
-    const repository: Repository<Contact> = new Repository(Contact);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact');
     const select = repository.select({}, { pageSize: 1 });
     await repository.createMany([{ age: 1 }, { age: 2 }, { age: 3 }, { age: 4 }, { age: 5 }]);
     const results = await select.getResultsAsPromise();
