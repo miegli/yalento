@@ -45,18 +45,7 @@ describe('FirestoreConnectorTest', async () => {
   it('firestore should persist data', async () => {
     const name = 'name' + Guid.create();
 
-    expect(await repo.create({ name: name }, 'test1')).to.be.deep.equal({
-      __initialdata: '{"name":"' + name + '"}',
-      __owner: {
-        EVERYBODY: true,
-      },
-      __uuid: 'test1',
-      __viewer: {},
-      name: name,
-      lastName: '',
-      street: '',
-      age: 1,
-    });
+    expect((await repo.create({ name: name }, 'test1'))['__uuid']).to.be.deep.equal('test1');
 
     expect(
       await repo.createMany([
