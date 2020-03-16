@@ -75,7 +75,6 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     public add(items: Array<IEntity<T>>): void {
         const promises: any[] = [];
         items.forEach((item: IEntity<T>) => {
-            console.log({...item._toPlain(), '__timestamp': new Date().getTime()});
             promises.push(this.storage.set(item.getUuid(), {...item._toPlain(), '__timestamp': new Date().getTime()}));
         });
 
