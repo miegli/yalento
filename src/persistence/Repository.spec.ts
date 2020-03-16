@@ -30,7 +30,7 @@ describe('RepositoryTest', async () => {
     const repository1: Repository<Contact> = new Repository(Contact, 'Contact');
     expect(typeof repository1 === 'object').to.be.true;
 
-    const repository2: Repository<Contact> = new Repository(Contact, 'Contact','name', 'lastName', 3);
+    const repository2: Repository<Contact> = new Repository(Contact, 'Contact', 'name', 'lastName', 3);
     expect(typeof repository2 === 'object').to.be.true;
   });
 
@@ -42,10 +42,13 @@ describe('RepositoryTest', async () => {
   });
 
   it('construct new repository should instantiate model', async () => {
-    const repository: Repository<Contact> = new Repository(Contact, 'Contact','test1', 'test2', 1);
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact', 'test1', 'test2', 1);
     expect(typeof repository === 'object').to.be.true;
 
-    const repository2: Repository<ContactWithoutConstructor> = new Repository(ContactWithoutConstructor, 'ContactWithoutConstructor');
+    const repository2: Repository<ContactWithoutConstructor> = new Repository(
+      ContactWithoutConstructor,
+      'ContactWithoutConstructor',
+    );
     expect(typeof repository2 === 'object').to.be.true;
   });
 
@@ -139,7 +142,7 @@ describe('RepositoryTest', async () => {
 
   it('querying items with params from repository should return matching models', async () => {
     const age$: BehaviorSubject<number> = new BehaviorSubject(1);
-    const repository: Repository<Contact> = new Repository(Contact,'Contact', 'test');
+    const repository: Repository<Contact> = new Repository(Contact, 'Contact', 'test');
     const contacts = repository.select({ where: 'age = ? AND name LIKE ?', params: [age$, 'test'] });
     await repository.create({ age: 1 });
     await repository.create({ age: 2 });
