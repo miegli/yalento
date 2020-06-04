@@ -48,30 +48,15 @@ describe('QueryPaginatorTest', async () => {
     const select = repository.select({}, { pageSize: 1 });
     await repository.createMany([{ age: 1 }, { age: 2 }, { age: 3 }, { age: 4 }, { age: 5 }]);
     const results = await select.getResultsAsPromise();
-    expect(
-      select
-        .getPaginator()
-        .getSelectedCount()
-        .getValue(),
-    ).to.be.equal(0);
+    expect(select.getPaginator().getSelectedCount().getValue()).to.be.equal(0);
 
     select.getPaginator().toggleSelection(results[0]);
-    expect(
-      select
-        .getPaginator()
-        .getSelectedCount()
-        .getValue(),
-    ).to.be.equal(1);
+    expect(select.getPaginator().getSelectedCount().getValue()).to.be.equal(1);
     expect(select.getPaginator().getSelected()[0].age).to.be.equal(1);
     expect(select.getPaginator().isSelected(results[0])).to.be.true;
 
     select.getPaginator().toggleSelection();
-    expect(
-      select
-        .getPaginator()
-        .getSelectedCount()
-        .getValue(),
-    ).to.be.equal(5);
+    expect(select.getPaginator().getSelectedCount().getValue()).to.be.equal(5);
     expect(select.getPaginator().getSelected()).to.be.lengthOf(5);
 
     select.getPaginator().toggleSelection();
