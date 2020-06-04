@@ -1119,9 +1119,9 @@ export class Repository<T> {
   /**
    * check properties that can to be serialized
    */
-  private initSerializer(className?: string) {
+  private initSerializer(className: string) {
     const c = this.createClassInstance() as any;
-    this._className = c.constructor.name ? c.constructor.name : className;
+    this._className = className;
     Object.keys(c).forEach((key: string) => {
       try {
         new c[key].constructor();
