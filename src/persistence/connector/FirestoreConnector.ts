@@ -236,7 +236,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
 
                     const repository = this.repository;
 
-                    querySnapshot.docChanges().forEach(function (change) {
+                    querySnapshot.docChanges().forEach((change) => {
                         if (change.type === "removed") {
                             repository.remove({__uuid: change.doc.id} as any, 'firestore').then().catch();
                         }
