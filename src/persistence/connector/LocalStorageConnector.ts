@@ -72,7 +72,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     this.storage = storage;
   }
 
-  public add(items: Array<IEntity<T>>): void {
+  public add(items: IEntity<T>[]): void {
     const promises: any[] = [];
     items.forEach((item: IEntity<T>) => {
       promises.push(this.storage.set(item.getUuid(), { ...item._toPlain(), __timestamp: new Date().getTime() }));
@@ -81,7 +81,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     Promise.all(promises).then();
   }
 
-  public remove(items: Array<IEntity<T>>): void {
+  public remove(items: IEntity<T>[]): void {
     const promises: any[] = [];
     items.forEach((item: IEntity<T>) => {
       promises.push(this.storage.remove(item.getUuid()));
@@ -90,7 +90,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     Promise.all(promises).then();
   }
 
-  public update(items: Array<IEntity<T>>): void {
+  public update(items: IEntity<T>[]): void {
     this.add(items);
   }
 
@@ -105,7 +105,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
           this.repository
             .createMany(results, '', 'localStorage')
             .then()
-            .catch(e => {
+            .catch((e) => {
               throw e;
             });
         });
@@ -115,12 +115,12 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
   }
 
   public selectOneByIdentifier(identifier: string): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>(resolve => {
-      this.storage.get(identifier).then(value => {
+    return new Promise<IEntity<T>>((resolve) => {
+      this.storage.get(identifier).then((value) => {
         if (value) {
           this.repository
             .create(value, identifier, undefined, 'localStorage')
-            .then(e => {
+            .then((e) => {
               resolve(e);
             })
             .catch(() => {

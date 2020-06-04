@@ -23,12 +23,12 @@ export class Select<T> {
     return this.paginator;
   }
 
-  public getResults(): Array<IEntity<T>> {
+  public getResults(): IEntity<T>[] {
     return this.paginator.getResults();
   }
 
-  public getResultsAsPromise(): Promise<Array<IEntity<T>>> {
-    return new Promise<Array<IEntity<T>>>(resolve => {
+  public getResultsAsPromise(): Promise<IEntity<T>[]> {
+    return new Promise<IEntity<T>[]>((resolve) => {
       this.subject
         .getQueryCallbackChanges()
         .pipe(
@@ -45,7 +45,7 @@ export class Select<T> {
   }
 
   public toJson(): Promise<string> {
-    return new Promise<string>(resolve => {
+    return new Promise<string>((resolve) => {
       this.subject
         .getQueryCallbackChanges()
         .pipe(
@@ -65,8 +65,8 @@ export class Select<T> {
     });
   }
 
-  public getResultsAsObservable(): Observable<Array<IEntity<T>>> {
-    return new Observable<Array<IEntity<T>>>((observer: Subscriber<Array<IEntity<T>>>) => {
+  public getResultsAsObservable(): Observable<IEntity<T>[]> {
+    return new Observable<IEntity<T>[]>((observer: Subscriber<IEntity<T>[]>) => {
       this._subscriptions.push(
         this.subject.getQueryCallbackChanges().subscribe((changes: IQueryCallbackChanges) => {
           if (changes.results !== undefined) {

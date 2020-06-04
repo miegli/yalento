@@ -125,8 +125,8 @@ export class Repository<T> {
   private readonly _class: any;
   private readonly _classProperties: IClassProperty[] = [];
   private readonly _constructorArguments: any;
-  private readonly _subjects: Array<QuerySubject<T>> = [];
-  private readonly _selects: Array<Select<T>> = [];
+  private readonly _subjects: QuerySubject<T>[] = [];
+  private readonly _selects: Select<T>[] = [];
   private _subscriptions: any[] = [];
   private _tempData: IRepositoryData[] = [];
   private _excludeSerializeProperties: string[] = ['__owner', '__distance', '__initialdata', '__timestamp'];
@@ -147,9 +147,7 @@ export class Repository<T> {
     this._class = model;
     this._creationTimestamp = new Date().getTime();
     this._constructorArguments = constructorArguments;
-    this._instanceIdentifier = Guid.create()
-      .toString()
-      .replace(/-/g, '');
+    this._instanceIdentifier = Guid.create().toString().replace(/-/g, '');
     this.createDatabase();
     this.initSerializer(className);
   }
@@ -315,7 +313,7 @@ export class Repository<T> {
         }
 
         Promise.all(promises).then(() => {
-          this.exec({ where: '__uuid LIKE ?', params: [identifier] }, true).then(data => {
+          this.exec({ where: '__uuid LIKE ?', params: [identifier] }, true).then((data) => {
             resolve(data.length ? data[0] : undefined);
           });
         });
@@ -323,8 +321,8 @@ export class Repository<T> {
     });
   }
 
-  public exec(sql: IStatement, skipGeolocation?: boolean): Promise<Array<IEntity<T>>> {
-    return new Promise<Array<IEntity<T>>>(resolve => {
+  public exec(sql: IStatement, skipGeolocation?: boolean): Promise<IEntity<T>[]> {
+    return new Promise<IEntity<T>[]>((resolve) => {
       const subject = new QuerySubject<T>(this, sql);
       subject.execStatement(sql, true, skipGeolocation).then((results: any) => {
         resolve(results);
@@ -347,7 +345,7 @@ export class Repository<T> {
     skipConnector?: string,
     owners?: string[],
   ): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>(async resolve => {
+    return new Promise<IEntity<T>>(async (resolve) => {
       const c = this.createObjectFromClass(data, id, readDefaultsFromSelectStatement, owners);
 
       Object.keys(this._connections as any).forEach((k: string) => {
@@ -371,7 +369,7 @@ export class Repository<T> {
    * @param skipConnector
    */
   public remove(data: IEntity<T> | T, skipConnector?: string): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>(resolve => {
+    return new Promise<IEntity<T>>((resolve) => {
       this._tempData
         .filter((value: any) => value['__uuid'] === data['__uuid'])
         .forEach((remove: any) => {
@@ -400,7 +398,7 @@ export class Repository<T> {
    * @param skipConnector
    */
   public update(data: IEntity<T>, skipConnector?: string): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>(resolve => {
+    return new Promise<IEntity<T>>((resolve) => {
       Object.keys(this._connections as any).forEach((k: string) => {
         /* istanbul ignore next */
         if (skipConnector !== k) {
@@ -417,7 +415,7 @@ export class Repository<T> {
         .filter((item: IRepositoryData) => {
           return item.__uuid === data.getUuid();
         })
-        .forEach(item => {
+        .forEach((item) => {
           item['_ref'] = data;
         });
 
@@ -430,8 +428,8 @@ export class Repository<T> {
    * @param data
    * @param skipConnector
    */
-  public updateMultiple(data: Array<IEntity<T>>, skipConnector?: string): Promise<Array<IEntity<T>>> {
-    return new Promise<Array<IEntity<T>>>(resolve => {
+  public updateMultiple(data: IEntity<T>[], skipConnector?: string): Promise<IEntity<T>[]> {
+    return new Promise<IEntity<T>[]>((resolve) => {
       Object.keys(this._connections as any).forEach((k: string) => {
         /* istanbul ignore next */
         if (skipConnector !== k) {
@@ -453,8 +451,8 @@ export class Repository<T> {
    * @param data
    * @param skipConnector
    */
-  public removeMultiple(data: Array<IEntity<T>> | T[], skipConnector?: string): Promise<Array<IEntity<T>>> | T[] {
-    return new Promise<Array<IEntity<T>>>(resolve => {
+  public removeMultiple(data: IEntity<T>[] | T[], skipConnector?: string): Promise<IEntity<T>[]> | T[] {
+    return new Promise<IEntity<T>[]>((resolve) => {
       data.forEach((value: any) => {
         value['__removed'] = true;
       });
@@ -489,14 +487,14 @@ export class Repository<T> {
    * @param skipConnector
    */
   public async createMany(
-    data: Array<IRepositoryDataCreate<T>>,
+    data: IRepositoryDataCreate<T>[],
     readDefaultsFromSelectStatement?: string,
     skipConnector?: string,
-  ): Promise<Array<IEntity<T>>> {
-    return new Promise<Array<IEntity<T>>>(async resolve => {
+  ): Promise<IEntity<T>[]> {
+    return new Promise<IEntity<T>[]>(async (resolve) => {
       const promises: any = [];
 
-      data.forEach(value => {
+      data.forEach((value) => {
         promises.push(
           this.createOneFromMany(
             value,
@@ -735,9 +733,7 @@ export class Repository<T> {
       configurable: false,
       writable: true,
       value: (): void => {
-        this.remove(c)
-          .then()
-          .catch();
+        this.remove(c).then().catch();
       },
     });
 
@@ -901,8 +897,8 @@ export class Repository<T> {
         _ref: c,
         __uuid: c.__uuid,
         __removed: false,
-        __owner: Object.keys(c.__owner).map(k => (c.__owner[k] ? k : '')),
-        __viewer: Object.keys(c.__viewer).map(k => (c.__viewer[k] ? k : '')),
+        __owner: Object.keys(c.__owner).map((k) => (c.__owner[k] ? k : '')),
+        __viewer: Object.keys(c.__viewer).map((k) => (c.__viewer[k] ? k : '')),
       });
     }
 
@@ -920,7 +916,7 @@ export class Repository<T> {
     id?: string | number,
     readDefaultsFromSelectStatement?: string,
   ): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>(resolve => {
+    return new Promise<IEntity<T>>((resolve) => {
       resolve(this.createObjectFromClass(data, id, readDefaultsFromSelectStatement));
     });
   }
@@ -1068,7 +1064,7 @@ export class Repository<T> {
    * @param id
    */
   private updateProperties(data: IRepositoryDataCreate<T>, id: string | number): Promise<void> {
-    return new Promise<void>(async resolve => {
+    return new Promise<void>(async (resolve) => {
       Object.keys(this._connections as any).forEach((k: string) => {
         /* istanbul ignore next */
         data['__uuid'] = id;

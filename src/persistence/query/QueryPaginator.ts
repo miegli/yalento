@@ -26,10 +26,10 @@ export interface IPageEventSort {
 }
 
 export class QueryPaginator<T> {
-  public results: Array<IEntity<T>> = [];
-  private results$: BehaviorSubject<Array<IEntity<T>>> = new BehaviorSubject<Array<IEntity<T>>>([]);
+  public results: IEntity<T>[] = [];
+  private results$: BehaviorSubject<IEntity<T>[]> = new BehaviorSubject<IEntity<T>[]>([]);
   private length: number = 0;
-  private resultsAll: Array<IEntity<T>> = [];
+  private resultsAll: IEntity<T>[] = [];
   private pageSize: number = 0;
   private pageIndex: number = 0;
   private pageSizeOptions: number[] = [];
@@ -64,8 +64,8 @@ export class QueryPaginator<T> {
   /**
    *
    */
-  public getSelected(): Array<IEntity<T>> {
-    const selected: Array<IEntity<T>> = [];
+  public getSelected(): IEntity<T>[] {
+    const selected: IEntity<T>[] = [];
 
     if (this.isSelectedAll().getValue()) {
       return this.resultsAll;
@@ -144,7 +144,7 @@ export class QueryPaginator<T> {
    * @param pageEvent
    */
   public setPage(pageEvent: IPageEvent): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
+    return new Promise<boolean>((resolve) => {
       const changes: IQueryCallbackChanges = {};
       if (pageEvent.pageIndex !== undefined && pageEvent.pageIndex !== this.getPageIndex()) {
         this.pageIndex = pageEvent.pageIndex;
@@ -222,7 +222,7 @@ export class QueryPaginator<T> {
   public setPageSize(size: number, skipChangeDetection?: boolean): Promise<boolean> {
     this.pageSize = size;
 
-    return new Promise<boolean>(resolve => {
+    return new Promise<boolean>((resolve) => {
       if (skipChangeDetection !== true) {
         this._hasPageSizeChanges = true;
         this._querySubject.updateQueryCallbackChanges({ pageSize: size });
@@ -243,7 +243,7 @@ export class QueryPaginator<T> {
     });
   }
 
-  public getResults(): Array<IEntity<T>> {
+  public getResults(): IEntity<T>[] {
     return this.results;
   }
 
@@ -306,7 +306,7 @@ export class QueryPaginator<T> {
    *
    * @param results
    */
-  private setResults(results: Array<IEntity<T>>) {
+  private setResults(results: IEntity<T>[]) {
     const selectedAll = this.isSelectedAll().getValue();
     results.forEach((result: any) => {
       if (result && this._selected[result['__uuid']] === undefined) {

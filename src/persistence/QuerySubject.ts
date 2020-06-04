@@ -70,9 +70,7 @@ export class QuerySubject<T> {
 
     this.setPaginatorDefaults(this._paginatorDefaults, this._sql);
     this.observeStatement(this._sql);
-    this.observeQueryCallbackChanges(this._sql)
-      .then()
-      .catch();
+    this.observeQueryCallbackChanges(this._sql).then().catch();
   }
 
   public unsubscribe() {
@@ -143,7 +141,7 @@ export class QuerySubject<T> {
     sql?: IStatement,
     skipConnectors?: boolean,
     skipGeolocation?: boolean,
-  ): Promise<Array<IEntity<T>>> {
+  ): Promise<IEntity<T>[]> {
     this.uuid = this.getRepository().getUserUuid();
 
     if (
@@ -152,10 +150,7 @@ export class QuerySubject<T> {
         this.getRepository().isPrivateMode()) &&
       this.uuid === null
     ) {
-      await this.getRepository()
-        .getUserUuidObservable()
-        .pipe(take(1))
-        .toPromise();
+      await this.getRepository().getUserUuidObservable().pipe(take(1)).toPromise();
       this.uuid = this.getRepository().getUserUuid();
     }
 
@@ -345,11 +340,7 @@ export class QuerySubject<T> {
 
     if (paginatorDefaults && paginatorDefaults.pageSize) {
       this.getPaginator().setPageSize(paginatorDefaults.pageSize, true);
-      if (
-        this.getPaginator()
-          .getPageSizeOptions()
-          .indexOf(this.getPaginator().getPageSize()) < 0
-      ) {
+      if (this.getPaginator().getPageSizeOptions().indexOf(this.getPaginator().getPageSize()) < 0) {
         this.getPaginator().addPageSizeOption(paginatorDefaults.pageSize);
       }
     } else if (sql && sql.limit) {
@@ -386,7 +377,7 @@ export class QuerySubject<T> {
    * observe queryCallbackChanges$
    */
   private observeQueryCallbackChanges(sql?: IStatement): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this._subscriptions.push(
         this.queryCallbackChanges$.subscribe(async (changes: IQueryCallbackChanges) => {
           if (

@@ -166,12 +166,12 @@ describe('RepositoryTest', async () => {
     expect(await contacts.getResults()).to.be.lengthOf(0);
 
     const waitFor = async () => {
-      return new Promise<number[]>(resolve => {
+      return new Promise<number[]>((resolve) => {
         const counter: number[] = [];
         contacts
           .getResultsAsObservable()
           .pipe(
-            takeWhile((results: Array<IEntity<Contact>>) => {
+            takeWhile((results: IEntity<Contact>[]) => {
               counter.push(results.length);
               return results.length !== 3;
             }),
