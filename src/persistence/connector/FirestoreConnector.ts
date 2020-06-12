@@ -112,7 +112,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
     return this.dataMode === 'PRIVATE';
   }
 
-  public async add(items: IEntity<T>[]) {
+  public add(items: IEntity<T>[]) {
     return new Promise<any>((resolve, reject) => {
       try {
         items.forEach((item: any) => {
