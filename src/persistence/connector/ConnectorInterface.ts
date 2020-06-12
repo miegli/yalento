@@ -1,11 +1,11 @@
 import { Observable } from 'rxjs';
 
 export interface IConnectorInterface<T> {
-  add(items: T[]): void;
+  add(items: T[]): Promise<any>;
 
-  remove(items: T[]): void;
+  remove(items: T[]): Promise<any>;
 
-  update(items: T[]): void;
+  update(items: T[]): Promise<any>;
 
   select(sql: string): void;
 

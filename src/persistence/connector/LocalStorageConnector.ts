@@ -72,26 +72,26 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
     this.storage = storage;
   }
 
-  public add(items: IEntity<T>[]): void {
+  public add(items: IEntity<T>[]): Promise<any> {
     const promises: any[] = [];
     items.forEach((item: IEntity<T>) => {
       promises.push(this.storage.set(item.getUuid(), { ...item._toPlain(), __timestamp: new Date().getTime() }));
     });
 
-    Promise.all(promises).then();
+    return Promise.all(promises);
   }
 
-  public remove(items: IEntity<T>[]): void {
+  public remove(items: IEntity<T>[]): Promise<any> {
     const promises: any[] = [];
     items.forEach((item: IEntity<T>) => {
       promises.push(this.storage.remove(item.getUuid()));
     });
 
-    Promise.all(promises).then();
+    return Promise.all(promises);
   }
 
-  public update(items: IEntity<T>[]): void {
-    this.add(items);
+  public update(items: IEntity<T>[]): Promise<any> {
+    return this.add(items);
   }
 
   public select(sql: string): void {
