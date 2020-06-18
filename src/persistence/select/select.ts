@@ -57,7 +57,7 @@ export class Select<T> {
                 .then(() => {
                     const results: any[] = [];
                     this.getResults().forEach((r: IEntity<T>) => {
-                        let c = (r as any)._toPlain();
+                        const c = (r as any)._toPlain();
                         Object.keys(c).forEach((key) => {
                             if (key.substr(0, 2) === '__') {
                                 delete c[key];
