@@ -682,7 +682,7 @@ export class Repository<T> {
       configurable: false,
       writable: false,
       value: (): T => {
-        let plain = c['_toPlain']();
+        const plain = c['_toPlain']();
         Object.keys(plain).forEach((key) => {
           if (key.substr(0, 2) === '__') {
             delete plain[key];
