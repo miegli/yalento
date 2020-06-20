@@ -27,6 +27,10 @@ export class Select<T> {
     return this.paginator.getResults();
   }
 
+  public getModels(): T[] {
+    return this.paginator.getResults().map((result) => result.getModel());
+  }
+
   public getResultsAsPromise(): Promise<IEntity<T>[]> {
     return new Promise<IEntity<T>[]>((resolve) => {
       this.subject
