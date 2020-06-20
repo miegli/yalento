@@ -54,6 +54,8 @@ interface IBaseEntity<T> {
 
   getModel(): T;
 
+  toJson(): string;
+
   revert(): Promise<IEntity<T>>;
 
   setProperty(property: keyof T, value: any): IBaseEntityInner;
@@ -680,7 +682,12 @@ export class Repository<T> {
       configurable: false,
       writable: false,
       value: (): T => {
-        const plain = c['_toPlain']();
+        let plain = c['_toPlain']();
+        Object.keys(plain).forEach((key) => {
+          if (key.substr(0, 2) === '__') {
+            delete plain[key];
+          }
+        });
         return deserialize(this._class, JSON.stringify(plain));
       },
     });
@@ -720,8 +727,8 @@ export class Repository<T> {
       enumerable: false,
       configurable: false,
       writable: false,
-      value: (): GeoData => {
-        return new GeoData(c['__geohash'], c['__latitude'], c['__longitude']);
+      value: (): string => {
+        return JSON.stringify(c.getModel());
       },
     });
 
