@@ -86,7 +86,7 @@ export class QuerySubject<T> {
   public getSqlSelectParsed(sql?: IStatement): string {
     let statement = '';
     const params = this.getEvaluatedSqlParams(sql);
-    const querySelect = 'SELECT * FROM tmptablenametmp' + this.repository.getClassName() + ' ';
+    const querySelect = 'SELECT * FROM tmptablenametmp';
 
     if (!sql) {
       sql = {};
@@ -128,7 +128,7 @@ export class QuerySubject<T> {
       selectSqlStatement = selectSqlStatement + ' WHERE ' + ownerWhere;
     }
 
-    return selectSqlStatement.replace(/tmptablenametmp/g, '');
+    return selectSqlStatement.replace(/tmptablenametmp/g, this.repository.getClassName());
   }
 
   /**
