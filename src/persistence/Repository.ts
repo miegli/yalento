@@ -475,7 +475,7 @@ export class Repository<T> {
    * @param data
    * @param skipConnector
    */
-  public removeMultiple(data: IEntity<T>[] | T[], skipConnector?: string): Promise<IEntity<T>[]> | T[] {
+  public removeMultiple(data: IEntity<T>[] | T[], skipConnector?: string): Promise<IEntity<T>[]> {
     return new Promise<IEntity<T>[]>((resolve) => {
       data.forEach((value: any) => {
         value['__removed'] = true;
