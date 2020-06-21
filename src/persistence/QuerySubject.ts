@@ -128,7 +128,7 @@ export class QuerySubject<T> {
       selectSqlStatement = selectSqlStatement + ' WHERE ' + ownerWhere;
     }
 
-    return selectSqlStatement.replace(/tmptablenametmp/g,'');
+    return selectSqlStatement.replace(/tmptablenametmp/g, '');
   }
 
   /**
