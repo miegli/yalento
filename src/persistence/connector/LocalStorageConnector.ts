@@ -2,6 +2,7 @@ import { Observable, of } from 'rxjs';
 import { IEntity, Repository } from '../Repository';
 import { AbstractConnector } from './AbstractConnector';
 import { IConnectorInterface } from './ConnectorInterface';
+import { rejects } from 'assert';
 
 export interface IConnectionLocalStorage {
   debug?: boolean;
@@ -115,7 +116,7 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
   }
 
   public selectOneByIdentifier(identifier: string): Promise<IEntity<T>> {
-    return new Promise<IEntity<T>>((resolve) => {
+    return new Promise<IEntity<T>>((resolve, reject) => {
       this.storage.get(identifier).then((value) => {
         if (value) {
           this.repository
@@ -124,10 +125,10 @@ export class LocalStorageConnector<T> extends AbstractConnector<T> implements IC
               resolve(e);
             })
             .catch(() => {
-              resolve();
+              reject();
             });
         } else {
-          resolve();
+          reject();
         }
       });
     });

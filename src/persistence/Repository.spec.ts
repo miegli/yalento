@@ -119,14 +119,14 @@ describe('RepositoryTest', async () => {
     await contacts1.create({ name: 'name', lastName: 'lastName', age: 3 });
     expect(contacts1.getResults()).to.lengthOf(1);
 
-    const contacts2 = repository.select({ where: 'lastName LIKE "test"' });
-    await contacts2.create({ name: 'name', age: 1 });
-    await contacts2.create({ name: 'name', age: 2 });
-    await contacts2.create({ name: 'name', age: 2 });
-    await contacts2.create({ name: 'name', age: 3 });
-    await contacts2.create({ name: 'name', age: 4 });
-    await contacts2.create({ name: 'name', age: 5 });
-    await contacts2.create({ name: 'name', age: 6 });
+    const contacts2 = repository.select({ where: 'street LIKE "street" and name LIKE "name1"' });
+    await contacts2.create({ name: 'name1', age: 1 });
+    await contacts2.create({ name: 'name1', age: 2 });
+    await contacts2.create({ name: 'name1', age: 2 });
+    await contacts2.create({ name: 'name1', age: 3 });
+    await contacts2.create({ name: 'name1', age: 4 });
+    await contacts2.create({ name: 'name1', age: 5 });
+    await contacts2.create({ name: 'name1', age: 6 });
     expect(contacts2.getResults()).to.lengthOf(7);
 
     const contactsAll = repository.select();
@@ -262,11 +262,11 @@ describe('RepositoryTest', async () => {
 
   it('updating model after repository querying should update results', async () => {
     const repository: Repository<Contact> = new Repository(Contact, 'Contact');
-    const contacts = repository.select({ where: 'age = 0' });
+    const contacts = repository.select({ where: 'age = 1' });
     const contact = await contacts.create();
-    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
     contact.age = 1;
     await repository.update(contact);
-    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(0);
+    expect(await contacts.getResultsAsPromise()).to.be.lengthOf(1);
   });
 });

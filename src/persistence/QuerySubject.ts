@@ -3,8 +3,8 @@ import { take } from 'rxjs/operators';
 import { IClassProperty, IEntity, IRepositoryData, Repository } from '../persistence/Repository';
 import { IPageEventSort, IQueryPaginatorDefaults, QueryPaginator } from './query/QueryPaginator';
 declare const require: any;
-/// <reference path="alasql.d.ts" />
-// tslint:disable-next-line:no-var-requires
+
+//eslint-disable-next-line @typescript-eslint/no-var-requires
 const alasql = require('alasql');
 
 export interface IStatement {

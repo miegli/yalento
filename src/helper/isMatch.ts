@@ -1,6 +1,5 @@
 declare const require: any;
-// <reference path="alasql.d.ts" />
-// tslint:disable-next-line:no-var-requires
+//eslint-disable-next-line @typescript-eslint/no-var-requires
 const alasql = require('alasql');
 
 export class IsMatch {

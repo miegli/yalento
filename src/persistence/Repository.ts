@@ -9,11 +9,10 @@ import { IConnectionLocalStorage, IStorage, LocalStorageConnector } from './conn
 import { IQueryPaginatorDefaults } from './query/QueryPaginator';
 import { IStatement, QuerySubject } from './QuerySubject';
 import { Select } from './select/select';
-import { rejects } from 'assert';
 
 declare const require: any;
-/// <reference path="alasql.d.ts" />
-// tslint:disable-next-line:no-var-requires
+
+//eslint-disable-next-line @typescript-eslint/no-var-requires
 const alasql = require('alasql');
 
 export interface IRepositoryData {
@@ -70,7 +69,7 @@ interface IBaseEntity<T> {
 
   getGeoData(): GeoData;
 
-  _toPlain(): {};
+  _toPlain(): Record<any, any>;
 }
 
 export type IEntity<T> = IBaseEntity<T> &
@@ -312,12 +311,12 @@ export class Repository<T> {
         });
 
         if (promises.length === 0) {
-          resolve(undefined);
+          resolve({} as any);
         }
 
         Promise.all(promises).then(() => {
           this.exec({ where: '__uuid LIKE ?', params: [identifier] }, true).then((data) => {
-            resolve(data.length ? data[0] : undefined);
+            resolve(data.length ? data[0] : ({} as any));
           });
         });
       }

@@ -1,14 +1,8 @@
 import { expect } from 'chai';
-import * as firebase from 'firebase/app';
+import firebase from 'firebase/app';
 import 'firebase/firestore';
-
-import { Guid } from 'guid-typescript';
 import { describe, it } from 'mocha';
-import { BehaviorSubject } from 'rxjs';
 import { Repository } from '../Repository';
-
-// tslint:disable-next-line:no-var-requires
-require('dotenv').config();
 
 export class Contact {
   public name: string = '';
@@ -34,46 +28,7 @@ describe('FirestoreConnectorTest', async () => {
     fb.delete();
   });
 
-  it('firestore should be connected to repository', async () => {
-    expect(repo.connectFirestore(fb.firestore())).to.not.be.null;
-  });
-
   it('firestore should be disconnected after destroying repository', async () => {
     expect(repo.destroy()).to.not.be.null;
-  });
-
-  it('firestore should persist data', async () => {
-    const name = 'name' + Guid.create();
-
-    expect((await repo.create({ name: name }, 'test1'))['__uuid']).to.be.deep.equal('test1');
-
-    expect(
-      await repo.createMany([
-        { name: name, age: 1, __uuid: 'test2' },
-        {
-          name: name,
-          age: 2,
-          __uuid: 'test3',
-        },
-      ]),
-    ).to.be.lengthOf(2);
-    expect(await repo.select().getResultsAsPromise()).to.be.lengthOf(3);
-
-    const name$ = new BehaviorSubject<string>(name);
-    const repo2 = new Repository<Contact>(Contact, 'Contact');
-
-    repo2.connectFirestore(fb.firestore());
-    const select = repo2.select({
-      where: 'name LIKE ?',
-      params: [name$],
-    });
-
-    expect(await select.getResultsAsPromise()).to.be.lengthOf(3);
-
-    name$.next('test');
-
-    expect(await select.getResultsAsPromise()).to.be.lengthOf(0);
-
-    repo.destroy();
   });
 });

@@ -1,12 +1,13 @@
-import * as firebase from 'firebase/app';
+import firebase from 'firebase/app';
 import { Guid } from 'guid-typescript';
 import geohash from 'ngeohash';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { IEntity, Repository } from '../Repository';
 import { AbstractConnector } from './AbstractConnector';
 
 declare const require: any;
-// tslint:disable-next-line:no-var-requires
+
+//eslint-disable-next-line @typescript-eslint/no-var-requires
 const { Parser } = require('js-sql-parser');
 
 export class Firestore {}
@@ -202,7 +203,7 @@ export class FirestoreConnector<T> extends AbstractConnector<T> {
           }
         });
 
-        resolve();
+        resolve(null);
       } catch (e) {
         reject(e);
       }
