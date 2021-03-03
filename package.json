@@ -38,7 +38,7 @@
     "@firebase/firestore-types": "^2.1.0",
     "@types/bluebird": "^3.5.33",
     "@types/validator": "^13.1.1",
-    "alasql": "^0.6.5",
+    "alasql": "^0.7.0",
     "class-transformer": "^0.3.1",
     "core-js": "^3.8.1",
     "es6-shim": "^0.35.6",
